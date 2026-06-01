@@ -1,5 +1,3 @@
-import { Duffel } from '@duffel/api';
-
 const DEFAULT_BASE_URL = 'https://api.duffel.com';
 const DEFAULT_VERSION = 'v2';
 const DEFAULT_CURRENCY = 'GBP';
@@ -57,7 +55,20 @@ const parseDateLabel = (label, fallbackDate) => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(`${label || ''}`)) return label;
   if (fallbackDate) return fallbackDate;
   const normalised = normalise(label);
-  const monthMap = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  const monthMap = {
+    jan: 1,
+    feb: 2,
+    mar: 3,
+    apr: 4,
+    may: 5,
+    jun: 6,
+    jul: 7,
+    aug: 8,
+    sep: 9,
+    oct: 10,
+    nov: 11,
+    dec: 12,
+  };
   const match = normalised.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/);
   if (!match) return addDays(new Date(), 42);
   return nextDateForMonthDay(monthMap[match[2]], Number(match[1]));
@@ -83,14 +94,6 @@ const carrierName = (segment = {}) => segment.operating_carrier?.name || segment
 const placeCode = (place = {}) => place.iata_code || place.iata_city_code || place.name || '';
 const placeName = (place = {}) => place.city_name || place.name || placeCode(place);
 
-const normaliseDuffelResponse = (response) => {
-  if (!response) return [];
-  if (Array.isArray(response.data?.offers)) return response.data.offers;
-  if (Array.isArray(response.offers)) return response.offers;
-  if (Array.isArray(response.data)) return response.data;
-  return [];
-};
-
 export function createDuffelProvider(config = {}) {
   const providerConfig = {
     accessToken: config.accessToken,
@@ -102,7 +105,29 @@ export function createDuffelProvider(config = {}) {
     defaultNights: Number(config.defaultNights || DEFAULT_NIGHTS),
   };
 
-  const duffel = providerConfig.accessToken ? new Duffel({ token: providerConfig.accessToken }) : null;
+  const duffelFetch = async (path, payload, params = {}) => {
+    if (!providerConfig.accessToken) return null;
+
+    const url = new URL(`${providerConfig.baseUrl}${path}`);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, value);
+    });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${providerConfig.accessToken}`,
+        'Duffel-Version': providerConfig.version,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Accept-Encoding': 'gzip',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) throw new Error(`Duffel ${path} failed with ${response.status}`);
+    return response.json();
+  };
 
   const buildOfferRequest = (criteria = {}) => {
     const rawDestination = criteria.destinationLocationCode || criteria.destinationCode || criteria.destination;
@@ -181,15 +206,14 @@ export function createDuffelProvider(config = {}) {
     label: 'Duffel flight provider',
     configured: Boolean(providerConfig.accessToken),
     baseUrl: providerConfig.baseUrl,
-    clientLibrary: '@duffel/api',
     async locations() {
       return [];
     },
     async flights(criteria = {}) {
-      if (!duffel) return [];
       const { data, resolved } = buildOfferRequest(criteria);
-      const response = await duffel.offerRequests.create(data, { return_offers: true });
-      const offers = normaliseDuffelResponse(response);
+      const response = await duffelFetch('/air/offer_requests', { data }, { return_offers: true });
+      if (!response) return [];
+      const offers = response.data?.offers || [];
       return offers.slice(0, Number(criteria.max || 5)).map((offer) => mapOffer(offer, criteria, resolved));
     },
     async search(criteria = {}) {
@@ -202,13 +226,10 @@ export function createDuffelProvider(config = {}) {
       return {
         provider: this.id,
         configured: this.configured,
-        mode: this.configured ? 'official-js-client-ready' : 'needs-server-side-token',
-        clientLibrary: this.clientLibrary,
-        baseUrl: providerConfig.baseUrl,
-        apiVersion: providerConfig.version,
+        mode: this.configured ? 'test-or-live-token-present' : 'needs-server-side-token',
         note: this.configured
-          ? 'Duffel official JavaScript client is available server-side. This creates offer requests only; no orders, payments, seat maps or ancillaries are created.'
-          : 'Set DUFFEL_ACCESS_TOKEN on the server to enable Duffel offer-request search. Use a test token first and keep tokens out of browser code.',
+          ? 'Duffel flight offer search scaffold is available server-side. This PR creates offer requests only; no orders, payments, seat maps or ancillaries are created.'
+          : 'Set DUFFEL_ACCESS_TOKEN on the server to enable Duffel offer-request search. Use test tokens locally and keep tokens out of browser code.',
       };
     },
   };
