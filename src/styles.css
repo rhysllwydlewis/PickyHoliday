@@ -184,3 +184,9 @@ footer{background:linear-gradient(135deg,#063c83,#021f4c);color:#dcecff;margin-t
 .select-field p{display:grid;grid-template-columns:minmax(0,1fr) auto}
 @media(max-width:1100px){.mobile-menu{display:block}}
 @media(max-width:720px){.mobile-menu{top:74px}.modal-actions{display:grid}.toast{left:16px;right:16px;bottom:16px}.field.big{height:auto}.field input{min-height:25px}.trust-line{position:static;margin-bottom:12px}}
+.provider-chip{margin:8px 0 0;color:#6f82a2;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+.loading-state,.error-state{grid-column:1/-1;border-radius:13px;padding:16px 18px;margin:0 0 14px;font-size:14px;font-weight:800}
+.loading-state{background:#eef8ff;color:#075edb;border:1px solid #cfe6ff}
+.error-state{background:#fff1f1;color:#a43737;border:1px solid #ffd1d1}
+.modal{width:min(680px,100%);max-height:86vh;overflow:auto}
+.modal-actions{flex-wrap:wrap}
