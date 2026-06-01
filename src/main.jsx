@@ -26,10 +26,12 @@ import {
 } from 'lucide-react';
 import './styles.css';
 import { imageUrls, getaways, guides, reviews } from './data/mockDeals.js';
-import { searchHolidays, submitEnquiry } from './services/travelApi.js';
+import { getFrontendProviderMode, getProviderStatus, searchHolidays, searchLocations, submitEnquiry } from './services/travelApi.js';
 
 const img = (id) => imageUrls[id] || id;
+const hasPricedAmount = (deal) => Number(deal?.priceFrom || 0) > 0;
 const formatPrice = (deal) => `${deal.currency === 'GBP' ? '£' : deal.currency}${deal.priceFrom}`;
+const priceCopy = (deal) => (hasPricedAmount(deal) ? formatPrice(deal) : 'Price to confirm');
 const dealPlace = (deal) => `${deal.destination}, ${deal.country}`;
 
 const benefits = [
@@ -180,7 +182,7 @@ function SearchSelect({ icon: Icon, label, name, value, options, onChange }) {
   );
 }
 
-function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch }) {
+function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, locationSuggestions, onLookupLocations }) {
   const updateSearchField = (name, value) => {
     setSearch((currentSearch) => ({ ...currentSearch, [name]: value }));
   };
@@ -210,9 +212,19 @@ function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch }) {
             <input
               value={search.destination}
               onChange={(event) => updateSearchField('destination', event.target.value)}
+              onBlur={() => onLookupLocations(search.destination)}
               placeholder="Search destinations, resort or hotel"
             />
           </p>
+          {locationSuggestions.length > 0 && (
+            <div className="location-suggestions" aria-label="Location suggestions">
+              {locationSuggestions.slice(0, 4).map((location) => (
+                <button key={location.id} type="button" onClick={() => updateSearchField('destination', location.cityName || location.name)}>
+                  {location.name} {location.iataCode && <b>{location.iataCode}</b>}
+                </button>
+              ))}
+            </div>
+          )}
         </label>
         <SearchSelect icon={Plane} label="From" name="origin" value={search.origin} options={fieldOptions.origin} onChange={updateSearchField} />
         <SearchSelect icon={CalendarDays} label="When" name="date" value={search.date} options={fieldOptions.date} onChange={updateSearchField} />
@@ -239,7 +251,7 @@ function DealCard({ deal, onView }) {
         <div className="rating"><Stars small />{deal.rating}</div>
         <p className="provider-chip">{deal.supplierName} · {deal.resultType}</p>
         <div className="price">
-          <p>From <b>{formatPrice(deal)}</b> {deal.priceQualifier}</p>
+          <p>{hasPricedAmount(deal) ? 'From ' : ''}<b>{priceCopy(deal)}</b> {deal.priceQualifier}</p>
           <button onClick={() => onView(deal)}>View trip</button>
         </div>
       </div>
@@ -272,7 +284,8 @@ function Dialog({ content, onClose }) {
             <li><b>Airlines:</b> {content.deal.airlineNames?.length ? content.deal.airlineNames.join(', ') : 'Quoted separately'}</li>
             <li><b>Destination:</b> {dealPlace(content.deal)}</li>
             <li><b>Hotel:</b> {content.deal.hotelName}</li>
-            <li><b>Lead price:</b> {formatPrice(content.deal)} {content.deal.priceQualifier}</li>
+            <li><b>Lead price:</b> {priceCopy(content.deal)} {content.deal.priceQualifier}</li>
+            {content.deal.sourceBreakdown && <li><b>Pricing confidence:</b> {content.deal.sourceBreakdown.pricingConfidence} · flight {content.deal.sourceBreakdown.flightPrice || 'n/a'} · hotel {content.deal.sourceBreakdown.hotelPrice || 'n/a'}</li>}
             <li><b>Nights/date:</b> {content.deal.nights} nights · {content.deal.dateLabel}</li>
             <li><b>Group size:</b> {content.deal.groupSizeLabel}</li>
             <li><b>Board/bags:</b> {content.deal.boardBasis} · {content.deal.baggageLabel}</li>
@@ -291,12 +304,47 @@ function Dialog({ content, onClose }) {
   );
 }
 
-function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onViewDeal, isLoading, error }) {
+function ProviderDiagnostics({ diagnostics, onRefresh }) {
+  const errors = diagnostics.providerErrors || [];
+  const statuses = diagnostics.providerStatus || diagnostics.providers || [];
+
+  return (
+    <aside className="provider-diagnostics">
+      <div>
+        <span>Provider status</span>
+        <button onClick={onRefresh}>Refresh</button>
+      </div>
+      <dl>
+        <dt>Front end</dt><dd>{diagnostics.frontendMode}</dd>
+        <dt>Backend</dt><dd>{diagnostics.backendMode || 'mock/local'}</dd>
+        <dt>Active</dt><dd>{(diagnostics.activeProviders || []).join(', ') || 'mock'}</dd>
+        <dt>Amadeus</dt><dd>{diagnostics.amadeusConfigured ? 'configured server-side' : 'not configured / mock only'}</dd>
+        <dt>Latest</dt><dd>{diagnostics.latestSource || 'mock'}</dd>
+      </dl>
+      {statuses.length > 0 && (
+        <ul>
+          {statuses.slice(0, 4).map((status) => (
+            <li key={`${status.provider}-${status.lastMethod || status.mode}`}>{status.provider}: {status.mode || 'ready'}{Number.isFinite(status.resultCount) ? ` · ${status.resultCount} results` : ''}</li>
+          ))}
+        </ul>
+      )}
+      {errors.length > 0 && (
+        <div className="provider-errors">
+          <b>Latest provider notes</b>
+          {errors.map((error, index) => <p key={`${error.provider}-${error.method}-${index}`}>{error.provider} {error.method}: {error.message}</p>)}
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onViewDeal, isLoading, error, diagnostics, onRefreshDiagnostics }) {
   return (
     <section className="content block overlap" id="deals">
       <SectionTitle title="Popular group holiday deals" link="View all deals" onLink={onReset} />
       <p className="results-note">{searchSummary}</p>
-      {isLoading && <div className="loading-state">Searching provider adapters in mock mode…</div>}
+      <ProviderDiagnostics diagnostics={diagnostics} onRefresh={onRefreshDiagnostics} />
+      {isLoading && <div className="loading-state">Searching provider adapters safely. Mock fallback stays available if the API is unavailable…</div>}
       {error && <div className="error-state">{error}</div>}
       <button className="arrow left" onClick={() => onRotateDeals('prev')} aria-label="Previous deal"><ChevronLeft /></button>
       <div className="deals grid-six">
@@ -391,6 +439,16 @@ function App() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [notice, setNotice] = useState('');
   const [modal, setModal] = useState(null);
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [diagnostics, setDiagnostics] = useState({
+    frontendMode: getFrontendProviderMode(),
+    backendMode: 'mock',
+    activeProviders: ['mock'],
+    amadeusConfigured: false,
+    latestSource: 'mock',
+    providerErrors: [],
+    providerStatus: [],
+  });
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -410,12 +468,58 @@ function App() {
   const openMessage = (title, body, kicker) => setModal({ title, body, kicker });
   const showNotice = (message) => setNotice(message);
 
+  const refreshDiagnostics = async () => {
+    try {
+      const status = await getProviderStatus();
+      setDiagnostics((current) => ({
+        ...current,
+        frontendMode: getFrontendProviderMode(),
+        backendMode: status.providerMode,
+        activeProviders: status.activeProviders || status.meta?.activeProviders || [],
+        amadeusConfigured: Boolean(status.amadeusConfigured),
+        providerStatus: status.providers || current.providerStatus || [],
+        providerErrors: status.providerErrors || [],
+      }));
+    } catch (error) {
+      setDiagnostics((current) => ({
+        ...current,
+        latestSource: 'mock fallback',
+        providerErrors: [{ provider: 'frontend', method: 'health', message: error.message }],
+      }));
+    }
+  };
+
+  const lookupLocations = async (keyword) => {
+    if (!keyword || keyword.trim().length < 3) return;
+    try {
+      const response = await searchLocations(keyword);
+      setLocationSuggestions(response.results || []);
+      setDiagnostics((current) => ({
+        ...current,
+        backendMode: response.providerMode || current.backendMode,
+        latestSource: (response.meta?.activeProviders || []).join(', ') || response.providerMode,
+        providerErrors: response.providerErrors || [],
+        providerStatus: response.providerStatus || current.providerStatus,
+      }));
+    } catch (error) {
+      setDiagnostics((current) => ({ ...current, providerErrors: [{ provider: 'frontend', method: 'locations', message: error.message }] }));
+    }
+  };
+
   const runHolidaySearch = async (criteria, shouldScroll = true) => {
     setIsSearching(true);
     setSearchError('');
     try {
       const response = await searchHolidays(criteria);
       setDealList(response.results || []);
+      setDiagnostics((current) => ({
+        ...current,
+        backendMode: response.providerMode,
+        activeProviders: response.meta?.activeProviders || current.activeProviders,
+        latestSource: response.meta?.fallbackUsed ? 'mock fallback' : (response.providerStatus || []).filter((status) => status.resultCount > 0).map((status) => status.provider).join(', ') || response.providerMode,
+        providerErrors: response.providerErrors || [],
+        providerStatus: response.providerStatus || current.providerStatus,
+      }));
       setSearchSummary(`Showing ${criteria.intent.toLowerCase()} from ${criteria.origin} for ${criteria.date.toLowerCase()} (${criteria.groupSize}) · ${response.providerMode} mode.`);
       if (shouldScroll) scrollToId('deals');
     } catch (error) {
@@ -427,6 +531,7 @@ function App() {
   };
 
   useEffect(() => {
+    refreshDiagnostics();
     runHolidaySearch({ ...search, intent: activeTab }, false);
   }, []);
 
@@ -468,7 +573,7 @@ function App() {
       onEnquiry: async (deal) => {
         const response = await submitEnquiry({ ...deal, resultId: deal.id });
         setModal(null);
-        showNotice(response.message || 'Mock enquiry sent. No booking was created.');
+        showNotice(response.enquiry?.message || response.message || 'Mock enquiry sent. No booking was created.');
       },
     });
   };
@@ -478,7 +583,7 @@ function App() {
       <Header onAction={openMessage} />
       <main>
         <Hero />
-        <SearchPanel activeTab={activeTab} setActiveTab={setActiveTab} search={search} setSearch={setSearch} onSearch={handleSearch} />
+        <SearchPanel activeTab={activeTab} setActiveTab={setActiveTab} search={search} setSearch={setSearch} onSearch={handleSearch} locationSuggestions={locationSuggestions} onLookupLocations={lookupLocations} />
         <DealsSection
           dealsToShow={filteredDeals}
           searchSummary={searchSummary}
@@ -487,6 +592,8 @@ function App() {
           onViewDeal={handleViewDeal}
           isLoading={isSearching}
           error={searchError}
+          diagnostics={diagnostics}
+          onRefreshDiagnostics={refreshDiagnostics}
         />
         <GetawaysSection
           items={getawayList}

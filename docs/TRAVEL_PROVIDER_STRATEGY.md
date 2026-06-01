@@ -2,7 +2,7 @@
 
 ## Purpose of this PR
 
-This PR creates the provider-based travel integration foundation and keeps mock mode as the default. It now includes a server-side, credential-gated Amadeus integration for Flight Offers Search and Hotel List, but it still does **not** create live bookings, payments, or booking confirmations.
+Phase 2 hardens the provider foundation and keeps mock mode safe by default. It includes provider error isolation, consistent API envelopes, provider diagnostics, server-side Amadeus Airport & City Search, Flight Offers Search, Hotel List and best-effort Hotel Offers pricing. It still does **not** create live bookings, payments, orders or booking confirmations.
 
 ## Why provider adapters
 
@@ -13,7 +13,7 @@ PickyHoliday should not be locked to one travel API. UK and Europe holidays need
 | Provider | Responsibility in this PR | Future role |
 | --- | --- | --- |
 | Mock provider | Powers search by default with normalised demo results. | Safe local/demo mode and regression fixture. |
-| Amadeus provider | Server-side live-capable adapter for OAuth, Flight Offers Search and Hotel List when credentials are configured. | Expand into richer hotel offers, autocomplete and composition in later PRs. |
+| Amadeus provider | Server-side sandbox adapter for OAuth, Airport & City Search, dynamic airport/city code resolution, Flight Offers Search, Hotel List and best-effort Hotel Offers pricing when credentials are configured. | May later expand into stronger availability, pricing and supplier-specific booking readiness after commercial/legal review. |
 | Affiliate/package provider | Scaffold only; no partner feed calls. | TUI, Jet2holidays, easyJet Holidays, Loveholidays, On the Beach, Expedia-style redirects and package affiliate links. |
 | Manual deals provider | Supports curated promoted deals/adverts. | Early monetisation, sponsored placements and manual group quote offers. |
 | Hotel specialist providers | Not implemented in this PR. | Expedia Rapid or Hotelbeds/HBX-style lodging depth. |
@@ -49,6 +49,9 @@ Every provider should map its own response into this shape before returning resu
   priceFrom,
   currency,
   priceQualifier,
+  priceType,
+  pricingConfidence,
+  sourceBreakdown,
   flightSummary,
   hotelSummary,
   nights,
@@ -77,6 +80,8 @@ The server-side proxy is designed to keep secrets off the browser. Current mock-
 - `POST /api/travel/packages`
 - `POST /api/travel/holiday-composer`
 - `POST /api/travel/enquiries`
+- `GET /api/travel/locations?keyword=barcelona`
+- `POST /api/travel/locations`
 
 ## Environment strategy
 
@@ -85,7 +90,7 @@ The server-side proxy is designed to keep secrets off the browser. Current mock-
 ## Staged follow-up PRs
 
 1. Provider foundation (this PR).
-2. Expand Amadeus sandbox search: airport/city autocomplete, hotel offers pricing and stronger flight + hotel composition.
+2. Hardened Amadeus sandbox search (this phase): airport/city lookup, hotel offers pricing attempt and stronger flight + hotel composition.
 3. Package/affiliate provider: partner link model and approved redirects.
 4. Hotel depth provider: Expedia Rapid or Hotelbeds/HBX-style lodging stock.
 5. Enquiry/CRM persistence: store enquiries, email/CRM notifications and admin review.

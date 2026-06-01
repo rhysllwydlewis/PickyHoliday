@@ -190,3 +190,19 @@ footer{background:linear-gradient(135deg,#063c83,#021f4c);color:#dcecff;margin-t
 .error-state{background:#fff1f1;color:#a43737;border:1px solid #ffd1d1}
 .modal{width:min(680px,100%);max-height:86vh;overflow:auto}
 .modal-actions{flex-wrap:wrap}
+.location-suggestions{position:absolute;margin-top:8px;background:white;border:1px solid #d8e7f8;border-radius:14px;box-shadow:0 16px 35px rgba(15,62,119,.14);padding:8px;z-index:20;display:grid;gap:4px;width:min(360px,calc(100vw - 60px))}
+.field.big{position:relative}
+.location-suggestions button{background:#f7fbff;color:#123d76;border-radius:10px;padding:9px 11px;text-align:left;font-size:12px;font-weight:800;display:flex;justify-content:space-between;gap:8px}
+.location-suggestions button:hover{background:#eaf5ff}
+.location-suggestions b{color:#00a6a6}
+.provider-diagnostics{grid-column:1/-1;margin:0 0 16px;border:1px solid #d7e8fb;background:linear-gradient(135deg,#f8fcff,#eef8f8);border-radius:18px;padding:16px 18px;color:#123d76;box-shadow:0 10px 28px rgba(15,62,119,.08)}
+.provider-diagnostics>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:10px}
+.provider-diagnostics span{font-size:12px;font-weight:1000;text-transform:uppercase;letter-spacing:.7px;color:#00a6a6}
+.provider-diagnostics button{background:#0b67dd;color:white;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:900}
+.provider-diagnostics dl{display:grid;grid-template-columns:repeat(5,auto 1fr);gap:6px 10px;margin:0;font-size:12px;align-items:center}
+.provider-diagnostics dt{font-weight:1000;color:#092d64}.provider-diagnostics dd{margin:0;color:#5d7192}
+.provider-diagnostics ul{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0;padding:0;list-style:none}
+.provider-diagnostics li{background:white;border:1px solid #dceafa;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:800;color:#536b8e}
+.provider-errors{margin-top:12px;background:#fff8e7;border:1px solid #ffe3a2;border-radius:12px;padding:10px 12px}
+.provider-errors b{display:block;font-size:12px;margin-bottom:5px;color:#8a5b00}.provider-errors p{margin:4px 0;color:#7a5a18;font-size:12px;font-weight:800}
+@media(max-width:900px){.provider-diagnostics dl{grid-template-columns:auto 1fr}.location-suggestions{position:static;width:100%}}

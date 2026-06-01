@@ -44,6 +44,8 @@ const cityCodes = {
 };
 
 const normalise = (value = '') => value.toString().trim().toLowerCase();
+const looksLikeIata = (value) => /^[A-Z]{3}$/.test(`${value || ''}`.trim().toUpperCase());
+const explicitCode = (value) => (looksLikeIata(value) ? value.trim().toUpperCase() : '');
 
 const addDays = (date, days) => {
   const nextDate = new Date(date);
@@ -60,6 +62,7 @@ const nextDateForMonthDay = (month, day) => {
 };
 
 const parseDateLabel = (label, fallbackDate) => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(`${label || ''}`)) return label;
   if (fallbackDate) return fallbackDate;
   const normalised = normalise(label);
   const monthMap = {
@@ -92,7 +95,7 @@ const parseAdults = (groupSize, fallbackAdults = DEFAULT_ADULTS) => {
   return Math.min(Math.max(Number(match[1]), 1), 9);
 };
 
-const resolveCode = (value, knownCodes, fallback) => knownCodes[normalise(value)] || fallback;
+const resolveCode = (value, knownCodes, fallback) => explicitCode(value) || knownCodes[normalise(value)] || fallback;
 
 const pickCarrierNames = (offer = {}, dictionaries = {}) => {
   const carrierCodes = offer.itineraries?.flatMap((itinerary) => itinerary.segments?.map((segment) => segment.carrierCode) || []) || [];
@@ -102,6 +105,7 @@ const pickCarrierNames = (offer = {}, dictionaries = {}) => {
 
 const firstSegment = (offer = {}) => offer.itineraries?.[0]?.segments?.[0];
 const lastSegment = (offer = {}) => offer.itineraries?.at(-1)?.segments?.at(-1);
+const firstOfferPrice = (hotel) => hotel.offers?.[0]?.price;
 
 export function createAmadeusProvider(config = {}) {
   const providerConfig = {
@@ -142,7 +146,7 @@ export function createAmadeusProvider(config = {}) {
     return tokenCache.accessToken;
   };
 
-  const amadeusGet = async (path, params = {}) => {
+  const amadeusFetch = async (method, path, params = {}, payload) => {
     if (!providerConfig.clientId || !providerConfig.clientSecret) return null;
 
     const token = await requestToken();
@@ -151,27 +155,105 @@ export function createAmadeusProvider(config = {}) {
       if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, value);
     });
 
-    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(payload ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: payload ? JSON.stringify(payload) : undefined,
+    });
     if (!response.ok) throw new Error(`Amadeus ${path} failed with ${response.status}`);
     return response.json();
   };
 
+  const amadeusGet = (path, params = {}) => amadeusFetch('GET', path, params);
+
+  const resolveLocationCode = async (value, knownCodes, fallback, subType = 'CITY,AIRPORT') => {
+    const directCode = resolveCode(value, knownCodes, '');
+    if (directCode) return directCode;
+    const keyword = `${value || ''}`.trim();
+    if (!keyword || !providerConfig.clientId || !providerConfig.clientSecret) return fallback;
+
+    const response = await amadeusGet('/v1/reference-data/locations', {
+      keyword,
+      subType,
+      'page[limit]': 1,
+      view: 'LIGHT',
+    });
+    return response?.data?.[0]?.iataCode || fallback;
+  };
+
   const buildFlightCriteria = (criteria = {}) => {
-    const destinationCode = resolveCode(criteria.destination, destinationCodes, normalise(criteria.destination).slice(0, 3).toUpperCase());
+    const rawDestination = criteria.destinationLocationCode || criteria.destinationCode || criteria.destination;
+    const rawOrigin = criteria.originLocationCode || criteria.originCode || criteria.origin;
+    const destinationCode = resolveCode(rawDestination, destinationCodes, normalise(rawDestination).slice(0, 3).toUpperCase() || 'BCN');
+    const departureDate = criteria.departureDate || parseDateLabel(criteria.date, providerConfig.defaultDepartureDate);
+    const returnDate = criteria.returnDate || addDays(departureDate, Number(criteria.nights || parseNights(criteria.date, providerConfig.defaultNights)));
+
     return {
-      originLocationCode: resolveCode(criteria.origin, originCodes, 'LON'),
+      originLocationCode: resolveCode(rawOrigin, originCodes, 'LON'),
       destinationLocationCode: destinationCode,
-      departureDate: parseDateLabel(criteria.date, providerConfig.defaultDepartureDate),
-      returnDate: addDays(parseDateLabel(criteria.date, providerConfig.defaultDepartureDate), parseNights(criteria.date, providerConfig.defaultNights)),
-      adults: parseAdults(criteria.groupSize, providerConfig.defaultAdults),
-      currencyCode: providerConfig.currency,
+      departureDate,
+      returnDate,
+      adults: Number(criteria.adults || parseAdults(criteria.groupSize, providerConfig.defaultAdults)),
+      currencyCode: criteria.currencyCode || providerConfig.currency,
       max: criteria.max || 5,
       destinationCode,
     };
   };
 
-  const mapFlightOffer = (offer, criteria = {}, dictionaries = {}) => {
-    const request = buildFlightCriteria(criteria);
+  const buildHotelCriteria = (criteria = {}) => {
+    const flightCriteria = buildFlightCriteria(criteria);
+    return {
+      cityCode: criteria.cityCode || cityCodes[flightCriteria.destinationCode] || flightCriteria.destinationCode,
+      checkInDate: criteria.checkInDate || flightCriteria.departureDate,
+      checkOutDate: criteria.checkOutDate || flightCriteria.returnDate,
+      adults: flightCriteria.adults,
+      currency: flightCriteria.currencyCode,
+      max: Number(criteria.max || 5),
+    };
+  };
+
+
+  const buildFlightRequest = async (criteria = {}) => {
+    const fallbackCriteria = buildFlightCriteria(criteria);
+    const rawDestination = criteria.destinationLocationCode || criteria.destinationCode || criteria.destination;
+    const rawOrigin = criteria.originLocationCode || criteria.originCode || criteria.origin;
+
+    return {
+      ...fallbackCriteria,
+      originLocationCode: await resolveLocationCode(rawOrigin, originCodes, fallbackCriteria.originLocationCode),
+      destinationLocationCode: await resolveLocationCode(rawDestination, destinationCodes, fallbackCriteria.destinationLocationCode),
+    };
+  };
+
+  const buildHotelRequest = async (criteria = {}) => {
+    const flightCriteria = await buildFlightRequest(criteria);
+    return {
+      cityCode: criteria.cityCode || cityCodes[flightCriteria.destinationLocationCode] || flightCriteria.destinationLocationCode,
+      checkInDate: criteria.checkInDate || flightCriteria.departureDate,
+      checkOutDate: criteria.checkOutDate || flightCriteria.returnDate,
+      adults: flightCriteria.adults,
+      currency: flightCriteria.currencyCode,
+      max: Number(criteria.max || 5),
+    };
+  };
+
+  const mapLocation = (location) => ({
+    id: `amadeus-location-${location.id || location.iataCode || location.name}`,
+    provider: 'amadeus',
+    type: location.type || 'location',
+    name: location.name || location.detailedName || location.address?.cityName || location.iataCode,
+    cityName: location.address?.cityName || location.name || '',
+    countryName: location.address?.countryName || location.address?.countryCode || '',
+    iataCode: location.iataCode || '',
+    subType: location.subType || '',
+    relevance: Number(location.analytics?.travelers?.score || 0),
+  });
+
+  const mapFlightOffer = (offer, criteria = {}, dictionaries = {}, resolvedRequest = null) => {
+    const request = resolvedRequest || buildFlightCriteria(criteria);
     const outbound = firstSegment(offer);
     const inbound = lastSegment(offer);
     const destination = criteria.destination || request.destinationLocationCode;
@@ -189,18 +271,28 @@ export function createAmadeusProvider(config = {}) {
       image: 'city',
       priceFrom: Number(offer.price?.grandTotal || offer.price?.total || 0),
       currency: offer.price?.currency || providerConfig.currency,
-      priceQualifier: 'total live fare from Amadeus test API',
-      savingLabel: 'LIVE API',
+      priceQualifier: 'flight-only total from Amadeus sandbox',
+      priceType: 'flight-only total',
+      pricingConfidence: 'priced',
+      sourceBreakdown: {
+        flightProvider: 'amadeus',
+        hotelProvider: null,
+        flightPrice: Number(offer.price?.grandTotal || offer.price?.total || 0),
+        hotelPrice: null,
+        estimatedTotal: Number(offer.price?.grandTotal || offer.price?.total || 0),
+        pricingConfidence: 'priced',
+      },
+      savingLabel: 'SANDBOX',
       rating: 'Provider result',
       flightSummary: `${outbound?.departure?.iataCode || request.originLocationCode} to ${outbound?.arrival?.iataCode || request.destinationLocationCode}; returns ${inbound?.departure?.iataCode || request.destinationLocationCode} to ${inbound?.arrival?.iataCode || request.originLocationCode}`,
-      hotelSummary: 'Hotel can be composed through the Amadeus hotel adapter or package provider in a later booking flow.',
+      hotelSummary: 'Hotel can be composed through the Amadeus hotel adapter. Cabin, baggage and fare rules must be confirmed before any future booking flow.',
       nights: parseNights(criteria.date, providerConfig.defaultNights),
       departureAirport: outbound?.departure?.iataCode || request.originLocationCode,
       returnAirport: inbound?.arrival?.iataCode || request.originLocationCode,
       dateLabel: `${request.departureDate} to ${request.returnDate}`,
       groupSizeLabel: criteria.groupSize || `${request.adults} adults`,
-      boardBasis: 'Flight only',
-      baggageLabel: 'Baggage and fare rules must be checked with the live offer details before booking.',
+      boardBasis: 'Flight only; cabin details vary by offer',
+      baggageLabel: 'Baggage and fare-rule caveats must be checked with the airline/supplier before booking.',
       protectionLabel: 'Search only. No booking or payment is created by PickyHoliday.',
       bookingMode: 'enquiry',
       partnerUrl: '',
@@ -209,82 +301,152 @@ export function createAmadeusProvider(config = {}) {
     };
   };
 
-  const mapHotel = (hotel, criteria = {}) => ({
-    id: `amadeus-hotel-${hotel.hotelId || hotel.hotelName}`,
-    resultType: 'hotel-only',
-    provider: 'amadeus',
-    supplierName: 'Amadeus Self-Service Hotel List',
-    airlineNames: [],
-    destination: criteria.destination || hotel.address?.cityName || hotel.iataCode || 'Selected city',
-    country: hotel.address?.countryCode || 'To be resolved by provider',
-    hotelName: hotel.name || hotel.hotelName || 'Amadeus hotel result',
-    image: 'city',
-    priceFrom: 0,
-    currency: providerConfig.currency,
-    priceQualifier: 'price requires hotel offers search',
-    savingLabel: 'LIVE API',
-    rating: hotel.rating ? `${hotel.rating} star` : 'Provider result',
-    flightSummary: 'Flights can be composed separately through the Amadeus flight adapter.',
-    hotelSummary: `${hotel.address?.lines?.join(', ') || 'Hotel list result from Amadeus.'}`,
-    nights: parseNights(criteria.date, providerConfig.defaultNights),
-    departureAirport: resolveCode(criteria.origin, originCodes, 'LON'),
-    returnAirport: hotel.iataCode || '',
-    dateLabel: criteria.date || 'Flexible dates',
-    groupSizeLabel: criteria.groupSize || 'Group quote required',
-    boardBasis: 'To be confirmed from live hotel offer',
-    baggageLabel: 'Not applicable to hotel-only result',
-    protectionLabel: 'Search only. No booking or payment is created by PickyHoliday.',
-    bookingMode: 'enquiry',
-    partnerUrl: '',
-    tags: ['Holidays', 'Group hotel stays', 'Amadeus'],
-    isDemo: false,
-  });
+  const mapHotel = (hotel, criteria = {}, offerHotel = null) => {
+    const hotelOffer = offerHotel || hotel;
+    const price = firstOfferPrice(hotelOffer);
+    const numericPrice = Number(price?.total || price?.base || 0);
+    const hasPrice = numericPrice > 0;
+
+    return {
+      id: `amadeus-hotel-${hotel.hotelId || hotelOffer.hotel?.hotelId || hotel.name || hotel.hotelName}`,
+      resultType: 'hotel-only',
+      provider: 'amadeus',
+      supplierName: hasPrice ? 'Amadeus Hotel Offers Search' : 'Amadeus Hotel List',
+      airlineNames: [],
+      destination: criteria.destination || hotel.address?.cityName || hotel.iataCode || 'Selected city',
+      country: hotel.address?.countryCode || hotelOffer.hotel?.address?.countryCode || 'To be resolved by provider',
+      hotelName: hotel.name || hotel.hotelName || hotelOffer.hotel?.name || 'Amadeus hotel result',
+      image: 'city',
+      priceFrom: numericPrice,
+      currency: price?.currency || providerConfig.currency,
+      priceQualifier: hasPrice ? 'hotel-only from price from Amadeus sandbox' : 'price unavailable in sandbox; confirm with supplier',
+      priceType: hasPrice ? 'hotel-only from price' : 'price to confirm',
+      pricingConfidence: hasPrice ? 'priced' : 'unpriced',
+      sourceBreakdown: {
+        flightProvider: null,
+        hotelProvider: 'amadeus',
+        flightPrice: null,
+        hotelPrice: hasPrice ? numericPrice : null,
+        estimatedTotal: hasPrice ? numericPrice : null,
+        pricingConfidence: hasPrice ? 'priced' : 'unpriced',
+      },
+      savingLabel: hasPrice ? 'SANDBOX PRICE' : 'SANDBOX LIST',
+      rating: hotel.rating ? `${hotel.rating} star` : 'Provider result',
+      flightSummary: 'Flights can be composed separately through the Amadeus flight adapter.',
+      hotelSummary: `${hotel.address?.lines?.join(', ') || hotelOffer.hotel?.address?.lines?.join(', ') || 'Hotel list result from Amadeus.'}`,
+      nights: parseNights(criteria.date, providerConfig.defaultNights),
+      departureAirport: resolveCode(criteria.origin, originCodes, 'LON'),
+      returnAirport: hotel.iataCode || '',
+      dateLabel: criteria.date || `${buildHotelCriteria(criteria).checkInDate} to ${buildHotelCriteria(criteria).checkOutDate}`,
+      groupSizeLabel: criteria.groupSize || `${buildHotelCriteria(criteria).adults} adults`,
+      boardBasis: hasPrice ? 'Hotel offer returned by sandbox; board terms must be confirmed.' : 'To be confirmed from a priced hotel offer',
+      baggageLabel: 'Not applicable to hotel-only result',
+      protectionLabel: 'Search only. No booking or payment is created by PickyHoliday.',
+      bookingMode: 'enquiry',
+      partnerUrl: '',
+      tags: ['Holidays', 'Group hotel stays', 'Amadeus'],
+      isDemo: false,
+    };
+  };
+
+  const pricedHotelOffers = async (hotelIds = [], criteria = {}) => {
+    if (!hotelIds.length) return [];
+    const request = buildHotelCriteria(criteria);
+    const response = await amadeusGet('/v3/shopping/hotel-offers', {
+      hotelIds: hotelIds.slice(0, request.max).join(','),
+      adults: request.adults,
+      checkInDate: request.checkInDate,
+      checkOutDate: request.checkOutDate,
+      currency: request.currency,
+      bestRateOnly: true,
+    });
+    return response?.data || [];
+  };
 
   return {
     id: 'amadeus',
-    label: 'Amadeus live-capable flight + hotel provider',
+    label: 'Amadeus sandbox flight + hotel provider',
     configured: Boolean(providerConfig.clientId && providerConfig.clientSecret),
     baseUrl: providerConfig.baseUrl,
+    async locations(criteria = {}) {
+      const keyword = criteria.keyword || criteria.destination || '';
+      if (!keyword || !this.configured) return [];
+      const response = await amadeusGet('/v1/reference-data/locations', {
+        keyword,
+        subType: criteria.subType || 'CITY,AIRPORT',
+        'page[limit]': criteria.max || 8,
+        view: 'LIGHT',
+      });
+      return (response?.data || []).map(mapLocation);
+    },
     async flights(criteria = {}) {
-      const request = buildFlightCriteria(criteria);
+      const request = await buildFlightRequest(criteria);
       const response = await amadeusGet('/v2/shopping/flight-offers', request);
       if (!response) return [];
-      return (response.data || []).map((offer) => mapFlightOffer(offer, criteria, response.dictionaries || {}));
+      return (response.data || []).map((offer) => mapFlightOffer(offer, criteria, response.dictionaries || {}, request));
     },
     async hotels(criteria = {}) {
-      const request = buildFlightCriteria(criteria);
-      const cityCode = cityCodes[request.destinationCode] || request.destinationCode;
+      const request = await buildHotelRequest(criteria);
       const response = await amadeusGet('/v1/reference-data/locations/hotels/by-city', {
-        cityCode,
+        cityCode: request.cityCode,
         radius: criteria.radius || 20,
         radiusUnit: 'KM',
         hotelSource: 'ALL',
       });
       if (!response) return [];
-      return (response.data || []).slice(0, criteria.max || 5).map((hotel) => mapHotel(hotel, criteria));
+
+      const hotels = (response.data || []).slice(0, request.max);
+      const hotelIds = hotels.map((hotel) => hotel.hotelId).filter(Boolean);
+      let offerByHotelId = new Map();
+      try {
+        const offers = await pricedHotelOffers(hotelIds, criteria);
+        offerByHotelId = new Map(offers.map((offer) => [offer.hotel?.hotelId, offer]));
+      } catch (error) {
+        console.warn('[amadeus-hotel-offers-fallback]', { message: error.message });
+      }
+
+      return hotels.map((hotel) => mapHotel(hotel, criteria, offerByHotelId.get(hotel.hotelId)));
     },
     async packages(criteria = {}) {
       return this.composeHoliday(criteria);
     },
     async composeHoliday(criteria = {}) {
       const [flights, hotels] = await Promise.all([this.flights(criteria), this.hotels(criteria)]);
-      if (!flights.length) return hotels;
-      if (!hotels.length) return flights;
+      if (!flights.length || !hotels.length) return [];
 
       return flights.slice(0, 3).map((flight, index) => {
         const hotel = hotels[index % hotels.length];
+        const flightPrice = flight.sourceBreakdown?.flightPrice || flight.priceFrom || null;
+        const hotelPrice = hotel.sourceBreakdown?.hotelPrice || null;
+        const estimatedTotal = flightPrice && hotelPrice ? flightPrice + hotelPrice : null;
+        const pricingConfidence = estimatedTotal ? 'priced' : hotelPrice || flightPrice ? 'partial' : 'unpriced';
+
         return {
           ...flight,
           id: `amadeus-composed-${flight.id}-${hotel.id}`,
           resultType: 'flight-hotel',
           hotelName: hotel.hotelName,
           hotelSummary: hotel.hotelSummary,
-          priceQualifier: 'flight fare plus hotel price to be confirmed',
+          priceFrom: estimatedTotal || flightPrice || hotelPrice || 0,
+          priceQualifier: estimatedTotal ? 'estimated flight + hotel from price' : 'price to confirm; hotel price unavailable or partial',
+          priceType: estimatedTotal ? 'estimated flight + hotel from price' : 'price to confirm',
+          pricingConfidence,
+          sourceBreakdown: {
+            flightProvider: 'amadeus',
+            hotelProvider: 'amadeus',
+            flightPrice,
+            hotelPrice,
+            estimatedTotal,
+            pricingConfidence,
+          },
+          boardBasis: hotel.boardBasis,
+          baggageLabel: flight.baggageLabel,
           tags: ['Holidays', 'Group hotel stays', 'Amadeus'],
         };
       });
     },
     async search(criteria = {}) {
+      if (criteria.resultType === 'flight-only') return this.flights(criteria);
       if (criteria.resultType === 'hotel-only' || criteria.intent === 'Group hotel stays') return this.hotels(criteria);
       return this.composeHoliday(criteria);
     },
@@ -292,10 +454,10 @@ export function createAmadeusProvider(config = {}) {
       return {
         provider: this.id,
         configured: this.configured,
-        mode: this.configured ? 'live-capable' : 'needs-server-side-credentials',
+        mode: this.configured ? 'sandbox-enabled' : 'needs-server-side-credentials',
         note: this.configured
-          ? 'Amadeus OAuth, Flight Offers Search and Hotel List calls are enabled server-side.'
-          : 'Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET on the server to enable live Amadeus calls.',
+          ? 'Amadeus sandbox OAuth, Airport & City Search, Flight Offers Search, Hotel List and Hotel Offers Search are enabled server-side.'
+          : 'Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET on the server to enable Amadeus sandbox calls.',
       };
     },
   };
