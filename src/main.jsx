@@ -25,123 +25,20 @@ import {
   X,
 } from 'lucide-react';
 import './styles.css';
+import { imageUrls, getaways, guides, reviews } from './data/mockDeals.js';
+import { searchHolidays, submitEnquiry } from './services/travelApi.js';
 
-const imageUrls = {
-  ibiza: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&h=560&q=80',
-  costa: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=900&h=560&q=80',
-  prague: 'https://images.unsplash.com/photo-1519677100203-a0e668c92439?auto=format&fit=crop&w=900&h=560&q=80',
-  majorca: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=900&h=560&q=80',
-  barcelona: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&w=900&h=560&q=80',
-  albufeira: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&h=560&q=80',
-  beach: 'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?auto=format&fit=crop&w=900&h=560&q=80',
-  city: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=900&h=560&q=80',
-  party: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=900&h=560&q=80',
-  family: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&h=560&q=80',
-  villa: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&h=560&q=80',
-  stag: 'https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?auto=format&fit=crop&w=900&h=560&q=80',
-  'guide-city': 'https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=600&h=320&q=80',
-  'guide-beach': 'https://images.unsplash.com/photo-1505761671935-60b3a7427bad?auto=format&fit=crop&w=600&h=320&q=80',
-  'guide-plan': 'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&h=320&q=80',
-  'guide-hen': 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=600&h=320&q=80',
-  'guide-food': 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=600&h=320&q=80',
-  'avatar-jess': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&h=120&q=80',
-  'avatar-ryan': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80',
-  'avatar-mia': 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=120&h=120&q=80',
-  'avatar-laura': 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=120&h=120&q=80',
-  'avatar-tom': 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&h=120&q=80',
-};
-
-const img = (id) => imageUrls[id];
-
-const deals = [
-  {
-    saving: 'SAVE 20%',
-    image: 'ibiza',
-    place: 'Ibiza, Spain',
-    hotel: 'Ibiza Rocks Hotel',
-    rating: '4.6 (128 reviews)',
-    price: '£279',
-    tags: ['Holidays', 'Group hotel stays', 'Stag & Hen', 'Party holidays', 'Ibiza'],
-  },
-  {
-    saving: 'SAVE 15%',
-    image: 'costa',
-    place: 'Costa del Sol, Spain',
-    hotel: 'H10 Costa del Sol',
-    rating: '4.5 (96 reviews)',
-    price: '£249',
-    tags: ['Holidays', 'Families', 'Beach breaks', 'Tenerife'],
-  },
-  {
-    saving: 'SAVE £150',
-    image: 'prague',
-    place: 'Prague, Czech Republic',
-    hotel: 'Leonardo Hotel Prague',
-    rating: '4.7 (210 reviews)',
-    price: '£159',
-    tags: ['Holidays', 'Group hotel stays', 'City breaks'],
-  },
-  {
-    saving: 'SAVE 15%',
-    image: 'majorca',
-    place: 'Majorca, Spain',
-    hotel: 'Marbella Beach Club',
-    rating: '4.4 (101 reviews)',
-    price: '£279',
-    tags: ['Holidays', 'Families', 'Beach breaks'],
-  },
-  {
-    saving: 'SAVE 20%',
-    image: 'barcelona',
-    place: 'Barcelona, Spain',
-    hotel: 'Hotel Catalonia Barcelona Plaza',
-    rating: '4.6 (88 reviews)',
-    price: '£189',
-    tags: ['Holidays', 'Group hotel stays', 'City breaks', 'Barcelona', 'Dubai'],
-  },
-  {
-    saving: 'SAVE 25%',
-    image: 'albufeira',
-    place: 'Albufeira, Portugal',
-    hotel: 'AluaSoul Sun',
-    rating: '4.3 (44 reviews)',
-    price: '£199',
-    tags: ['Holidays', 'Stag & Hen', 'Villas', 'Party holidays', 'Ayia Napa', 'Zante', 'Benidorm'],
-  },
-];
-
-const getaways = [
-  ['Beach breaks', 'Sun, sea & good vibes', 'beach'],
-  ['City breaks', 'Explore iconic cities', 'city'],
-  ['Party holidays', 'Dance, DJs & daytime fun', 'party'],
-  ['Family getaways', 'Adventures for all ages', 'family'],
-  ['Villas for groups', 'Your space, your rules', 'villa'],
-  ['Stag & hen trips', 'Celebrate in style', 'stag'],
-];
+const img = (id) => imageUrls[id] || id;
+const formatPrice = (deal) => `${deal.currency === 'GBP' ? '£' : deal.currency}${deal.priceFrom}`;
+const dealPlace = (deal) => `${deal.destination}, ${deal.country}`;
 
 const benefits = [
   [BriefcaseBusiness, 'Group experts', 'Years of experience in group travel'],
   [HandCoins, 'Low deposits', 'Secure your trip from just £49pp'],
-  [WalletCards, 'Flexible payments', 'Spread the cost with interest free options'],
+  [WalletCards, 'Flexible plans', 'Plan deposits and staged balances with an advisor'],
   [ShieldCheck, 'ATOL protected', 'Book with confidence. We’re ATOL protected'],
   [Clock3, '24/7 support', 'We’re here whenever you need us'],
-  [LockKeyhole, 'Safe payments', 'Secure transactions every step of the way'],
-];
-
-const guides = [
-  ['guide-city', '6 epic cities perfect for a mates trip'],
-  ['guide-beach', 'Best party beaches in Europe for groups'],
-  ['guide-plan', 'How to plan the ultimate group holiday'],
-  ['guide-hen', 'Top 10 hen do ideas you’ll all love'],
-  ['guide-food', 'Food & nightlife hotspots for large groups'],
-];
-
-const reviews = [
-  ['Jess, Manchester', 'The whole process was so easy. Whole group loved it!', 'avatar-jess'],
-  ['Ryan, Liverpool', 'Top service, great options and amazing value!', 'avatar-ryan'],
-  ['Mia, Bristol', 'You all think of everything - just perfect!', 'avatar-mia'],
-  ['Laura, London', 'Service is five star. Loads of deals and help!', 'avatar-laura'],
-  ['Tom, Leeds', 'Wouldn’t use anyone else to plan our trips!', 'avatar-tom'],
+  [LockKeyhole, 'Secure enquiries', 'Your quote request stays with PickyHoliday advisors'],
 ];
 
 const navTargets = {
@@ -174,6 +71,7 @@ const getawaySearchConfig = {
 };
 
 function rotateList(list, direction) {
+  if (list.length < 2) return list;
   if (direction === 'next') return [...list.slice(1), list[0]];
   return [list[list.length - 1], ...list.slice(0, -1)];
 }
@@ -257,7 +155,7 @@ function Hero() {
         <h1>Smart group holidays.<br /><span>More fun.</span> Less fuss.</h1>
         <p>Epic trips. Unbeatable prices. Made for mates, families<br />and every kind of group adventure.</p>
         <div className="assurances">
-          {['Best group deals', 'Flexible payments', '24/7 support', 'ATOL protected'].map((assurance, index) => {
+          {['Best group deals', 'Flexible planning', '24/7 support', 'ATOL protected'].map((assurance, index) => {
             const Icon = [CircleDollarSign, WalletCards, Clock3, BadgeCheck][index];
             return <span key={assurance}><Icon size={17} /> {assurance}</span>;
           })}
@@ -334,14 +232,15 @@ function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch }) {
 function DealCard({ deal, onView }) {
   return (
     <article className="deal-card">
-      <div className="pic"><img src={img(deal.image)} alt={deal.place} /><strong>{deal.saving}</strong></div>
+      <div className="pic"><img src={img(deal.image)} alt={dealPlace(deal)} /><strong>{deal.savingLabel}</strong></div>
       <div className="deal-body">
-        <span>{deal.place}</span>
-        <h3>{deal.hotel}</h3>
+        <span>{dealPlace(deal)}</span>
+        <h3>{deal.hotelName}</h3>
         <div className="rating"><Stars small />{deal.rating}</div>
+        <p className="provider-chip">{deal.supplierName} · {deal.resultType}</p>
         <div className="price">
-          <p>From <b>{deal.price}</b> pp</p>
-          <button onClick={() => onView(deal)}>View deal</button>
+          <p>From <b>{formatPrice(deal)}</b> {deal.priceQualifier}</p>
+          <button onClick={() => onView(deal)}>View trip</button>
         </div>
       </div>
     </article>
@@ -369,13 +268,22 @@ function Dialog({ content, onClose }) {
         <p>{content.body}</p>
         {content.deal && (
           <ul>
-            <li><b>Destination:</b> {content.deal.place}</li>
-            <li><b>Hotel:</b> {content.deal.hotel}</li>
-            <li><b>Lead price:</b> {content.deal.price} pp</li>
+            <li><b>Supplier:</b> {content.deal.supplierName}</li>
+            <li><b>Airlines:</b> {content.deal.airlineNames?.length ? content.deal.airlineNames.join(', ') : 'Quoted separately'}</li>
+            <li><b>Destination:</b> {dealPlace(content.deal)}</li>
+            <li><b>Hotel:</b> {content.deal.hotelName}</li>
+            <li><b>Lead price:</b> {formatPrice(content.deal)} {content.deal.priceQualifier}</li>
+            <li><b>Nights/date:</b> {content.deal.nights} nights · {content.deal.dateLabel}</li>
+            <li><b>Group size:</b> {content.deal.groupSizeLabel}</li>
+            <li><b>Board/bags:</b> {content.deal.boardBasis} · {content.deal.baggageLabel}</li>
+            <li><b>Booking mode:</b> {content.deal.bookingMode}</li>
+            <li><b>Protection:</b> {content.deal.protectionLabel}</li>
           </ul>
         )}
         <div className="modal-actions">
-          <button onClick={onClose}>Done</button>
+          {content.deal?.partnerUrl && <button onClick={() => window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer')}>Continue to partner</button>}
+          {content.deal && <button onClick={() => content.onEnquiry?.(content.deal)}>Ask for group quote</button>}
+          <button onClick={onClose}>Shortlist this trip</button>
           <button onClick={() => { onClose(); scrollToId('search'); }}>Edit search</button>
         </div>
       </section>
@@ -383,18 +291,20 @@ function Dialog({ content, onClose }) {
   );
 }
 
-function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onViewDeal }) {
+function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onViewDeal, isLoading, error }) {
   return (
     <section className="content block overlap" id="deals">
       <SectionTitle title="Popular group holiday deals" link="View all deals" onLink={onReset} />
       <p className="results-note">{searchSummary}</p>
+      {isLoading && <div className="loading-state">Searching provider adapters in mock mode…</div>}
+      {error && <div className="error-state">{error}</div>}
       <button className="arrow left" onClick={() => onRotateDeals('prev')} aria-label="Previous deal"><ChevronLeft /></button>
       <div className="deals grid-six">
-        {dealsToShow.length ? (
-          dealsToShow.map((deal) => <DealCard key={deal.hotel} deal={deal} onView={onViewDeal} />)
-        ) : (
-          <div className="empty-state">No matches yet. Try another destination or holiday type.</div>
-        )}
+        {!isLoading && dealsToShow.length ? (
+          dealsToShow.map((deal) => <DealCard key={deal.id} deal={deal} onView={onViewDeal} />)
+        ) : !isLoading ? (
+          <div className="empty-state">No provider results yet. Try another destination, holiday type or group size.</div>
+        ) : null}
       </div>
       <button className="arrow right" onClick={() => onRotateDeals('next')} aria-label="Next deal"><ChevronRight /></button>
     </section>
@@ -472,8 +382,10 @@ function App() {
     date: fieldOptions.date[0],
     groupSize: fieldOptions.groupSize[0],
   });
-  const [searchSummary, setSearchSummary] = useState('Showing our most popular group holiday deals.');
-  const [dealList, setDealList] = useState(deals);
+  const [searchSummary, setSearchSummary] = useState('Showing our most popular group holiday deals from the mock provider.');
+  const [dealList, setDealList] = useState([]);
+  const [isSearching, setIsSearching] = useState(true);
+  const [searchError, setSearchError] = useState('');
   const [getawayList, setGetawayList] = useState(getaways);
   const [guideList, setGuideList] = useState(guides);
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -490,7 +402,7 @@ function App() {
     const destination = search.destination.trim().toLowerCase();
 
     return dealList.filter((deal) => {
-      const dealContent = `${deal.place} ${deal.hotel} ${deal.tags.join(' ')}`.toLowerCase();
+      const dealContent = `${deal.destination} ${deal.country} ${deal.hotelName} ${deal.supplierName} ${deal.tags.join(' ')}`.toLowerCase();
       return deal.tags.includes(activeTab) && (!destination || dealContent.includes(destination));
     });
   }, [activeTab, dealList, search.destination]);
@@ -498,9 +410,28 @@ function App() {
   const openMessage = (title, body, kicker) => setModal({ title, body, kicker });
   const showNotice = (message) => setNotice(message);
 
+  const runHolidaySearch = async (criteria, shouldScroll = true) => {
+    setIsSearching(true);
+    setSearchError('');
+    try {
+      const response = await searchHolidays(criteria);
+      setDealList(response.results || []);
+      setSearchSummary(`Showing ${criteria.intent.toLowerCase()} from ${criteria.origin} for ${criteria.date.toLowerCase()} (${criteria.groupSize}) · ${response.providerMode} mode.`);
+      if (shouldScroll) scrollToId('deals');
+    } catch (error) {
+      setSearchError('Sorry, the travel search service could not return results. Mock mode should still work without live credentials.');
+      setDealList([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  useEffect(() => {
+    runHolidaySearch({ ...search, intent: activeTab }, false);
+  }, []);
+
   const handleSearch = () => {
-    setSearchSummary(`Showing ${activeTab.toLowerCase()} from ${search.origin} for ${search.date.toLowerCase()} (${search.groupSize}).`);
-    scrollToId('deals');
+    runHolidaySearch({ ...search, intent: activeTab });
   };
 
   const handleNewsletter = (event) => {
@@ -518,23 +449,27 @@ function App() {
   const handleResetDeals = () => {
     setActiveTab('Holidays');
     setSearch((currentSearch) => ({ ...currentSearch, destination: '' }));
-    setSearchSummary('Showing all available group holiday deals.');
+    runHolidaySearch({ ...search, destination: '', intent: 'Holidays' });
   };
 
   const handleSelectGetaway = (title) => {
     const config = getawaySearchConfig[title] || { tab: 'Holidays', destination: title };
     setActiveTab(config.tab);
     setSearch((currentSearch) => ({ ...currentSearch, destination: config.destination }));
-    setSearchSummary(`Showing ${config.destination.toLowerCase()} ideas for groups.`);
-    scrollToId('deals');
+    runHolidaySearch({ ...search, destination: config.destination, intent: config.tab });
   };
 
   const handleViewDeal = (selected) => {
     setModal({
-      title: 'Deal added to your shortlist',
-      body: 'We have saved this option so your group can compare prices, payment plans and room choices before booking.',
-      kicker: selected.saving,
+      title: selected.hotelName,
+      body: `${selected.flightSummary}. ${selected.hotelSummary}. This foundation flow supports enquiries and partner redirects only; it does not create live bookings.`,
+      kicker: selected.savingLabel,
       deal: selected,
+      onEnquiry: async (deal) => {
+        const response = await submitEnquiry({ ...deal, resultId: deal.id });
+        setModal(null);
+        showNotice(response.message || 'Mock enquiry sent. No booking was created.');
+      },
     });
   };
 
@@ -550,6 +485,8 @@ function App() {
           onReset={handleResetDeals}
           onRotateDeals={(direction) => setDealList((list) => rotateList(list, direction))}
           onViewDeal={handleViewDeal}
+          isLoading={isSearching}
+          error={searchError}
         />
         <GetawaysSection
           items={getawayList}
@@ -597,8 +534,8 @@ function App() {
           <button onClick={() => openMessage('Trustpilot rating', 'PickyHoliday is rated 4.7 out of 5 by travellers in this demo experience.', 'Trustpilot')}><Star fill="currentColor" /> Trustpilot</button>
           <Stars small />
           <span>Rated 4.7/5</span>
-          <span><LockKeyhole size={18} /> Secure payments</span>
-          <span>100% encrypted</span>
+          <span><LockKeyhole size={18} /> Secure enquiries</span>
+          <span>No live booking in mock mode</span>
         </div>
       </main>
       <Footer onAction={openMessage} />
@@ -648,7 +585,7 @@ function Footer({ onAction }) {
       <div className="copy content">
         <p>© 2025 PickyHoliday.co.uk. All rights reserved.</p>
         <span><ShieldCheck /> ATOL protected</span>
-        <span><ShieldCheck /> Secure booking</span>
+        <span><ShieldCheck /> Secure enquiries</span>
         <span><Clock3 /> 24/7 support</span>
       </div>
     </footer>
