@@ -10,7 +10,7 @@ Why the pivot:
 
 - Duffel is more startup-friendly for future flight selling, test-mode development and pay-as-you-go style experimentation.
 - Amadeus remains useful for sandbox search and broad travel APIs, but production flight booking/ticketing requires extra commercial, operational and accreditation work.
-- UK/Europe holiday stock still needs package/affiliate redirects and manual promoted deals for TUI, Jet2holidays, easyJet Holidays, Loveholidays, On the Beach and similar partners.
+- UK/Europe holiday stock needs package/affiliate redirects and manual promoted deals for TUI, Jet2holidays, easyJet Holidays, Loveholidays, On the Beach and similar partners.
 - Hotels can later use Duffel Stays, Expedia Rapid, Hotelbeds/HBX or another hotel-specialist provider.
 
 This repo still does **not** create live bookings, Duffel orders, Amadeus orders, hotel bookings, payments or booking confirmations.
@@ -33,6 +33,7 @@ TRAVEL_PROVIDER_MODE=mock
 VITE_TRAVEL_PROVIDER_MODE=mock
 TRAVEL_PRIMARY_FLIGHT_PROVIDER=duffel
 ENABLE_AMADEUS_SECONDARY=false
+AFFILIATE_PROVIDER_MODE=mock
 ```
 
 For backend-backed local development, run two terminals:
@@ -48,12 +49,21 @@ Vite proxies `/api` to `http://localhost:8787`, so `VITE_API_BASE_URL` can stay 
 
 Server-side provider selection is controlled by `TRAVEL_PROVIDER_MODE`:
 
-- `mock` - mock provider only; default and credential-free.
-- `duffel` - Duffel flight provider if configured, plus manual deals and affiliate/package scaffolds.
-- `amadeus` - Amadeus sandbox/search provider if configured, plus manual deals and affiliate/package scaffolds.
-- `hybrid` - Duffel plus manual deals and affiliate/package scaffolds; Amadeus is included only when `ENABLE_AMADEUS_SECONDARY=true`.
+- `mock` - mock provider plus package/affiliate config results; default and credential-free.
+- `duffel` - Duffel flight provider if configured, plus manual deals and package/affiliate config results.
+- `amadeus` - Amadeus sandbox/search provider if configured, plus manual deals and package/affiliate config results.
+- `hybrid` - Duffel plus manual deals and package/affiliate config results; Amadeus is included only when `ENABLE_AMADEUS_SECONDARY=true`.
 
 `TRAVEL_PRIMARY_FLIGHT_PROVIDER=duffel` records the preferred strategic flight path. Do not create any `VITE_DUFFEL_*` token variable: Duffel tokens must stay server-side only.
+
+## Package/affiliate provider
+
+The package provider is active in mock/config mode. It reads approved partner config and package-style fixtures from:
+
+- `src/data/affiliatePartners.js`
+- `src/data/packageDeals.js`
+
+It currently supports placeholder package redirect candidates for TUI, Jet2holidays, easyJet Holidays, Loveholidays, On the Beach and Expedia. It is not a live affiliate feed and does not create bookings. Partner redirects are only returned when the URL matches approved partner domains.
 
 ## Duffel flight provider foundation
 
@@ -92,7 +102,7 @@ Do not commit real credentials. The app does not create live bookings, flight or
 
 ## Provider diagnostics
 
-The homepage includes a Provider status area near the deals. It shows frontend mode, backend mode, primary flight provider, Duffel configured status, Amadeus configured status, active providers, latest result source, provider errors and whether Amadeus secondary mode is enabled. Wording explicitly states that Duffel is preferred for flights, Amadeus is optional sandbox/search, and package/affiliate providers remain future work.
+The homepage includes a Provider status area near the deals. It shows frontend mode, backend mode, primary flight provider, Duffel configured status, Amadeus configured status, active providers, latest result source, provider errors and whether Amadeus secondary mode is enabled. Wording states that Duffel is preferred for flights, Amadeus is optional sandbox/search, and package/affiliate providers are config/mock active until approved partner feeds exist.
 
 ## API envelopes
 
@@ -105,7 +115,7 @@ Travel routes return consistent JSON envelopes:
   "providerErrors": [],
   "meta": {
     "totalResults": 0,
-    "activeProviders": ["mock"],
+    "activeProviders": ["mock", "affiliate-package"],
     "timestamp": "2026-06-01T00:00:00.000Z"
   }
 }

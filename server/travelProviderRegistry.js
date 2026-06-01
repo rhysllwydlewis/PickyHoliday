@@ -17,6 +17,7 @@ const providerLabel = (provider) => provider?.id || provider?.label || 'unknown-
 
 export function createTravelProviderRegistry(env = process.env) {
   const mode = env.TRAVEL_PROVIDER_MODE || 'mock';
+  const affiliateMode = env.AFFILIATE_PROVIDER_MODE || 'mock';
   const primaryFlightProvider = env.TRAVEL_PRIMARY_FLIGHT_PROVIDER || 'duffel';
   const amadeusSecondaryEnabled = `${env.ENABLE_AMADEUS_SECONDARY || 'false'}`.toLowerCase() === 'true';
   const amadeusProvider = createAmadeusProvider({
@@ -39,6 +40,14 @@ export function createTravelProviderRegistry(env = process.env) {
   });
   const affiliatePackageProvider = createAffiliatePackageProvider({
     defaultTrackingId: env.AFFILIATE_DEFAULT_TRACKING_ID,
+    trackingIds: {
+      tui: env.TUI_AFFILIATE_ID,
+      jet2holidays: env.JET2HOLIDAYS_AFFILIATE_ID,
+      'easyjet-holidays': env.EASYJET_HOLIDAYS_AFFILIATE_ID,
+      loveholidays: env.LOVEHOLIDAYS_AFFILIATE_ID,
+      onthebeach: env.ONTHEBEACH_AFFILIATE_ID,
+      expedia: env.EXPEDIA_AFFILIATE_ID,
+    },
     partners: ['tui', 'jet2holidays', 'easyjet-holidays', 'loveholidays', 'onthebeach', 'expedia'],
   });
 
@@ -51,19 +60,20 @@ export function createTravelProviderRegistry(env = process.env) {
   };
 
   const includeIfConfigured = (provider) => (provider.configured ? [provider] : []);
+  const packageProviders = affiliateMode === 'disabled' ? [] : [affiliatePackageProvider];
   const activeSearchProviders = (() => {
-    if (mode === 'mock') return [mockProvider];
-    if (mode === 'duffel') return [...includeIfConfigured(duffelProvider), manualDealsProvider, affiliatePackageProvider];
-    if (mode === 'amadeus') return [...includeIfConfigured(amadeusProvider), manualDealsProvider, affiliatePackageProvider];
+    if (mode === 'mock') return [mockProvider, ...packageProviders];
+    if (mode === 'duffel') return [...includeIfConfigured(duffelProvider), manualDealsProvider, ...packageProviders];
+    if (mode === 'amadeus') return [...includeIfConfigured(amadeusProvider), manualDealsProvider, ...packageProviders];
     if (mode === 'hybrid') {
       return [
         ...includeIfConfigured(duffelProvider),
-        affiliatePackageProvider,
+        ...packageProviders,
         manualDealsProvider,
         ...(amadeusSecondaryEnabled ? includeIfConfigured(amadeusProvider) : []),
       ];
     }
-    return [mockProvider];
+    return [mockProvider, ...packageProviders];
   })();
 
   const statusFor = (provider) => (provider.getStatus ? provider.getStatus() : {
@@ -217,6 +227,8 @@ export function createTravelProviderRegistry(env = process.env) {
         amadeusSecondaryEnabled,
         duffelConfigured: duffelProvider.configured,
         amadeusConfigured: amadeusProvider.configured,
+        affiliatePackageConfigured: affiliatePackageProvider.configured,
+        affiliateProviderMode: affiliateMode,
         providers: providerStatuses,
         providerStatus: providerStatuses,
         providerErrors: [],

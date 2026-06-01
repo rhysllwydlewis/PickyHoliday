@@ -28,15 +28,29 @@ const assertEnvelope = (data, label) => {
 const assertHealth = (data) => {
   const providerNames = (data.providerStatus || data.providers || []).map((provider) => provider.provider);
   if (!providerNames.includes('duffel')) throw new Error('/api/health did not include Duffel in providerStatus.');
+  if (!providerNames.includes('affiliate-package')) throw new Error('/api/health did not include affiliate-package in providerStatus.');
   if (data.primaryFlightProvider !== 'duffel') throw new Error('/api/health did not report Duffel as the primary flight provider.');
   if (typeof data.duffelConfigured !== 'boolean') throw new Error('/api/health did not expose Duffel configured true/false.');
   if (typeof data.amadeusConfigured !== 'boolean') throw new Error('/api/health did not expose Amadeus configured true/false.');
   if (typeof data.amadeusSecondaryEnabled !== 'boolean') throw new Error('/api/health did not expose Amadeus secondary status.');
+  if (typeof data.affiliatePackageConfigured !== 'boolean') throw new Error('/api/health did not expose affiliate package configured true/false.');
 };
 
 const assertFlightResults = (data) => {
   if (!data.results.some((result) => ['flight-only', 'flight-hotel'].includes(result.resultType))) {
     throw new Error('/api/travel/flights did not return flight-capable mock results.');
+  }
+};
+
+const assertPackageResults = (data) => {
+  if (!data.results.some((result) => result.resultType === 'package')) {
+    throw new Error('/api/travel/packages did not return package results.');
+  }
+  if (!data.results.every((result) => ['affiliate', 'manual-quote', 'enquiry'].includes(result.bookingMode))) {
+    throw new Error('/api/travel/packages returned an unexpected booking mode.');
+  }
+  if (JSON.stringify(data.results).toLowerCase().includes('booking confirmed')) {
+    throw new Error('/api/travel/packages appeared to claim a live booking confirmation.');
   }
 };
 
@@ -65,6 +79,7 @@ const request = async ({ method, path, body }) => {
   assertEnvelope(data, label);
   if (path === '/api/health') assertHealth(data);
   if (path === '/api/travel/flights') assertFlightResults(data);
+  if (path === '/api/travel/packages') assertPackageResults(data);
   if (['/api/travel/search', '/api/travel/holiday-composer'].includes(path)) assertSearchResults(data, label);
   if (path === '/api/travel/enquiries') assertEnquiry(data);
   return data;
