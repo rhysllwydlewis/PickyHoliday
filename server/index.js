@@ -4,7 +4,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { createTravelProviderRegistry } from './travelProviderRegistry.js';
 import { validateEnquiryPayload } from './enquiries/validateEnquiry.js';
-import { createEnquiry, listEnquiries, updateEnquiryStatus } from './enquiries/enquiryStore.js';
+import { createEnquiry, getEnquiryStorageStatus, listEnquiries, updateEnquiryStatus } from './enquiries/enquiryStore.js';
 import { notifyEnquiry } from './enquiries/enquiryNotifier.js';
 import { publicEnquiry } from '../src/services/enquiries/enquiryModel.js';
 
@@ -184,7 +184,8 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === 'GET' && url.pathname === '/api/health') {
-    sendJson(request, response, 200, registry.status());
+    const enquiryStorageStatus = await getEnquiryStorageStatus();
+    sendJson(request, response, 200, { ...registry.status(), ...enquiryStorageStatus });
     return;
   }
 
@@ -208,7 +209,7 @@ const server = http.createServer(async (request, response) => {
       });
     } catch (error) {
       console.error('[api-error]', { route: url.pathname, message: error.message });
-      sendJson(request, response, 500, errorEnvelope(500, 'Could not read enquiries.'));
+      sendJson(request, response, error.status || 500, errorEnvelope(error.status || 500, error.status ? error.message : 'Could not read enquiries.'));
     }
     return;
   }
@@ -235,7 +236,7 @@ const server = http.createServer(async (request, response) => {
       });
     } catch (error) {
       const status = error.status || 500;
-      const message = status >= 500 ? 'Could not update enquiry.' : error.message;
+      const message = status === 503 ? error.message : (status >= 500 ? 'Could not update enquiry.' : error.message);
       sendJson(request, response, status, errorEnvelope(status, message));
     }
     return;
@@ -262,7 +263,7 @@ const server = http.createServer(async (request, response) => {
       sendJson(request, response, 200, payload);
     } catch (error) {
       const status = error.status || 500;
-      const message = status >= 500 ? 'Could not save enquiry.' : error.message;
+      const message = status === 503 ? error.message : (status >= 500 ? 'Could not save enquiry.' : error.message);
       console.error('[api-error]', { route: url.pathname, status, message: error.message });
       sendJson(request, response, status, errorEnvelope(status, message, { fieldErrors: error.fieldErrors || [] }));
     }

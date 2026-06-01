@@ -16,12 +16,14 @@ The smoke test checks that:
 
 - `/api/health` includes Duffel in `providerStatus`.
 - `/api/health` includes `affiliate-package` in `providerStatus`.
+- `/api/health` includes `enquiryStorageMode`, `postgresConfigured` and `databaseStatus` without exposing `DATABASE_URL`.
 - `/api/travel/flights` returns flight-capable mock results.
 - `/api/travel/packages` returns package/affiliate results.
 - Package results use safe non-live booking modes only.
 - `/api/travel/search` works.
 - `/api/travel/holiday-composer` works.
-- `/api/travel/enquiries` returns a mock enquiry-only response, not a booking confirmation.
+- `/api/travel/enquiries` returns an enquiry-only response, not a booking confirmation.
+- Invalid enquiry email input returns a controlled validation error.
 
 Manual curl checks:
 
@@ -34,9 +36,28 @@ curl -X POST http://localhost:8787/api/travel/hotels -H 'Content-Type: applicati
 curl -X POST http://localhost:8787/api/travel/packages -H 'Content-Type: application/json' -d '{"destination":"Barcelona","intent":"Holidays"}'
 curl -X POST http://localhost:8787/api/travel/packages -H 'Content-Type: application/json' -d '{"destination":"Tenerife","intent":"Beach breaks"}'
 curl -X POST http://localhost:8787/api/travel/holiday-composer -H 'Content-Type: application/json' -d '{"destination":"Barcelona","intent":"Holidays"}'
-curl -X POST http://localhost:8787/api/travel/enquiries -H 'Content-Type: application/json' -d '{"resultId":"demo","destination":"Barcelona"}'
+curl -X POST http://localhost:8787/api/travel/enquiries -H 'Content-Type: application/json' -d '{"destination":"Barcelona","customerName":"Test User","customerEmail":"test@example.com","consentToContact":true}'
+curl -i -X POST http://localhost:8787/api/travel/enquiries -H 'Content-Type: application/json' -d '{"destination":"Barcelona","customerName":"Test User","customerEmail":"bad-email","consentToContact":true}'
 curl -i -X POST http://localhost:8787/api/travel/search -H 'Content-Type: application/json' -d '{bad'
 ```
+
+
+Optional local admin enquiry check when you intentionally allow unprotected admin routes in test/mock mode:
+
+```bash
+NODE_ENV=test TRAVEL_PROVIDER_MODE=mock ALLOW_UNPROTECTED_ADMIN=true npm run dev:api
+curl http://localhost:8787/api/admin/enquiries
+```
+
+Optional Postgres-mode missing configuration check:
+
+```bash
+ENQUIRY_STORAGE_MODE=postgres npm run dev:api
+curl http://localhost:8787/api/health
+curl -i -X POST http://localhost:8787/api/travel/enquiries -H 'Content-Type: application/json' -d '{"destination":"Barcelona","customerName":"Test User","customerEmail":"test@example.com","consentToContact":true}'
+```
+
+The health response should report `postgresConfigured:false` and `databaseStatus:"not-configured"`; the enquiry POST should return a controlled `503` explaining that `DATABASE_URL` must be configured or storage switched back to JSON.
 
 Optional Duffel status check when you have a local test token:
 

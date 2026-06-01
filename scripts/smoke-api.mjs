@@ -1,4 +1,5 @@
 const baseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
+const adminAccessToken = process.env.ADMIN_ACCESS_TOKEN || '';
 
 const endpoints = [
   { method: 'GET', path: '/api/health' },
@@ -7,7 +8,7 @@ const endpoints = [
   { method: 'POST', path: '/api/travel/hotels', body: { destination: 'Barcelona', intent: 'Group hotel stays' } },
   { method: 'POST', path: '/api/travel/packages', body: { destination: 'Barcelona', intent: 'Holidays' } },
   { method: 'POST', path: '/api/travel/holiday-composer', body: { destination: 'Barcelona', intent: 'Holidays' } },
-  { method: 'POST', path: '/api/travel/enquiries', body: { resultId: 'smoke-test', destination: 'Barcelona' } },
+  { method: 'POST', path: '/api/travel/enquiries', body: { destination: 'Barcelona', customerName: 'Smoke Test', customerEmail: 'smoke@example.com', consentToContact: true } },
   { method: 'GET', path: '/api/travel/locations?keyword=barcelona' },
 ];
 
@@ -34,6 +35,12 @@ const assertHealth = (data) => {
   if (typeof data.amadeusConfigured !== 'boolean') throw new Error('/api/health did not expose Amadeus configured true/false.');
   if (typeof data.amadeusSecondaryEnabled !== 'boolean') throw new Error('/api/health did not expose Amadeus secondary status.');
   if (typeof data.affiliatePackageConfigured !== 'boolean') throw new Error('/api/health did not expose affiliate package configured true/false.');
+  if (!['json', 'postgres'].includes(data.enquiryStorageMode)) throw new Error('/api/health did not expose enquiryStorageMode.');
+  if (typeof data.postgresConfigured !== 'boolean') throw new Error('/api/health did not expose postgresConfigured true/false.');
+  if (!['not-configured', 'ready', 'error'].includes(data.databaseStatus)) throw new Error('/api/health did not expose a valid databaseStatus.');
+  if (JSON.stringify(data).includes('postgres://') || JSON.stringify(data).includes('postgresql://')) {
+    throw new Error('/api/health appeared to expose a database connection string.');
+  }
 };
 
 const assertFlightResults = (data) => {
@@ -85,6 +92,44 @@ const request = async ({ method, path, body }) => {
   return data;
 };
 
+const assertAdminList = async () => {
+  if (!adminAccessToken) {
+    console.log('• Skipping GET /api/admin/enquiries because ADMIN_ACCESS_TOKEN is not set.');
+    return;
+  }
+
+  const label = 'GET /api/admin/enquiries';
+  const response = await fetch(`${baseUrl}/api/admin/enquiries`, {
+    headers: { Authorization: `Bearer ${adminAccessToken}` },
+  });
+  const data = await parseJson(response, label);
+  if (!response.ok) {
+    throw new Error(`${label} failed with ${response.status}: ${JSON.stringify(data)}`);
+  }
+  assertEnvelope(data, label);
+  if (!Array.isArray(data.results)) throw new Error(`${label} did not return an enquiries array.`);
+};
+
+const assertInvalidEnquiryEmail = async () => {
+  const label = 'POST /api/travel/enquiries invalid email';
+  const response = await fetch(`${baseUrl}/api/travel/enquiries`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      destination: 'Barcelona',
+      customerName: 'Test User',
+      customerEmail: 'bad-email',
+      consentToContact: true,
+    }),
+  });
+  const data = await parseJson(response, label);
+  if (response.status !== 400) throw new Error(`${label} returned ${response.status}, expected 400.`);
+  assertEnvelope(data, label);
+  if (!data.fieldErrors?.some((fieldError) => fieldError.field === 'customerEmail')) {
+    throw new Error(`${label} did not include a customerEmail validation error.`);
+  }
+};
+
 const assertBadJson = async () => {
   const label = 'POST /api/travel/search bad JSON';
   const response = await fetch(`${baseUrl}/api/travel/search`, {
@@ -105,5 +150,9 @@ for (const endpoint of endpoints) {
   const data = await request(endpoint);
   console.log(`✓ ${endpoint.method} ${endpoint.path} (${data.providerMode} mode)`);
 }
+await assertAdminList();
+if (adminAccessToken) console.log('✓ GET /api/admin/enquiries returned enquiries for configured admin token');
+await assertInvalidEnquiryEmail();
+console.log('✓ POST /api/travel/enquiries invalid email returned controlled 400 envelope');
 await assertBadJson();
 console.log('✓ POST /api/travel/search bad JSON returned controlled 400 envelope');
