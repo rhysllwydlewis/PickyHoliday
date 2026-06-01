@@ -3,6 +3,10 @@ import { stat } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { createTravelProviderRegistry } from './travelProviderRegistry.js';
+import { validateEnquiryPayload } from './enquiries/validateEnquiry.js';
+import { createEnquiry, listEnquiries, updateEnquiryStatus } from './enquiries/enquiryStore.js';
+import { notifyEnquiry } from './enquiries/enquiryNotifier.js';
+import { publicEnquiry } from '../src/services/enquiries/enquiryModel.js';
 
 const port = Number(process.env.PORT || 8787);
 const registry = createTravelProviderRegistry(process.env);
@@ -108,25 +112,52 @@ const sendJson = (request, response, status, payload) => {
   response.writeHead(status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': corsOrigin(request),
-    'Vary': 'Origin',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    Vary: 'Origin',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
   });
   response.end(JSON.stringify(payload));
 };
 
-const errorEnvelope = (status, message) => ({
+const errorEnvelope = (status, message, extras = {}) => ({
   ok: false,
   providerMode: registry.mode,
   results: [],
   providerErrors: [{ provider: 'api', method: 'request', message }],
+  ...extras,
   meta: {
     totalResults: 0,
     activeProviders: registry.status().activeProviders,
     timestamp: new Date().toISOString(),
     status,
+    ...(extras.meta || {}),
   },
 });
+
+const enquiryEnvelope = (record, notifierResult) => ({
+  ok: true,
+  providerMode: registry.mode,
+  results: [],
+  providerErrors: [],
+  providerStatus: registry.status().providerStatus || [],
+  enquiry: publicEnquiry(record),
+  notifier: notifierResult,
+  meta: {
+    totalResults: 0,
+    activeProviders: registry.status().activeProviders,
+    timestamp: new Date().toISOString(),
+  },
+});
+
+const canUseAdminRoutes = (request) => {
+  const token = process.env.ADMIN_ACCESS_TOKEN;
+  const header = request.headers.authorization || '';
+  if (token) return header === `Bearer ${token}`;
+
+  const explicitlyAllowed = `${process.env.ALLOW_UNPROTECTED_ADMIN || ''}`.toLowerCase() === 'true';
+  const safeLocalMode = registry.mode === 'mock' && ['development', 'test'].includes(process.env.NODE_ENV || '');
+  return explicitlyAllowed && safeLocalMode;
+};
 
 const postRoutes = {
   '/api/travel/search': (body) => registry.search(body),
@@ -134,8 +165,14 @@ const postRoutes = {
   '/api/travel/hotels': (body) => registry.hotels(body),
   '/api/travel/packages': (body) => registry.packages(body),
   '/api/travel/holiday-composer': (body) => registry.composeHoliday(body),
-  '/api/travel/enquiries': (body) => registry.createEnquiry(body),
   '/api/travel/locations': (body) => registry.locations(body),
+};
+
+const handleCreateEnquiry = async (body) => {
+  const validated = validateEnquiryPayload(body);
+  const record = await createEnquiry(validated);
+  const notifierResult = await notifyEnquiry(record, process.env);
+  return enquiryEnvelope(record, notifierResult);
 };
 
 const server = http.createServer(async (request, response) => {
@@ -151,6 +188,59 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === 'GET' && url.pathname === '/api/admin/enquiries') {
+    if (!canUseAdminRoutes(request)) {
+      sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
+      return;
+    }
+    try {
+      const enquiries = await listEnquiries();
+      sendJson(request, response, 200, {
+        ok: true,
+        providerMode: registry.mode,
+        results: enquiries,
+        providerErrors: [],
+        meta: {
+          totalResults: enquiries.length,
+          activeProviders: registry.status().activeProviders,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error('[api-error]', { route: url.pathname, message: error.message });
+      sendJson(request, response, 500, errorEnvelope(500, 'Could not read enquiries.'));
+    }
+    return;
+  }
+
+  if (request.method === 'PATCH' && url.pathname.startsWith('/api/admin/enquiries/')) {
+    if (!canUseAdminRoutes(request)) {
+      sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
+      return;
+    }
+    try {
+      const body = await readJsonBody(request);
+      const id = decodeURIComponent(url.pathname.split('/').pop() || '');
+      const updated = await updateEnquiryStatus(id, body.status);
+      sendJson(request, response, 200, {
+        ok: true,
+        providerMode: registry.mode,
+        results: [updated],
+        providerErrors: [],
+        meta: {
+          totalResults: 1,
+          activeProviders: registry.status().activeProviders,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      const status = error.status || 500;
+      const message = status >= 500 ? 'Could not update enquiry.' : error.message;
+      sendJson(request, response, status, errorEnvelope(status, message));
+    }
+    return;
+  }
+
   if (request.method === 'GET' && url.pathname === '/api/travel/locations') {
     try {
       const payload = await registry.locations({
@@ -161,6 +251,20 @@ const server = http.createServer(async (request, response) => {
     } catch (error) {
       console.error('[api-error]', { route: url.pathname, message: error.message });
       sendJson(request, response, 500, errorEnvelope(500, 'Travel location lookup failed.'));
+    }
+    return;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/travel/enquiries') {
+    try {
+      const body = await readJsonBody(request);
+      const payload = await handleCreateEnquiry(body);
+      sendJson(request, response, 200, payload);
+    } catch (error) {
+      const status = error.status || 500;
+      const message = status >= 500 ? 'Could not save enquiry.' : error.message;
+      console.error('[api-error]', { route: url.pathname, status, message: error.message });
+      sendJson(request, response, status, errorEnvelope(status, message, { fieldErrors: error.fieldErrors || [] }));
     }
     return;
   }
