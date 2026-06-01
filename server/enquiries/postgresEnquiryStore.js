@@ -28,7 +28,7 @@ const tableSql = `
     result_type text,
     provider text,
     supplier_name text,
-    destination text,
+    destination text NOT NULL,
     country text,
     hotel_name text,
     departure_airport text,
@@ -43,12 +43,16 @@ const tableSql = `
     consent_to_contact boolean NOT NULL DEFAULT false,
     internal_notes text
   );
+
+  CREATE INDEX IF NOT EXISTS enquiries_created_at_desc_idx ON enquiries (created_at DESC);
+  CREATE INDEX IF NOT EXISTS enquiries_status_idx ON enquiries (status);
+  CREATE INDEX IF NOT EXISTS enquiries_customer_email_idx ON enquiries (customer_email);
 `;
 
 const getPool = () => {
   const connectionString = databaseUrl();
   if (!connectionString) {
-    throw createStorageError('Postgres enquiry storage is selected but DATABASE_URL is not configured. Set DATABASE_URL or switch ENQUIRY_STORAGE_MODE=json.');
+    throw createStorageError('Postgres enquiry storage is selected but the server database connection is not configured. Configure the database connection or switch ENQUIRY_STORAGE_MODE=json.');
   }
 
   if (!pool) {
@@ -163,7 +167,7 @@ const withStorageError = async (operation) => {
     return await operation();
   } catch (error) {
     if (error.status) throw error;
-    throw createStorageError('Postgres enquiry storage is unavailable. Check DATABASE_URL and Railway Postgres service status.', 503, error);
+    throw createStorageError('Postgres enquiry storage is unavailable. Check the server database connection and Railway Postgres service status.', 503, error);
   }
 };
 
@@ -209,14 +213,14 @@ export async function updateEnquiryStatus(id, status) {
 }
 
 export async function getDatabaseStatus() {
-  if (!databaseUrl()) return 'not-configured';
+  if (!databaseUrl()) return 'postgres-not-configured';
 
   try {
     await ensureTable();
     await getPool().query('SELECT 1;');
-    return 'ready';
+    return 'postgres-ready';
   } catch (error) {
-    return 'error';
+    return 'postgres-error';
   }
 }
 
