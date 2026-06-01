@@ -2,3 +2,6 @@ node_modules/
 dist/
 *.log
 pickyholiday-home.png
+
+# Runtime enquiry storage. Do not commit customer lead data.
+data/enquiries.json
