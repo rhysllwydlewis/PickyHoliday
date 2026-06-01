@@ -36,10 +36,14 @@ const assertHealth = (data) => {
   if (typeof data.amadeusSecondaryEnabled !== 'boolean') throw new Error('/api/health did not expose Amadeus secondary status.');
   if (typeof data.affiliatePackageConfigured !== 'boolean') throw new Error('/api/health did not expose affiliate package configured true/false.');
   if (!['json', 'postgres'].includes(data.enquiryStorageMode)) throw new Error('/api/health did not expose enquiryStorageMode.');
-  if (typeof data.postgresConfigured !== 'boolean') throw new Error('/api/health did not expose postgresConfigured true/false.');
-  if (!['not-configured', 'ready', 'error'].includes(data.databaseStatus)) throw new Error('/api/health did not expose a valid databaseStatus.');
-  if (JSON.stringify(data).includes('postgres://') || JSON.stringify(data).includes('postgresql://')) {
+  if (typeof data.databaseConfigured !== 'boolean') throw new Error('/api/health did not expose databaseConfigured true/false.');
+  if (!['json', 'postgres-ready', 'postgres-not-configured', 'postgres-error'].includes(data.databaseStatus)) throw new Error('/api/health did not expose a valid databaseStatus.');
+  const healthJson = JSON.stringify(data);
+  if (healthJson.includes('postgres://') || healthJson.includes('postgresql://')) {
     throw new Error('/api/health appeared to expose a database connection string.');
+  }
+  for (const secretName of ['DATABASE_URL', 'PGPASSWORD', 'ADMIN_ACCESS_TOKEN']) {
+    if (healthJson.includes(secretName)) throw new Error(`/api/health appeared to expose ${secretName}.`);
   }
 };
 
@@ -67,6 +71,9 @@ const assertSearchResults = (data, label) => {
 };
 
 const assertEnquiry = (data) => {
+  if (!data.enquiry?.id) {
+    throw new Error('/api/travel/enquiries did not return an enquiry id.');
+  }
   if (!data.enquiry?.message?.toLowerCase().includes('not a booking confirmation')) {
     throw new Error('/api/travel/enquiries did not return the expected mock enquiry-only message.');
   }

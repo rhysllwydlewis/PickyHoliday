@@ -29,8 +29,8 @@
 - [x] `npm install` completed successfully.
 - [x] `npm run build` completed successfully.
 - [x] JSON-mode smoke tests passed against a local running API server.
-- [x] Postgres-mode-without-`DATABASE_URL` health check returned `postgresConfigured:false` and `databaseStatus:"not-configured"`.
-- [x] Postgres-mode-without-`DATABASE_URL` enquiry POST returned a controlled `503`.
+- [x] Postgres-mode-without-`DATABASE_URL` health check returned `databaseConfigured:false` and `databaseStatus:"postgres-not-configured"`.
+- [x] Postgres-mode-without-`DATABASE_URL` enquiry POST returned a controlled `503` without exposing the connection string or secret values.
 
 ## Not validated in this environment
 
