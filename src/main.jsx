@@ -314,11 +314,15 @@ function ProviderDiagnostics({ diagnostics, onRefresh }) {
         <span>Provider status</span>
         <button onClick={onRefresh}>Refresh</button>
       </div>
+      <p className="provider-strategy-note">Duffel preferred for flights · Amadeus optional sandbox/search provider · Package/affiliate providers still future work.</p>
       <dl>
         <dt>Front end</dt><dd>{diagnostics.frontendMode}</dd>
         <dt>Backend</dt><dd>{diagnostics.backendMode || 'mock/local'}</dd>
+        <dt>Primary flight</dt><dd>{diagnostics.primaryFlightProvider || 'duffel'}</dd>
+        <dt>Duffel</dt><dd>{diagnostics.duffelConfigured ? 'configured server-side' : 'not configured / server-only'}</dd>
+        <dt>Amadeus</dt><dd>{diagnostics.amadeusConfigured ? 'configured optional sandbox' : 'not configured / optional sandbox'}</dd>
+        <dt>Amadeus secondary</dt><dd>{diagnostics.amadeusSecondaryEnabled ? 'enabled' : 'disabled'}</dd>
         <dt>Active</dt><dd>{(diagnostics.activeProviders || []).join(', ') || 'mock'}</dd>
-        <dt>Amadeus</dt><dd>{diagnostics.amadeusConfigured ? 'configured server-side' : 'not configured / mock only'}</dd>
         <dt>Latest</dt><dd>{diagnostics.latestSource || 'mock'}</dd>
       </dl>
       {statuses.length > 0 && (
@@ -444,8 +448,11 @@ function App() {
     frontendMode: getFrontendProviderMode(),
     backendMode: 'mock',
     activeProviders: ['mock'],
-    amadeusConfigured: false,
     latestSource: 'mock',
+    primaryFlightProvider: 'duffel',
+    duffelConfigured: false,
+    amadeusConfigured: false,
+    amadeusSecondaryEnabled: false,
     providerErrors: [],
     providerStatus: [],
   });
@@ -476,7 +483,10 @@ function App() {
         frontendMode: getFrontendProviderMode(),
         backendMode: status.providerMode,
         activeProviders: status.activeProviders || status.meta?.activeProviders || [],
+        primaryFlightProvider: status.primaryFlightProvider || 'duffel',
+        duffelConfigured: Boolean(status.duffelConfigured),
         amadeusConfigured: Boolean(status.amadeusConfigured),
+        amadeusSecondaryEnabled: Boolean(status.amadeusSecondaryEnabled),
         providerStatus: status.providers || current.providerStatus || [],
         providerErrors: status.providerErrors || [],
       }));

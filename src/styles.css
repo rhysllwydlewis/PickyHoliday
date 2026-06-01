@@ -199,7 +199,8 @@ footer{background:linear-gradient(135deg,#063c83,#021f4c);color:#dcecff;margin-t
 .provider-diagnostics>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:10px}
 .provider-diagnostics span{font-size:12px;font-weight:1000;text-transform:uppercase;letter-spacing:.7px;color:#00a6a6}
 .provider-diagnostics button{background:#0b67dd;color:white;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:900}
-.provider-diagnostics dl{display:grid;grid-template-columns:repeat(5,auto 1fr);gap:6px 10px;margin:0;font-size:12px;align-items:center}
+.provider-strategy-note{margin:0 0 10px;color:#315a87;font-size:12px;font-weight:900}
+.provider-diagnostics dl{display:grid;grid-template-columns:repeat(4,auto 1fr);gap:6px 10px;margin:0;font-size:12px;align-items:center}
 .provider-diagnostics dt{font-weight:1000;color:#092d64}.provider-diagnostics dd{margin:0;color:#5d7192}
 .provider-diagnostics ul{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0;padding:0;list-style:none}
 .provider-diagnostics li{background:white;border:1px solid #dceafa;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:800;color:#536b8e}

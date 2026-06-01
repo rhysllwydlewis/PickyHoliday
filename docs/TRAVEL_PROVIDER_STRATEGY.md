@@ -1,39 +1,42 @@
 # PickyHoliday travel provider strategy
 
-## Purpose of this PR
+## Strategic pivot
 
-Phase 2 hardens the provider foundation and keeps mock mode safe by default. It includes provider error isolation, consistent API envelopes, provider diagnostics, server-side Amadeus Airport & City Search, Flight Offers Search, Hotel List and best-effort Hotel Offers pricing. It still does **not** create live bookings, payments, orders or booking confirmations.
+PickyHoliday is pivoting from “Amadeus as the main future provider” to **Duffel as the preferred flight API path**, with **Amadeus retained as an optional sandbox/search provider**.
 
-## Why provider adapters
+The reason is commercial and operational, not architectural. Amadeus is valuable for sandbox search and broad travel coverage, but production flight booking/ticketing introduces extra commercial, ticketing, fulfilment and operational requirements. Duffel is a stronger fit for a startup flight-selling path because it has clear test-mode development, modern offer/order APIs and a more direct flight retailing focus.
 
-PickyHoliday should not be locked to one travel API. UK and Europe holidays need a mix of flight + hotel search, package holiday redirects, low-cost airline routes, hotel specialists, manual adverts and enquiry-led group quotes. A provider-adapter architecture lets the UI consume one normalised result shape while the backend chooses the right supplier path.
+This PR is still foundation work only. It does not build live booking, payments, Duffel orders, Amadeus orders, seat maps, ancillaries or booking confirmations.
+
+## Why provider adapters still matter
+
+PickyHoliday should not be locked to one travel API. UK and Europe holidays need a mix of flight search, package holiday redirects, low-cost airline coverage, hotel specialists, manual adverts and enquiry-led group quotes. The provider-adapter architecture lets the UI consume one normalised result shape while the backend chooses the right supplier path.
 
 ## Provider responsibilities
 
-| Provider | Responsibility in this PR | Future role |
+| Provider | Role now | Future role |
 | --- | --- | --- |
-| Mock provider | Powers search by default with normalised demo results. | Safe local/demo mode and regression fixture. |
-| Amadeus provider | Server-side sandbox adapter for OAuth, Airport & City Search, dynamic airport/city code resolution, Flight Offers Search, Hotel List and best-effort Hotel Offers pricing when credentials are configured. | May later expand into stronger availability, pricing and supplier-specific booking readiness after commercial/legal review. |
+| Mock provider | Safe default with normalised demo results and Duffel-shaped flight-only fixtures. | Regression fixture and credential-free demo mode. |
+| Duffel provider | Preferred flight provider foundation. Creates flight offer-request searches server-side when a token is configured. | Future flight selling path after legal, operational and customer-protection decisions. |
+| Amadeus provider | Optional sandbox/search provider for airport/city lookup, flights and hotels when explicitly enabled/configured. | Secondary search/sandbox provider; not the primary long-term booking path. |
 | Affiliate/package provider | Scaffold only; no partner feed calls. | TUI, Jet2holidays, easyJet Holidays, Loveholidays, On the Beach, Expedia-style redirects and package affiliate links. |
-| Manual deals provider | Supports curated promoted deals/adverts. | Early monetisation, sponsored placements and manual group quote offers. |
-| Hotel specialist providers | Not implemented in this PR. | Expedia Rapid or Hotelbeds/HBX-style lodging depth. |
-| Duffel-style flight provider | Not implemented in this PR. | Deeper flight booking capability if commercially needed. |
-| Payments | Not implemented in this PR. | Stripe or marketplace payment flows after legal/operational readiness. |
+| Manual deals provider | Curated promoted deals/adverts. | Early monetisation, sponsored placements and manual group quote offers. |
+| Hotel specialist providers | Not implemented in this PR. | Duffel Stays, Expedia Rapid, Hotelbeds/HBX or another hotel provider for lodging depth. |
+| Payments | Not implemented. | Stripe or marketplace/deposit flows only after the commercial/legal flow is ready. |
 
-## Product flow
+## Provider modes
 
-1. A traveller searches in the React UI.
-2. The UI calls the PickyHoliday travel service layer, not third-party APIs directly.
-3. The backend/proxy route receives the search request.
-4. The provider registry routes to mock by default, or to Amadeus/manual/future providers when `TRAVEL_PROVIDER_MODE` and server credentials are configured.
-5. Providers return normalised holiday results.
-6. The UI renders consistent cards and a richer trip modal.
-7. The user can shortlist, continue to a partner redirect when present, or send an enquiry.
-8. No live booking confirmation is shown until a real protected booking provider exists.
+- `TRAVEL_PROVIDER_MODE=mock` uses mock only.
+- `TRAVEL_PROVIDER_MODE=duffel` uses Duffel if configured plus manual deals and affiliate/package scaffolds.
+- `TRAVEL_PROVIDER_MODE=amadeus` uses Amadeus if configured plus manual deals and affiliate/package scaffolds.
+- `TRAVEL_PROVIDER_MODE=hybrid` uses Duffel plus manual deals and affiliate/package scaffolds. Amadeus is included only when `ENABLE_AMADEUS_SECONDARY=true`.
+- `TRAVEL_PRIMARY_FLIGHT_PROVIDER=duffel` records the preferred strategic flight path.
+
+The registry must not call every provider by default. Credentialed providers are only active when mode/configuration allows them.
 
 ## Normalised holiday result model
 
-Every provider should map its own response into this shape before returning results to the UI:
+Every provider maps its own response into this shape before returning results to the UI:
 
 ```js
 {
@@ -69,9 +72,11 @@ Every provider should map its own response into this shape before returning resu
 }
 ```
 
+Duffel flight offers are mapped as `flight-only` enquiry results. Copy must state that the result is search-only, no order has been created, and baggage/fare rules must be confirmed before booking.
+
 ## Backend/API route foundation
 
-The server-side proxy is designed to keep secrets off the browser. Current mock-mode routes are:
+The server-side proxy keeps secrets off the browser. Current routes are:
 
 - `GET /api/health`
 - `POST /api/travel/search`
@@ -85,23 +90,25 @@ The server-side proxy is designed to keep secrets off the browser. Current mock-
 
 ## Environment strategy
 
-`.env.example` documents mock defaults and placeholder names for future providers. Real credentials must be stored in deployment secrets and must never be committed. The React app defaults to local mock provider behaviour when no backend URL is configured.
+`.env.example` documents mock defaults, Duffel test-mode placeholders, Amadeus optional sandbox placeholders and future affiliate/hotel/payment placeholders. Real credentials must be stored in deployment secrets and must never be committed. Do not add browser-side Duffel token variables.
 
 ## Staged follow-up PRs
 
-1. Provider foundation (this PR).
-2. Hardened Amadeus sandbox search (this phase): airport/city lookup, hotel offers pricing attempt and stronger flight + hotel composition.
-3. Package/affiliate provider: partner link model and approved redirects.
-4. Hotel depth provider: Expedia Rapid or Hotelbeds/HBX-style lodging stock.
-5. Enquiry/CRM persistence: store enquiries, email/CRM notifications and admin review.
+1. Duffel provider foundation (this PR): server-side offer-request scaffold, provider registry/status and mock fixtures.
+2. Affiliate/package redirect provider: approved partner link model for TUI, Jet2holidays, easyJet Holidays, Loveholidays, On the Beach and Expedia-style redirects.
+3. Manual promoted deals admin/source: allow PickyHoliday to manage promoted deals without code edits.
+4. Enquiry persistence: store enquiries, add email/CRM notifications and admin review.
+5. Hotel depth provider: Duffel Stays, Expedia Rapid, Hotelbeds/HBX or equivalent.
 6. Payments later: Stripe only when the commercial/legal flow is ready.
-7. Deeper booking later: Duffel or other booking APIs only after provider and protection requirements are clear.
+7. Live booking later: only after provider contracts, fulfilment, protection and support processes are ready.
 
 ## Guardrails
 
 - Do not expose API keys in the browser.
 - Do not commit real credentials.
-- Live Amadeus calls must run server-side only and require deployment secrets.
-- Do not build payments in the provider foundation PR.
+- Duffel and Amadeus calls must run server-side only.
+- Do not create Duffel orders.
+- Do not create Amadeus orders.
+- Do not build payments.
 - Do not create fake booking confirmations.
 - Keep the UI provider-agnostic and render the normalised result model.
