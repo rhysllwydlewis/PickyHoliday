@@ -1,7 +1,9 @@
 import { mockProvider } from './providers/mockProvider.js';
+import { createAffiliatePackageProvider } from './providers/affiliatePackageProvider.js';
 
 const travelProviderMode = import.meta.env.VITE_TRAVEL_PROVIDER_MODE || 'mock';
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+const localAffiliatePackageProvider = createAffiliatePackageProvider();
 
 const apiUrl = (path) => `${apiBaseUrl}${path}`;
 
@@ -24,14 +26,25 @@ const apiGet = async (path) => {
   return data;
 };
 
+const localMockProviders = [mockProvider, localAffiliatePackageProvider];
+
+const providerStatus = (provider, resultCount = 0) => (provider.getStatus
+  ? { ...provider.getStatus(), ok: true, resultCount }
+  : { provider: provider.id, configured: true, mode: 'mock-ready', ok: true, resultCount });
+
 const mockEnvelope = async (method, criteria) => {
-  const results = await mockProvider[method](criteria);
+  const providerResults = await Promise.all(localMockProviders.map(async (provider) => {
+    if (!provider[method]) return { provider, results: [], skipped: true };
+    const results = await provider[method](criteria);
+    return { provider, results: Array.isArray(results) ? results : [] };
+  }));
+  const results = providerResults.flatMap((item) => item.results);
   return {
     providerMode: 'mock',
     results,
     providerErrors: [],
-    providerStatus: [{ provider: 'mock', configured: true, mode: 'mock-ready', resultCount: results.length, ok: true }],
-    meta: { totalResults: results.length, activeProviders: ['mock'], timestamp: new Date().toISOString() },
+    providerStatus: providerResults.map((item) => ({ ...providerStatus(item.provider, item.results.length), skipped: Boolean(item.skipped), lastMethod: method })),
+    meta: { totalResults: results.length, activeProviders: localMockProviders.map((provider) => provider.id), timestamp: new Date().toISOString() },
   };
 };
 
@@ -41,24 +54,30 @@ export function getFrontendProviderMode() {
 
 export async function getProviderStatus() {
   if (travelProviderMode === 'mock') {
+    const affiliateStatus = localAffiliatePackageProvider.getStatus();
     return {
       ok: true,
       providerMode: 'mock',
-      activeProviders: ['mock'],
+      activeProviders: ['mock', 'affiliate-package'],
       primaryFlightProvider: 'duffel',
       duffelPreferredForFlights: true,
       duffelConfigured: false,
       amadeusConfigured: false,
       amadeusSecondaryEnabled: false,
+      affiliatePackageConfigured: affiliateStatus.configured,
       providers: [
         { provider: 'mock', configured: true, mode: 'mock-ready' },
         { provider: 'duffel', configured: false, mode: 'server-only-token-required' },
         { provider: 'amadeus', configured: false, mode: 'optional-sandbox' },
+        affiliateStatus,
       ],
-      providerStatus: [{ provider: 'mock', configured: true, mode: 'mock-ready', ok: true, resultCount: 0 }],
+      providerStatus: [
+        { provider: 'mock', configured: true, mode: 'mock-ready', ok: true, resultCount: 0 },
+        { ...affiliateStatus, ok: true, resultCount: affiliateStatus.resultCount || 0 },
+      ],
       providerErrors: [],
       results: [],
-      meta: { totalResults: 0, activeProviders: ['mock'], timestamp: new Date().toISOString() },
+      meta: { totalResults: 0, activeProviders: ['mock', 'affiliate-package'], timestamp: new Date().toISOString() },
     };
   }
 
@@ -102,9 +121,12 @@ export async function submitEnquiry(payload) {
         message: 'Enquiry saved in mock mode. No booking has been created.',
       },
       providerErrors: [],
-      providerStatus: [{ provider: 'mock', configured: true, mode: 'mock-ready', ok: true, resultCount: 0 }],
+      providerStatus: [
+        { provider: 'mock', configured: true, mode: 'mock-ready', ok: true, resultCount: 0 },
+        { ...localAffiliatePackageProvider.getStatus(), ok: true, resultCount: 0 },
+      ],
       results: [],
-      meta: { totalResults: 0, activeProviders: ['mock'], timestamp: new Date().toISOString() },
+      meta: { totalResults: 0, activeProviders: ['mock', 'affiliate-package'], timestamp: new Date().toISOString() },
     };
   }
 
