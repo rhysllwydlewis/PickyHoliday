@@ -48,6 +48,30 @@ export const mockProvider = {
   async packages(criteria = {}) {
     return this.search({ ...criteria, intent: criteria.intent || 'Holidays', resultTypes: ['package', 'advert'] });
   },
+
+  async locations(criteria = {}) {
+    const keyword = normalise(criteria.keyword || criteria.destination || '');
+    const seen = new Set();
+    return mockHolidayResults
+      .filter((result) => !keyword || normalise(`${result.destination} ${result.country} ${result.departureAirport}`).includes(keyword))
+      .map((result) => ({
+        id: `mock-location-${normalise(result.destination).replaceAll(' ', '-')}`,
+        provider: 'mock',
+        type: 'location',
+        name: result.destination,
+        cityName: result.destination,
+        countryName: result.country,
+        iataCode: result.returnAirport || result.departureAirport || '',
+        subType: 'CITY',
+        relevance: 0.5,
+      }))
+      .filter((location) => {
+        if (seen.has(location.id)) return false;
+        seen.add(location.id);
+        return true;
+      })
+      .slice(0, criteria.max || 8);
+  },
   async composeHoliday(criteria = {}) {
     const results = await this.search(criteria);
     return results.filter((result) => ['flight-hotel', 'package'].includes(result.resultType));

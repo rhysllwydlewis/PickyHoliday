@@ -3,6 +3,16 @@ import { createAmadeusProvider } from '../src/services/providers/amadeusProvider
 import { createAffiliatePackageProvider } from '../src/services/providers/affiliatePackageProvider.js';
 import { manualDealsProvider } from '../src/services/providers/manualDealsProvider.js';
 
+const safeMessage = (error) => {
+  const message = error?.message || 'Provider request failed';
+  return message
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
+    .replace(/client_secret=[^&\s]+/gi, 'client_secret=[redacted]')
+    .replace(/client_id=[^&\s]+/gi, 'client_id=[redacted]');
+};
+
+const providerLabel = (provider) => provider?.id || provider?.label || 'unknown-provider';
+
 export function createTravelProviderRegistry(env = process.env) {
   const mode = env.TRAVEL_PROVIDER_MODE || 'mock';
   const amadeusProvider = createAmadeusProvider({
@@ -30,62 +40,156 @@ export function createTravelProviderRegistry(env = process.env) {
     ? [mockProvider]
     : [amadeusProvider, affiliatePackageProvider, manualDealsProvider];
 
-  const collect = async (method, criteria) => {
-    const providerResults = await Promise.all(
-      activeSearchProviders.map(async (provider) => {
-        if (!provider[method]) return [];
-        return provider[method](criteria);
-      }),
-    );
+  const statusFor = (provider) => (provider.getStatus ? provider.getStatus() : {
+    provider: provider.id,
+    configured: true,
+    mode: provider.id === 'mock' || provider.id === 'manual-deals' ? 'mock-ready' : 'scaffold-only',
+  });
 
-    return providerResults.flat();
+  const collect = async (method, criteria) => {
+    const settled = await Promise.all(activeSearchProviders.map(async (provider) => {
+      if (!provider[method]) {
+        return { provider, results: [], skipped: true };
+      }
+
+      try {
+        const results = await provider[method](criteria);
+        return { provider, results: Array.isArray(results) ? results : [] };
+      } catch (error) {
+        const providerName = providerLabel(provider);
+        const message = safeMessage(error);
+        console.error('[travel-provider-error]', {
+          provider: providerName,
+          method,
+          message,
+          status: error?.status || error?.cause?.status,
+        });
+        return {
+          provider,
+          results: [],
+          error: {
+            provider: providerName,
+            method,
+            message,
+          },
+        };
+      }
+    }));
+
+    const results = settled.flatMap((item) => item.results);
+    const providerErrors = settled.map((item) => item.error).filter(Boolean);
+    const providerStatus = settled.map((item) => ({
+      ...statusFor(item.provider),
+      lastMethod: method,
+      resultCount: item.results.length,
+      ok: !item.error,
+      skipped: Boolean(item.skipped),
+    }));
+
+    return { results, providerErrors, providerStatus };
   };
+
+  const envelope = (collected) => ({
+    providerMode: mode,
+    results: collected.results,
+    providerErrors: collected.providerErrors,
+    providerStatus: collected.providerStatus,
+    meta: {
+      totalResults: collected.results.length,
+      activeProviders: activeSearchProviders.map((provider) => providerLabel(provider)),
+      timestamp: new Date().toISOString(),
+    },
+  });
 
   return {
     mode,
     providers,
     async search(criteria) {
-      const results = await collect('search', criteria);
-      return { providerMode: mode, results };
+      return envelope(await collect('search', criteria));
     },
     async flights(criteria) {
-      const results = await collect('flights', criteria);
-      return { providerMode: mode, results };
+      return envelope(await collect('flights', criteria));
     },
     async hotels(criteria) {
-      const results = await collect('hotels', criteria);
-      return { providerMode: mode, results };
+      return envelope(await collect('hotels', criteria));
     },
     async packages(criteria) {
-      const results = await collect('packages', criteria);
-      return { providerMode: mode, results };
+      return envelope(await collect('packages', criteria));
     },
     async composeHoliday(criteria) {
-      const results = await collect('composeHoliday', criteria);
-      return { providerMode: mode, results };
+      return envelope(await collect('composeHoliday', criteria));
+    },
+    async locations(criteria) {
+      const providerSet = mode === 'mock' ? [mockProvider] : [amadeusProvider, mockProvider];
+      const settled = await Promise.all(providerSet.map(async (provider) => {
+        if (!provider.locations) return { provider, results: [], skipped: true };
+        try {
+          const results = await provider.locations(criteria);
+          return { provider, results: Array.isArray(results) ? results : [] };
+        } catch (error) {
+          const providerName = providerLabel(provider);
+          const message = safeMessage(error);
+          console.error('[travel-provider-error]', { provider: providerName, method: 'locations', message });
+          return { provider, results: [], error: { provider: providerName, method: 'locations', message } };
+        }
+      }));
+      const results = settled.flatMap((item) => item.results);
+      return {
+        providerMode: mode,
+        results,
+        providerErrors: settled.map((item) => item.error).filter(Boolean),
+        providerStatus: settled.map((item) => ({ ...statusFor(item.provider), lastMethod: 'locations', resultCount: item.results.length, ok: !item.error, skipped: Boolean(item.skipped) })),
+        meta: {
+          totalResults: results.length,
+          activeProviders: providerSet.map((provider) => providerLabel(provider)),
+          timestamp: new Date().toISOString(),
+        },
+      };
     },
     async createEnquiry(payload) {
       return {
         ok: true,
-        mode,
-        enquiryId: `mock-enquiry-${Date.now()}`,
-        message: 'Mock enquiry received. This is not a booking confirmation and no supplier reservation was made.',
-        received: {
-          resultId: payload?.resultId || null,
-          destination: payload?.destination || null,
-          groupSizeLabel: payload?.groupSizeLabel || null,
+        providerMode: mode,
+        results: [],
+        providerErrors: [],
+        providerStatus: activeSearchProviders.map((provider) => ({
+          ...statusFor(provider),
+          lastMethod: 'createEnquiry',
+          resultCount: 0,
+          ok: true,
+        })),
+        meta: {
+          totalResults: 0,
+          activeProviders: activeSearchProviders.map((provider) => providerLabel(provider)),
+          timestamp: new Date().toISOString(),
+        },
+        enquiry: {
+          enquiryId: `mock-enquiry-${Date.now()}`,
+          message: 'Mock enquiry received. This is not a booking confirmation and no supplier reservation was made.',
+          received: {
+            resultId: payload?.resultId || null,
+            destination: payload?.destination || null,
+            groupSizeLabel: payload?.groupSizeLabel || null,
+          },
         },
       };
     },
     status() {
+      const providerStatuses = Object.values(providers).map(statusFor);
       return {
         ok: true,
         providerMode: mode,
-        providers: Object.values(providers).map((provider) => (provider.getStatus ? provider.getStatus() : {
-          provider: provider.id,
-          configured: true,
-          mode: provider.id === 'mock' || provider.id === 'manual-deals' ? 'mock-ready' : 'scaffold-only',
-        })),
+        activeProviders: activeSearchProviders.map((provider) => providerLabel(provider)),
+        amadeusConfigured: amadeusProvider.configured,
+        providers: providerStatuses,
+        providerStatus: providerStatuses,
+        providerErrors: [],
+        results: [],
+        meta: {
+          totalResults: 0,
+          activeProviders: activeSearchProviders.map((provider) => providerLabel(provider)),
+          timestamp: new Date().toISOString(),
+        },
       };
     },
   };

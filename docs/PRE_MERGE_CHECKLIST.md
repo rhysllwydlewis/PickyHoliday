@@ -1,39 +1,43 @@
-# Provider foundation pre-merge checklist
-
-Use this checklist before merging the provider-based travel integration foundation PR.
+# Phase 2 pre-merge checklist
 
 ## Scope guardrails
 
 - [ ] Mock mode works by default without live API credentials.
-- [ ] Mock mode remains the default; live Amadeus calls only run server-side when `TRAVEL_PROVIDER_MODE` is non-mock and Amadeus credentials are configured.
 - [ ] No real credentials are committed.
+- [ ] Amadeus credentials are server-side only.
 - [ ] No payment flow is implemented.
-- [ ] No live booking or fake booking confirmation is shown.
-- [ ] The frontend calls only the PickyHoliday travel service layer/proxy abstractions.
+- [ ] No live booking, flight order, hotel booking or fake booking confirmation is shown.
+- [ ] Provider-adapter architecture remains intact and mock provider remains available.
 
 ## Product flow
 
-- [ ] Homepage renders with PickyHoliday branding intact via Vite preview and via `npm start` after `npm run build`.
+- [ ] Homepage renders with PickyHoliday branding intact.
 - [ ] Mock search returns normalised holiday results.
-- [ ] Result cards support flight + hotel, hotel-only, package and advert-shaped results.
-- [ ] Loading, empty and error states are visible and understandable.
-- [ ] Trip modal shows supplier, airline, destination, hotel, price, nights/date, group size, baggage, board basis, booking mode and protection labels.
+- [ ] Provider diagnostics show frontend mode, backend mode, active providers, Amadeus configured status and provider errors.
+- [ ] Result cards and modals distinguish flight-only totals, hotel-only from prices, estimated flight + hotel prices and price-to-confirm cases.
 - [ ] Enquiry CTA creates only a mock enquiry and clearly states that no booking was created.
-- [ ] Partner redirect CTA appears only when a provider supplies a `partnerUrl`.
 
 ## Backend/API
 
 - [ ] `GET /api/health` returns provider status.
-- [ ] `POST /api/travel/search` returns mock results.
+- [ ] `GET /api/travel/locations?keyword=barcelona` returns a consistent location envelope.
+- [ ] `POST /api/travel/search` returns results in mock mode.
 - [ ] `POST /api/travel/flights`, `/hotels`, `/packages` and `/holiday-composer` return consistent JSON envelopes.
 - [ ] `POST /api/travel/enquiries` returns a mock enquiry response, not a booking confirmation.
-- [ ] `npm start` serves built `dist/` assets and `/api/*` routes for a single-service deployment.
+- [ ] Bad JSON returns a controlled 400 response.
+- [ ] One provider failing does not fail the whole registry response.
+- [ ] CORS and request body limits remain in place.
 
-## Follow-up PRs, not this PR
+## Validation
 
-- [ ] Expanded Amadeus autocomplete, hotel offers pricing and richer composition.
-- [ ] Package/affiliate partner integrations.
-- [ ] Hotel depth provider.
+- [ ] `npm run build` passes.
+- [ ] `npm run test:api` passes against a running `npm run dev:api` server.
+- [ ] `docs/API_TEST_COMMANDS.md` curl commands are still accurate.
+
+## Future PRs, not this PR
+
+- [ ] Package/affiliate partner integrations for TUI, Jet2, easyJet Holidays, Loveholidays, On the Beach and Expedia-style redirects.
+- [ ] Hotel depth provider such as Expedia Rapid or Hotelbeds/HBX.
 - [ ] Persistent enquiry/CRM storage.
 - [ ] Payments.
 - [ ] Live booking.

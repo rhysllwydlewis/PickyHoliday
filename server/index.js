@@ -7,6 +7,7 @@ import { createTravelProviderRegistry } from './travelProviderRegistry.js';
 const port = Number(process.env.PORT || 8787);
 const registry = createTravelProviderRegistry(process.env);
 const distDir = path.resolve(process.cwd(), 'dist');
+const maxBodyBytes = Number(process.env.API_MAX_BODY_BYTES || 1_000_000);
 
 const isPathInside = (parent, child) => {
   const relativePath = path.relative(parent, child);
@@ -23,16 +24,28 @@ const mimeTypes = {
   '.webp': 'image/webp',
 };
 
+class BodyError extends Error {
+  constructor(message, status = 400) {
+    super(message);
+    this.status = status;
+  }
+}
+
 const readJsonBody = (request) => new Promise((resolve, reject) => {
   let body = '';
+  let rejected = false;
   request.on('data', (chunk) => {
-    body += chunk;
-    if (body.length > 1_000_000) {
-      request.destroy();
-      reject(new Error('Request body too large'));
+    if (rejected) return;
+    if (body.length + chunk.length > maxBodyBytes) {
+      rejected = true;
+      reject(new BodyError('Request body too large', 413));
+      request.resume();
+      return;
     }
+    body += chunk;
   });
   request.on('end', () => {
+    if (rejected) return;
     if (!body) {
       resolve({});
       return;
@@ -40,10 +53,12 @@ const readJsonBody = (request) => new Promise((resolve, reject) => {
     try {
       resolve(JSON.parse(body));
     } catch (error) {
-      reject(error);
+      reject(new BodyError('Invalid JSON body. Please send valid application/json.', 400));
     }
   });
-  request.on('error', reject);
+  request.on('error', (error) => {
+    if (!rejected) reject(error);
+  });
 });
 
 const sendStatic = async (response, pathname) => {
@@ -75,15 +90,43 @@ const sendStatic = async (response, pathname) => {
   }
 };
 
-const sendJson = (response, status, payload) => {
+const defaultCorsOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+
+const allowedCorsOrigins = () => (process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean)
+  : defaultCorsOrigins);
+
+const corsOrigin = (request) => {
+  const allowedOrigins = allowedCorsOrigins();
+  if (allowedOrigins.includes('*')) return '*';
+  const requestOrigin = request.headers.origin;
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) return requestOrigin;
+  return allowedOrigins[0];
+};
+
+const sendJson = (request, response, status, payload) => {
   response.writeHead(status, {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*',
+    'Access-Control-Allow-Origin': corsOrigin(request),
+    'Vary': 'Origin',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
   });
   response.end(JSON.stringify(payload));
 };
+
+const errorEnvelope = (status, message) => ({
+  ok: false,
+  providerMode: registry.mode,
+  results: [],
+  providerErrors: [{ provider: 'api', method: 'request', message }],
+  meta: {
+    totalResults: 0,
+    activeProviders: registry.status().activeProviders,
+    timestamp: new Date().toISOString(),
+    status,
+  },
+});
 
 const postRoutes = {
   '/api/travel/search': (body) => registry.search(body),
@@ -92,18 +135,33 @@ const postRoutes = {
   '/api/travel/packages': (body) => registry.packages(body),
   '/api/travel/holiday-composer': (body) => registry.composeHoliday(body),
   '/api/travel/enquiries': (body) => registry.createEnquiry(body),
+  '/api/travel/locations': (body) => registry.locations(body),
 };
 
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
   if (request.method === 'OPTIONS') {
-    sendJson(response, 204, {});
+    sendJson(request, response, 204, {});
     return;
   }
 
   if (request.method === 'GET' && url.pathname === '/api/health') {
-    sendJson(response, 200, registry.status());
+    sendJson(request, response, 200, registry.status());
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/travel/locations') {
+    try {
+      const payload = await registry.locations({
+        keyword: url.searchParams.get('keyword') || url.searchParams.get('q') || '',
+        max: url.searchParams.get('max') || undefined,
+      });
+      sendJson(request, response, 200, payload);
+    } catch (error) {
+      console.error('[api-error]', { route: url.pathname, message: error.message });
+      sendJson(request, response, 500, errorEnvelope(500, 'Travel location lookup failed.'));
+    }
     return;
   }
 
@@ -111,9 +169,12 @@ const server = http.createServer(async (request, response) => {
     try {
       const body = await readJsonBody(request);
       const payload = await postRoutes[url.pathname](body);
-      sendJson(response, 200, payload);
+      sendJson(request, response, 200, payload);
     } catch (error) {
-      sendJson(response, 400, { ok: false, error: error.message });
+      const status = error.status || 500;
+      const message = status >= 500 ? 'Travel API request failed in a controlled way.' : error.message;
+      console.error('[api-error]', { route: url.pathname, status, message: error.message });
+      sendJson(request, response, status, errorEnvelope(status, message));
     }
     return;
   }
@@ -123,7 +184,7 @@ const server = http.createServer(async (request, response) => {
     if (served) return;
   }
 
-  sendJson(response, 404, { ok: false, error: 'Route not found' });
+  sendJson(request, response, 404, errorEnvelope(404, 'Route not found'));
 });
 
 server.listen(port, () => {
