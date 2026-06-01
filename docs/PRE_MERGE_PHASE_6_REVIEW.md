@@ -63,6 +63,7 @@ npm run test:api
 
 - The public UI still includes temporary trust/protection wording such as ATOL/Trustpilot placeholders from earlier phases. This was intentionally left alone because the site is not live, but it should be centralised before launch.
 - The provider diagnostics are still visible on the public homepage. This remains useful during build, but should later move behind a dev/admin flag.
+- One diagnostics sentence still describes package/affiliate providers as future work in `src/main.jsx`. Functionally this is now superseded by provider status/docs and is not a merge blocker, but it should be cleaned up with the later diagnostics/admin-flag PR.
 - Partner links are placeholder home/deep-link candidates only; they are not approved commercial affiliate links yet.
 - No live partner feeds are connected.
 
