@@ -151,10 +151,12 @@ const enquiryEnvelope = (record, notifierResult) => ({
 
 const canUseAdminRoutes = (request) => {
   const token = process.env.ADMIN_ACCESS_TOKEN;
-  if (!token && ['mock', 'test', 'development'].includes(process.env.NODE_ENV || 'mock')) return true;
-  if (!token && registry.mode === 'mock') return true;
   const header = request.headers.authorization || '';
-  return Boolean(token && header === `Bearer ${token}`);
+  if (token) return header === `Bearer ${token}`;
+
+  const explicitlyAllowed = `${process.env.ALLOW_UNPROTECTED_ADMIN || ''}`.toLowerCase() === 'true';
+  const safeLocalMode = registry.mode === 'mock' && ['development', 'test'].includes(process.env.NODE_ENV || '');
+  return explicitlyAllowed && safeLocalMode;
 };
 
 const postRoutes = {
