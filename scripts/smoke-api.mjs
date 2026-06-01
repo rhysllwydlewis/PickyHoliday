@@ -25,6 +25,32 @@ const assertEnvelope = (data, label) => {
   }
 };
 
+const assertHealth = (data) => {
+  const providerNames = (data.providerStatus || data.providers || []).map((provider) => provider.provider);
+  if (!providerNames.includes('duffel')) throw new Error('/api/health did not include Duffel in providerStatus.');
+  if (data.primaryFlightProvider !== 'duffel') throw new Error('/api/health did not report Duffel as the primary flight provider.');
+  if (typeof data.duffelConfigured !== 'boolean') throw new Error('/api/health did not expose Duffel configured true/false.');
+  if (typeof data.amadeusConfigured !== 'boolean') throw new Error('/api/health did not expose Amadeus configured true/false.');
+  if (typeof data.amadeusSecondaryEnabled !== 'boolean') throw new Error('/api/health did not expose Amadeus secondary status.');
+};
+
+const assertFlightResults = (data) => {
+  if (!data.results.some((result) => ['flight-only', 'flight-hotel'].includes(result.resultType))) {
+    throw new Error('/api/travel/flights did not return flight-capable mock results.');
+  }
+};
+
+const assertSearchResults = (data, label) => {
+  if (!Array.isArray(data.results)) throw new Error(`${label} did not include a results array.`);
+  if (data.providerMode === 'mock' && data.results.length === 0) throw new Error(`${label} returned no mock results.`);
+};
+
+const assertEnquiry = (data) => {
+  if (!data.enquiry?.message?.toLowerCase().includes('not a booking confirmation')) {
+    throw new Error('/api/travel/enquiries did not return the expected mock enquiry-only message.');
+  }
+};
+
 const request = async ({ method, path, body }) => {
   const label = `${method} ${path}`;
   const response = await fetch(`${baseUrl}${path}`, {
@@ -37,6 +63,10 @@ const request = async ({ method, path, body }) => {
     throw new Error(`${label} failed with ${response.status}: ${JSON.stringify(data)}`);
   }
   assertEnvelope(data, label);
+  if (path === '/api/health') assertHealth(data);
+  if (path === '/api/travel/flights') assertFlightResults(data);
+  if (['/api/travel/search', '/api/travel/holiday-composer'].includes(path)) assertSearchResults(data, label);
+  if (path === '/api/travel/enquiries') assertEnquiry(data);
   return data;
 };
 
