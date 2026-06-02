@@ -148,3 +148,14 @@ A lightweight admin review page is available at `/admin/enquiries`. It asks for 
 Enquiry storage remains controlled by `ENQUIRY_STORAGE_MODE=json|postgres`. Railway Postgres still requires `DATABASE_URL` when `ENQUIRY_STORAGE_MODE=postgres`; JSON fallback remains available for local/mock use. Provider diagnostics are hidden by default behind a developer/provider status toggle and can be opened by default with `VITE_SHOW_PROVIDER_DIAGNOSTICS=true`.
 
 See `docs/ENQUIRY_FORM_AND_ADMIN_UI_PHASE.md` for the full form/admin rollout notes.
+
+
+## Admin dashboard, promoted deals and site settings
+
+The owner admin area is available at `/admin/login`. Enter the server-side `ADMIN_ACCESS_TOKEN` at runtime; the browser stores it in `sessionStorage` only and never in `localStorage`. After login, `/admin` provides Dashboard, Enquiries, Promoted Deals, Site Content, Feature Flags and Settings sections. Logout clears the session token.
+
+Promoted deals are managed at `/admin/deals` and stored in `data/promoted-deals.json` by default or Postgres when `PROMOTED_DEAL_STORAGE_MODE=postgres` and `DATABASE_URL` are configured. Only active deals are returned by `GET /api/deals/promoted`; draft, paused and archived deals stay private. Affiliate URLs are validated so unsafe `javascript:` or `data:` URLs are rejected.
+
+Site content and feature flags are managed at `/admin/content` and `/admin/features`. Public clients read safe copy and flags from `GET /api/site-config`; no secrets, database URLs or admin tokens are exposed. JSON fallback writes to `data/site-config.json`; Postgres mode uses `SITE_CONFIG_STORAGE_MODE=postgres` and `DATABASE_URL`.
+
+This remains enquiry-first: no live booking, payments, Duffel orders, Amadeus orders, supplier reservations or real emails are created by the admin tools.

@@ -9,14 +9,14 @@ const apiUrl = (path) => `${apiBaseUrl}${path}`;
 
 const safeApiMessage = (data, fallback) => {
   const message = data?.message || data?.providerErrors?.[0]?.message || fallback;
-  if (!message || /stack|trace|at .*\(|database_url|postgres(?:ql)?:\/\/|password|secret/i.test(message)) return fallback;
+  if (!message || /stack|trace|at .*\(|database_url|admin_access_token|access_token|api[_-]?key|postgres(?:ql)?:\/\/|bearer\s+|password|secret/i.test(message)) return fallback;
   return message;
 };
 
-const apiPost = async (path, payload) => {
+const apiPost = async (path, payload, token) => {
   const response = await fetch(apiUrl(path), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(payload),
   });
 
@@ -91,6 +91,10 @@ export function getFrontendProviderMode() {
   return travelProviderMode;
 }
 
+export async function getBackendHealth() {
+  return apiGet('/api/health');
+}
+
 export async function getProviderStatus() {
   if (travelProviderMode === 'mock') {
     const affiliateStatus = localAffiliatePackageProvider.getStatus();
@@ -120,8 +124,21 @@ export async function getProviderStatus() {
     };
   }
 
-  return apiGet('/api/health');
+  return getBackendHealth();
 }
+
+export async function getSiteConfig() {
+  try {
+    return await apiGet('/api/site-config');
+  } catch (error) {
+    return { ok: false, siteConfig: null, providerErrors: [{ provider: 'site-config', method: 'get', message: error.message }] };
+  }
+}
+
+export async function getPublicPromotedDeals() {
+  return apiGet('/api/deals/promoted');
+}
+
 
 export async function searchLocations(keyword) {
   if (travelProviderMode === 'mock') {
@@ -197,4 +214,29 @@ export async function listAdminEnquiries(token) {
 
 export async function updateAdminEnquiryStatus(id, status, token) {
   return apiPatch(`/api/admin/enquiries/${encodeURIComponent(id)}/status`, { status }, token);
+}
+
+
+export async function listAdminPromotedDeals(token) {
+  return apiGet('/api/admin/promoted-deals', token);
+}
+
+export async function createAdminPromotedDeal(payload, token) {
+  return apiPost('/api/admin/promoted-deals', payload, token);
+}
+
+export async function updateAdminPromotedDeal(id, payload, token) {
+  return apiPatch(`/api/admin/promoted-deals/${encodeURIComponent(id)}`, payload, token);
+}
+
+export async function updateAdminPromotedDealStatus(id, status, token) {
+  return apiPatch(`/api/admin/promoted-deals/${encodeURIComponent(id)}/status`, { status }, token);
+}
+
+export async function getAdminSiteConfig(token) {
+  return apiGet('/api/admin/site-config', token);
+}
+
+export async function updateAdminSiteConfig(payload, token) {
+  return apiPatch('/api/admin/site-config', payload, token);
 }

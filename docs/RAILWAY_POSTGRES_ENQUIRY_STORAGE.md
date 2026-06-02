@@ -145,3 +145,17 @@ ADMIN_ACCESS_TOKEN=<strong runtime token>
 After deployment, submit an enquiry from the public **Ask for group quote** form. Open `/admin/enquiries`, enter the runtime admin token, confirm the enquiry appears, update the status to `contacted`, refresh, and confirm it persists. The admin token is stored in `sessionStorage` only by the browser UI and is sent as an Authorization bearer token; it is not hardcoded and should not be exposed as a `VITE_*` variable.
 
 The customer flow remains enquiry-only. It does not create bookings, payments, Duffel orders, Amadeus orders, supplier reservations or real email sends. Provider diagnostics can remain hidden on the public homepage with `VITE_SHOW_PROVIDER_DIAGNOSTICS=false`.
+
+
+## Related admin storage variables
+
+Enquiry storage remains controlled by `ENQUIRY_STORAGE_MODE`. The admin dashboard phase also adds `PROMOTED_DEAL_STORAGE_MODE` and `SITE_CONFIG_STORAGE_MODE`, both defaulting to `json`. Set either to `postgres` only when Railway `DATABASE_URL` is configured. Do not expose these server storage variables as `VITE_*` values, and never expose `DATABASE_URL` or `ADMIN_ACCESS_TOKEN` in browser code.
+
+Railway variables for this phase:
+
+- `ADMIN_ACCESS_TOKEN` — server-side admin key entered at `/admin/login`.
+- `ENQUIRY_STORAGE_MODE=json|postgres`.
+- `PROMOTED_DEAL_STORAGE_MODE=json|postgres`.
+- `SITE_CONFIG_STORAGE_MODE=json|postgres`.
+- `DATABASE_URL` — required only for Postgres modes.
+- `ALLOW_UNPROTECTED_ADMIN=false` in production.

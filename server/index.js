@@ -7,6 +7,8 @@ import { validateEnquiryPayload } from './enquiries/validateEnquiry.js';
 import { createEnquiry, getEnquiryStorageStatus, listEnquiries, updateEnquiryStatus } from './enquiries/enquiryStore.js';
 import { notifyEnquiry } from './enquiries/enquiryNotifier.js';
 import { publicEnquiry } from '../src/services/enquiries/enquiryModel.js';
+import { createPromotedDeal, getPromotedDealStorageStatus, listPromotedDeals, listPublicPromotedDeals, updatePromotedDeal, updatePromotedDealStatus } from './deals/promotedDealStore.js';
+import { getPublicSiteConfig, getSiteConfig, getSiteConfigStorageStatus, updateSiteConfig } from './site/siteConfigStore.js';
 
 const port = Number(process.env.PORT || 8787);
 const registry = createTravelProviderRegistry(process.env);
@@ -159,8 +161,62 @@ const canUseAdminRoutes = (request) => {
   return explicitlyAllowed && safeLocalMode;
 };
 
+const mergeResultsById = (...resultSets) => {
+  const seen = new Set();
+  return resultSets.flat().filter((result) => {
+    const id = result?.id || result?.resultId;
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+};
+
+const filterPromotedDealsForCriteria = (deals, criteria = {}) => {
+  const destination = `${criteria.destination || ''}`.trim().toLowerCase();
+  if (!destination) return deals;
+  return deals.filter((deal) => `${deal.destination || ''} ${deal.country || ''} ${deal.hotelName || ''} ${deal.supplierName || ''} ${(deal.tags || []).join(' ')}`.toLowerCase().includes(destination));
+};
+
+const searchWithPromotedDeals = async (body) => {
+  const envelope = await registry.search(body);
+  let siteConfig;
+  try {
+    siteConfig = await getPublicSiteConfig();
+  } catch (error) {
+    siteConfig = { featureFlags: { enablePromotedDeals: true } };
+  }
+
+  if (siteConfig.featureFlags?.enablePromotedDeals === false) return envelope;
+
+  try {
+    const promotedDeals = filterPromotedDealsForCriteria(await listPublicPromotedDeals(), body);
+    const results = mergeResultsById(promotedDeals, envelope.results || []);
+    return {
+      ...envelope,
+      results,
+      providerStatus: [
+        ...(envelope.providerStatus || []),
+        { provider: 'promoted-deals', configured: true, mode: 'admin-managed', ok: true, resultCount: promotedDeals.length, lastMethod: 'search' },
+      ],
+      meta: {
+        ...(envelope.meta || {}),
+        totalResults: results.length,
+        activeProviders: [...new Set([...(envelope.meta?.activeProviders || []), 'promoted-deals'])],
+      },
+    };
+  } catch (error) {
+    return {
+      ...envelope,
+      providerErrors: [
+        ...(envelope.providerErrors || []),
+        { provider: 'promoted-deals', method: 'search', message: 'Promoted deals are temporarily unavailable.' },
+      ],
+    };
+  }
+};
+
 const postRoutes = {
-  '/api/travel/search': (body) => registry.search(body),
+  '/api/travel/search': (body) => searchWithPromotedDeals(body),
   '/api/travel/flights': (body) => registry.flights(body),
   '/api/travel/hotels': (body) => registry.hotels(body),
   '/api/travel/packages': (body) => registry.packages(body),
@@ -184,8 +240,139 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === 'GET' && url.pathname === '/api/health') {
-    const enquiryStorageStatus = await getEnquiryStorageStatus();
-    sendJson(request, response, 200, { ...registry.status(), ...enquiryStorageStatus });
+    const [enquiryStorageStatus, promotedDealStorageStatus, siteConfigStorageStatus] = await Promise.all([
+      getEnquiryStorageStatus(),
+      getPromotedDealStorageStatus(),
+      getSiteConfigStorageStatus(),
+    ]);
+    sendJson(request, response, 200, { ...registry.status(), ...enquiryStorageStatus, ...promotedDealStorageStatus, ...siteConfigStorageStatus });
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/site-config') {
+    try {
+      const siteConfig = await getPublicSiteConfig();
+      sendJson(request, response, 200, {
+        ok: true,
+        providerMode: registry.mode,
+        results: [],
+        providerErrors: [],
+        siteConfig,
+        meta: { totalResults: 0, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() },
+      });
+    } catch (error) {
+      sendJson(request, response, 503, errorEnvelope(503, 'Site configuration is temporarily unavailable.'));
+    }
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/deals/promoted') {
+    try {
+      const deals = await listPublicPromotedDeals();
+      sendJson(request, response, 200, {
+        ok: true,
+        providerMode: registry.mode,
+        results: deals,
+        providerErrors: [],
+        meta: { totalResults: deals.length, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() },
+      });
+    } catch (error) {
+      sendJson(request, response, 200, {
+        ok: true,
+        providerMode: registry.mode,
+        results: [],
+        providerErrors: [{ provider: 'promoted-deals', method: 'list', message: 'Promoted deals are temporarily unavailable.' }],
+        meta: { totalResults: 0, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() },
+      });
+    }
+    return;
+  }
+
+
+  if (request.method === 'GET' && url.pathname === '/api/admin/promoted-deals') {
+    if (!canUseAdminRoutes(request)) {
+      sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
+      return;
+    }
+    try {
+      const deals = await listPromotedDeals();
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: deals, providerErrors: [], meta: { totalResults: deals.length, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) {
+      sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not read promoted deals.'));
+    }
+    return;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/admin/promoted-deals') {
+    if (!canUseAdminRoutes(request)) {
+      sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
+      return;
+    }
+    try {
+      const deal = await createPromotedDeal(await readJsonBody(request));
+      sendJson(request, response, 201, { ok: true, providerMode: registry.mode, results: [deal], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) {
+      sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not create promoted deal.', { fieldErrors: error.fieldErrors || [] }));
+    }
+    return;
+  }
+
+  const adminDealStatusMatch = url.pathname.match(/^\/api\/admin\/promoted-deals\/([^/]+)\/status$/);
+  if (request.method === 'PATCH' && adminDealStatusMatch) {
+    if (!canUseAdminRoutes(request)) {
+      sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
+      return;
+    }
+    try {
+      const body = await readJsonBody(request);
+      const deal = await updatePromotedDealStatus(decodeURIComponent(adminDealStatusMatch[1] || ''), body.status);
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: [deal], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) {
+      sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not update promoted deal status.', { fieldErrors: error.fieldErrors || [] }));
+    }
+    return;
+  }
+
+  const adminDealMatch = url.pathname.match(/^\/api\/admin\/promoted-deals\/([^/]+)$/);
+  if (request.method === 'PATCH' && adminDealMatch) {
+    if (!canUseAdminRoutes(request)) {
+      sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
+      return;
+    }
+    try {
+      const deal = await updatePromotedDeal(decodeURIComponent(adminDealMatch[1] || ''), await readJsonBody(request));
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: [deal], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) {
+      sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not update promoted deal.', { fieldErrors: error.fieldErrors || [] }));
+    }
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/admin/site-config') {
+    if (!canUseAdminRoutes(request)) {
+      sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
+      return;
+    }
+    try {
+      const siteConfig = await getSiteConfig();
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: [], providerErrors: [], siteConfig, meta: { totalResults: 0, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) {
+      sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not read site config.'));
+    }
+    return;
+  }
+
+  if (request.method === 'PATCH' && url.pathname === '/api/admin/site-config') {
+    if (!canUseAdminRoutes(request)) {
+      sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
+      return;
+    }
+    try {
+      const siteConfig = await updateSiteConfig(await readJsonBody(request));
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: [], providerErrors: [], siteConfig, meta: { totalResults: 0, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) {
+      sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not update site config.'));
+    }
     return;
   }
 
