@@ -264,3 +264,28 @@ export async function updateAdminContentPage(id, payload, token) {
 export async function updateAdminContentPageStatus(id, status, token) {
   return apiPatch(`/api/admin/content-pages/${encodeURIComponent(id)}/status`, { status }, token);
 }
+
+
+export async function captureAnalyticsEvent(payload) {
+  try {
+    return await apiPost('/api/analytics/events', payload);
+  } catch (error) {
+    return { ok: false, providerErrors: [{ provider: 'analytics', method: 'capture', message: error.message }] };
+  }
+}
+
+export async function getAdminAnalyticsSummary(token) {
+  return apiGet('/api/admin/analytics/summary', token);
+}
+
+export async function listAdminAnalyticsEvents(token, limit = 50) {
+  return apiGet(`/api/admin/analytics/events?limit=${encodeURIComponent(limit)}`, token);
+}
+
+export async function runAdminOpsTests(payload, token) {
+  return apiPost('/api/admin/ops/run-tests', payload, token);
+}
+
+export async function sendAdminTestWebhook(payload, token) {
+  return apiPost('/api/admin/ops/test-webhook', payload, token);
+}

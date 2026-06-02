@@ -158,7 +158,7 @@ See `docs/ENQUIRY_FORM_AND_ADMIN_UI_PHASE.md` for the full form/admin rollout no
 
 ## Admin dashboard, promoted deals and site settings
 
-The owner admin area is available at `/admin/login`. Enter the server-side `ADMIN_ACCESS_TOKEN` at runtime; the browser stores it in `sessionStorage` only and never in `localStorage`. After login, `/admin` provides Dashboard, Enquiries, Promoted Deals, Site Content, Feature Flags and Settings sections. Logout clears the session token.
+The owner admin area is available at `/admin/login`. Enter the server-side `ADMIN_ACCESS_TOKEN` at runtime; the browser stores it in `sessionStorage` only and never in `localStorage`. For temporary non-live testing only, if `ADMIN_ACCESS_TOKEN` is not set and `ENABLE_TEST_ADMIN_LOGIN=true` (or a non-production runtime is used), the test key is `pickyholiday-test-admin` unless overridden with `TEST_ADMIN_ACCESS_TOKEN`. Disable test login and set a real `ADMIN_ACCESS_TOKEN` before launch. After login, `/admin` provides Dashboard, Enquiries, Promoted Deals, Content Pages, Site Content, Feature Flags, Operations and Settings sections. Logout clears the session token.
 
 Promoted deals are managed at `/admin/deals` and stored in `data/promoted-deals.json` by default or Postgres when `PROMOTED_DEAL_STORAGE_MODE=postgres` and `DATABASE_URL` are configured. Only active deals are returned by `GET /api/deals/promoted`; draft, paused and archived deals stay private. Affiliate URLs are validated so unsafe `javascript:` or `data:` URLs are rejected.
 
@@ -177,3 +177,13 @@ The admin editor is available at `/admin/pages` for users with `ADMIN_ACCESS_TOK
 Provider diagnostics remain hidden by default unless `VITE_SHOW_PROVIDER_DIAGNOSTICS=true` or the admin/debug configuration explicitly enables them. They are not always publicly visible near deals.
 
 Guardrail: PickyHoliday remains enquiry-first. This codebase does not add live booking, payments, Duffel orders, Amadeus orders or supplier reservations.
+
+## Admin operations centre
+
+The admin area now includes `/admin/ops` for analytics, recent activity, safe system checks and an admin-only webhook test sender. The admin access key remains runtime-only in `sessionStorage`; no user accounts are created.
+
+Analytics defaults to JSON fallback storage with `ANALYTICS_STORAGE_MODE=json`. Railway/Postgres deployments can use `ANALYTICS_STORAGE_MODE=postgres` with server-side `DATABASE_URL`. Public analytics capture can be disabled with `PUBLIC_ANALYTICS_ENABLED=false`.
+
+Webhook testing is admin-only. Configure `WEBHOOK_TEST_ALLOWED_HOSTS` in production where practical and keep `WEBHOOK_TEST_TIMEOUT_MS=5000` unless a shorter timeout is required. Test payloads must not contain secrets.
+
+No live booking, payment, Duffel order, Amadeus order, supplier reservation or real customer email sending is added by the operations centre.
