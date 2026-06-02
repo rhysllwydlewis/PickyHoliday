@@ -15,7 +15,7 @@ img{display:block;width:100%;height:100%;object-fit:cover}
 .logo-footer small{font-size:16px;color:#fff}
 nav{display:flex;gap:29px;margin-left:38px;align-items:center;flex:1}
 nav button{display:flex;gap:5px;align-items:center;color:#0b2d62;text-decoration:none;font-size:14px;font-weight:800;background:transparent}
-.signin{height:52px;padding:0 28px;border:1px solid #d6e4f5;border-radius:28px;background:#fff;color:#0b2d62;display:flex;align-items:center;gap:10px;box-shadow:0 6px 16px rgba(14,64,126,.06)}
+.signin{height:52px;padding:0 22px;border:1px solid #d6e4f5;border-radius:28px;background:#fff;color:#0b2d62;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 16px rgba(14,64,126,.06);white-space:nowrap;flex-shrink:0}
 .start{height:52px;padding:0 32px;border-radius:28px;background:linear-gradient(#ffc02d,#f5a800);color:#1c2f4d;display:flex;align-items:center;gap:10px;box-shadow:0 12px 25px rgba(237,162,0,.28);font-weight:900}
 .mobile{display:none}
 .hero{height:394px;position:relative;overflow:hidden;border-bottom-left-radius:24px;border-bottom-right-radius:24px;background:#095b9f}
@@ -126,8 +126,11 @@ footer{background:linear-gradient(135deg,#063c83,#021f4c);color:#dcecff;margin-t
 .apps button{background:#06090f;color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;height:34px;padding:0 13px;margin-right:8px}
 .copy{display:flex;align-items:center;padding-top:25px;font-size:13px;color:#c4d7ee}
 .copy p{margin:0 auto 0 0}
+.copy button{color:#dcecff;text-decoration:none;font-weight:900;margin-left:38px;background:transparent;padding:0}
+.copy button:hover{text-decoration:underline}
 .copy span{display:flex;align-items:center;gap:8px;margin-left:38px}
 .copy svg{width:18px;height:18px}
+@media(max-width:1400px){.navwrap{gap:18px}nav{gap:18px;margin-left:20px}.signin{padding:0 20px}.start{padding:0 24px}}
 @media(max-width:1100px){nav{display:none}
 .mobile{display:grid;margin-left:auto;background:#eef6ff;border-radius:50%;width:44px;height:44px;place-items:center}
 .grid-six,.benefits{grid-template-columns:repeat(3,1fr)}
@@ -157,6 +160,7 @@ footer{background:linear-gradient(135deg,#063c83,#021f4c);color:#dcecff;margin-t
 .strip{flex-wrap:wrap;height:auto;padding:12px}
 .copy{display:block}
 .copy span{margin:14px 0 0}
+.copy button{display:inline-block;margin:14px 0 0}
 .foot{grid-template-columns:1fr}
 .promo h2{font-size:35px}
 }
@@ -188,8 +192,19 @@ footer{background:linear-gradient(135deg,#063c83,#021f4c);color:#dcecff;margin-t
 .loading-state,.error-state{grid-column:1/-1;border-radius:13px;padding:16px 18px;margin:0 0 14px;font-size:14px;font-weight:800}
 .loading-state{background:#eef8ff;color:#075edb;border:1px solid #cfe6ff}
 .error-state{background:#fff1f1;color:#a43737;border:1px solid #ffd1d1}
-.modal{width:min(680px,100%);max-height:86vh;overflow:auto}
+.modal{width:min(680px,calc(100vw - 40px));max-height:86vh;overflow:auto}
 .modal-actions{flex-wrap:wrap}
+
+.signin-form{display:grid;gap:16px}.signin-form>*{min-width:0}
+.signin-hero{display:flex;align-items:center;gap:14px;padding-right:42px}
+.signin-icon{width:48px;height:48px;border-radius:16px;background:linear-gradient(135deg,#eef6ff,#fff7dc);color:#075edb;display:grid;place-items:center;box-shadow:0 10px 24px rgba(15,62,119,.10)}
+.modal .signin-kicker{display:block;color:#0968e7;font-size:12px;font-weight:1000;letter-spacing:1px;text-transform:uppercase;margin:0 0 6px}
+.signin-form label{display:grid;gap:8px;font-weight:900;color:#143b70}
+.signin-form label span{color:#143b70;font-size:13px;font-weight:1000;letter-spacing:.2px;text-transform:none;margin:0}
+.signin-form input{width:100%;min-width:0;border:1px solid #cfe0f5;border-radius:14px;padding:14px 15px;font:inherit;color:#082a62;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
+.signin-form input:focus{border-color:#075edb;outline:3px solid rgba(7,94,219,.14)}
+.signin-help{border:1px solid #dceafa;background:#f7fbff;border-radius:14px;padding:11px 13px;font-size:13px!important;margin:0!important;color:#49658c!important}
+.signin-actions{justify-content:space-between}
 .location-suggestions{position:absolute;margin-top:8px;background:white;border:1px solid #d8e7f8;border-radius:14px;box-shadow:0 16px 35px rgba(15,62,119,.14);padding:8px;z-index:20;display:grid;gap:4px;width:min(360px,calc(100vw - 60px))}
 .field.big{position:relative}
 .location-suggestions button{background:#f7fbff;color:#123d76;border-radius:10px;padding:9px 11px;text-align:left;font-size:12px;font-weight:800;display:flex;justify-content:space-between;gap:8px}
@@ -304,3 +319,5 @@ footer{background:linear-gradient(135deg,#063c83,#021f4c);color:#dcecff;margin-t
 .ops-pass{background:#e7f8ef;color:#08713d}.ops-warn{background:#fff5d8;color:#8b5a00}.ops-fail{background:#ffe5e5;color:#a11d1d}
 .ops-result{background:#0b1630;color:#eaf8ff;border-radius:12px;padding:14px;white-space:pre-wrap;max-height:260px;overflow:auto}
 .quick-links{display:flex;flex-wrap:wrap;gap:10px}.quick-links a{border:1px solid #d6e4f5;border-radius:999px;padding:8px 12px;color:#0964df;font-weight:900;background:#f7fbff}
+
+@media(max-width:720px){.modal-backdrop{padding:0;align-items:start}.modal{position:fixed;left:0;right:0;top:88px;width:100vw;padding:24px 16px;margin:0;border-radius:20px 20px 0 0}.signin-hero{padding-right:36px}.signin-actions button{width:100%}}
