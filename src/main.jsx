@@ -183,7 +183,7 @@ function Stars({ small = false }) {
   );
 }
 
-function Header({ onAction }) {
+function Header({ onAction, onSignIn }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const nav = Object.keys(navTargets);
 
@@ -192,6 +192,12 @@ function Header({ onAction }) {
     const target = navTargets[label];
     if (target?.startsWith('/')) window.location.assign(target);
     else scrollToId(target);
+  };
+
+  const handleSignIn = () => {
+    setMobileOpen(false);
+    if (onSignIn) onSignIn();
+    else window.location.assign('/admin/login');
   };
 
   return (
@@ -208,7 +214,7 @@ function Header({ onAction }) {
         </nav>
         <button
           className="signin"
-          onClick={() => onAction('Sign in', 'Sign in to manage saved enquiries, favourite ideas and group votes when accounts are enabled.')}
+          onClick={handleSignIn}
         >
           <Users size={19} /> Sign in
         </button>
@@ -227,6 +233,7 @@ function Header({ onAction }) {
       {mobileOpen && (
         <div className="mobile-menu">
           {nav.map((label) => <button key={label} onClick={() => handleNav(label)}>{label}</button>)}
+          <button onClick={handleSignIn}>Sign in</button>
         </div>
       )}
     </header>
@@ -506,6 +513,59 @@ function EnquiryForm({ deal, onClose, onSubmitted }) {
   );
 }
 
+
+function AdminSignInForm({ onClose }) {
+  const [tokenInput, setTokenInput] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    const token = tokenInput.trim();
+    if (!token) {
+      setError('Enter your access key.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    try {
+      await listAdminEnquiries(token);
+      saveAdminToken(token);
+      window.location.assign('/admin');
+    } catch (loginError) {
+      setError(loginError.status === 401
+        ? 'Those sign in details were not accepted. Check the current access key.'
+        : (loginError.message || 'Could not verify the access key.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form className="signin-form" onSubmit={submit} noValidate>
+      <div className="signin-hero">
+        <div className="signin-icon"><LockKeyhole size={22} /></div>
+        <div>
+          <span className="signin-kicker">Secure owner access</span>
+          <h2 id="modal-title">Sign in</h2>
+        </div>
+      </div>
+      <p>Use the access key supplied to you to open the owner dashboard. Customer accounts will be added later.</p>
+      <label>
+        <span>Access key</span>
+        <input type="password" value={tokenInput} onChange={(event) => setTokenInput(event.target.value)} autoComplete="current-password" placeholder="Enter access key" />
+      </label>
+      <p className="signin-help">Your key is checked by the API and kept in sessionStorage only for this browser session.</p>
+      {error && <div className="error-state compact">{error}</div>}
+      <div className="modal-actions signin-actions">
+        <button type="submit" disabled={isLoading}>{isLoading ? 'Checking…' : 'Sign in'}</button>
+        <button type="button" onClick={onClose} disabled={isLoading}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
 function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
   const featureFlags = siteConfig.featureFlags || defaultFeatureFlags;
   if (!content) return null;
@@ -516,6 +576,8 @@ function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
         <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
         {content.type === 'enquiry' ? (
           <EnquiryForm deal={content.deal} onClose={onClose} onSubmitted={content.onSubmitted} />
+        ) : content.type === 'admin-login' ? (
+          <AdminSignInForm onClose={onClose} />
         ) : (
           <>
             <span>{content.kicker || 'PickyHoliday'}</span>
@@ -739,6 +801,7 @@ function PublicContentPageApp() {
   const [page, setPage] = useState(null);
   const [deals, setDeals] = useState([]);
   const [status, setStatus] = useState('loading');
+  const [modal, setModal] = useState(null);
   const slug = publicRouteSlug();
   useEffect(() => {
     let cancelled = false;
@@ -756,12 +819,13 @@ function PublicContentPageApp() {
     return () => { cancelled = true; };
   }, [slug]);
   const openMessage = (title, message, label) => setPage((current) => ({ ...current, toast: { title, message, label } }));
-  if (status === 'loading') return <><Header onAction={() => {}} /><main className="content-page"><div className="loading-state">Loading content page…</div></main><Footer onAction={() => {}} /></>;
-  if (!page || status === 'missing') return <><Header onAction={() => {}} /><main className="content-page"><h1>Page not found</h1><p>This page is not published or is temporarily unavailable.</p><a className="primary-link" href="/">Return home</a></main><Footer onAction={() => {}} /></>;
+  const openSignIn = () => setModal({ type: 'admin-login' });
+  if (status === 'loading') return <><Header onAction={() => {}} onSignIn={openSignIn} /><main className="content-page"><div className="loading-state">Loading content page…</div></main><Footer onAction={() => {}} onSignIn={openSignIn} /><Dialog content={modal} onClose={() => setModal(null)} /></>;
+  if (!page || status === 'missing') return <><Header onAction={() => {}} onSignIn={openSignIn} /><main className="content-page"><h1>Page not found</h1><p>This page is not published or is temporarily unavailable.</p><a className="primary-link" href="/">Return home</a></main><Footer onAction={() => {}} onSignIn={openSignIn} /><Dialog content={modal} onClose={() => setModal(null)} /></>;
   const related = (page.relatedSlugs || []).slice(0, 6);
   return (
     <>
-      <Header onAction={openMessage} />
+      <Header onAction={openMessage} onSignIn={openSignIn} />
       <main className={`content-page content-page-${page.type}`}>
         <section className="content-hero">
           <span>{page.heroEyebrow || (page.type === 'guide' ? 'Travel guide' : 'Group holiday page')}</span>
@@ -775,7 +839,8 @@ function PublicContentPageApp() {
         <section className="content-cta"><h2>Ready to plan this group trip?</h2><p>Send an enquiry for advisor follow-up. This is not a booking confirmation and no payment is taken.</p><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || page.title)}#enquiry`}>Ask for group quote</a></section>
         {related.length > 0 && <section className="content-links"><h2>Related links</h2>{related.map((item) => <a key={item} href={contentPathForSlug(item)}>{labelFromSlug(item)}</a>)}</section>}
       </main>
-      <Footer onAction={openMessage} />
+      <Footer onAction={openMessage} onSignIn={openSignIn} />
+      <Dialog content={modal} onClose={() => setModal(null)} />
     </>
   );
 }
@@ -846,6 +911,7 @@ function App() {
   }, [activeTab, dealList, search.destination]);
 
   const openMessage = (title, body, kicker) => setModal({ title, body, kicker });
+  const openSignIn = () => setModal({ type: 'admin-login' });
   const showNotice = (message) => setNotice(message);
 
   const refreshDiagnostics = async () => {
@@ -979,7 +1045,7 @@ function App() {
 
   return (
     <>
-      <Header onAction={openMessage} />
+      <Header onAction={openMessage} onSignIn={openSignIn} />
       <main>
         {siteConfig.announcement?.active && siteConfig.featureFlags?.enableAnnouncementBanner !== false && siteConfig.announcement?.text && <div className="announcement">{siteConfig.announcement.text}</div>}
         <Hero config={siteConfig} />
@@ -1045,14 +1111,14 @@ function App() {
           <span>{siteConfig.trust?.protectionCopy || 'Saved enquiries only — no automatic booking'}</span>
         </div>
       </main>
-      <Footer onAction={openMessage} siteConfig={siteConfig} />
+      <Footer onAction={openMessage} onSignIn={openSignIn} siteConfig={siteConfig} />
       {notice && <div className="toast" role="status">{notice}</div>}
       <Dialog content={modal} onClose={() => setModal(null)} siteConfig={siteConfig} />
     </>
   );
 }
 
-function Footer({ onAction, siteConfig = defaultSiteConfig }) {
+function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
   const cols = [
     ['Book', ['Holidays', 'Villas', 'Group hotel stays', 'Stag & Hen', 'Families']],
     ['Destinations', defaultPublicLinks.destinations.map(labelFromSlug)],
@@ -1100,6 +1166,7 @@ function Footer({ onAction, siteConfig = defaultSiteConfig }) {
         <span><ShieldCheck /> Enquiry-first planning</span>
         <span><ShieldCheck /> Secure enquiries</span>
         <span><Clock3 /> 24/7 support</span>
+        <button onClick={() => (onSignIn ? onSignIn() : onAction('Sign in', 'Open the sign in widget from the header to access the owner admin dashboard. Customer accounts are not live yet.'))}>Sign in</button>
       </div>
     </footer>
   );
@@ -1160,55 +1227,11 @@ function AdminPageTitle({ kicker, title, copy, action }) {
 }
 
 function AdminLoginApp() {
-  const [tokenInput, setTokenInput] = useState('');
-  const [rememberForSession, setRememberForSession] = useState(true);
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const submit = async (event) => {
-    event.preventDefault();
-    const token = tokenInput.trim();
-    if (!token) {
-      setError('Enter the admin access key.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-    try {
-      await listAdminEnquiries(token);
-      saveAdminToken(token);
-      window.location.assign('/admin');
-    } catch (loginError) {
-      setError(loginError.status === 401
-        ? 'That access key was not accepted. Check the current server ADMIN_ACCESS_TOKEN.'
-        : (loginError.message || 'Could not verify the admin access key.'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <main className="admin-page admin-login">
       <section className="admin-login-card">
         <Logo />
-        <span>Owner admin</span>
-        <h1>Sign in to PickyHoliday</h1>
-        <p>Enter the server-side admin access key. It is stored in sessionStorage only for this browser session and is never saved to localStorage.</p>
-        <p className="admin-muted"><b>Temporary non-live test key:</b> pickyholiday-test-admin. Replace this with a real server-side ADMIN_ACCESS_TOKEN before launch.</p>
-        <form onSubmit={submit}>
-          <label>
-            <span>Admin access key</span>
-            <input type="password" value={tokenInput} onChange={(event) => setTokenInput(event.target.value)} autoComplete="off" placeholder="Enter admin password" />
-          </label>
-          <label className="admin-check">
-            <input type="checkbox" checked={rememberForSession} onChange={(event) => setRememberForSession(event.target.checked)} />
-            Remember for this browser session only
-          </label>
-          {!rememberForSession && <p className="admin-muted">The admin area still needs sessionStorage for navigation. Log out when finished to clear the key.</p>}
-          {error && <div className="error-state compact">{error}</div>}
-          <button disabled={isLoading}>{isLoading ? 'Checking…' : 'Log in'}</button>
-        </form>
+        <AdminSignInForm onClose={() => window.location.assign('/')} />
       </section>
     </main>
   );
