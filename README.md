@@ -139,6 +139,12 @@ npm run test:api
 
 See `docs/API_TEST_COMMANDS.md` for curl commands.
 
+## Production hardening and observability
+
+API and static responses include baseline security headers and an `X-Request-Id` correlation header. `GET /api/health` reports provider, storage, security and observability diagnostics without exposing secrets, while `GET /api/readiness` returns a deployment-facing ready/not-ready JSON envelope for configured storage backends. Non-GET API calls are protected by lightweight in-memory rate limits configured with `API_RATE_LIMIT_WINDOW_MS`, `API_RATE_LIMIT_MAX`, `ADMIN_RATE_LIMIT_MAX` and `ENQUIRY_RATE_LIMIT_MAX`.
+
+Structured request logging is enabled by default and can be disabled with `REQUEST_LOGGING=false`; authorization values are redacted. See `docs/PRODUCTION_HARDENING_QA_SECURITY_OBSERVABILITY.md` for the production checklist and Railway readiness guidance.
+
 ## Customer enquiries and admin review
 
 The site now treats **Ask for group quote** as a saved enquiry flow. Users complete name, email, optional phone, editable group size/dates, notes, and consent-to-contact before `POST /api/travel/enquiries` is called. The success state shows an enquiry reference and clearly states that it is not a booking confirmation. Search results and partner redirects remain inspiration/redirect/enquiry flows only; PickyHoliday does not create live bookings, supplier reservations, Duffel orders, Amadeus orders or payments.
