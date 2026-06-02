@@ -598,6 +598,11 @@ function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
             <span>{content.kicker || 'PickyHoliday'}</span>
             <h2 id="modal-title">{content.title}</h2>
             <p>{content.body}</p>
+            {content.bullets?.length > 0 && (
+              <ul className="modal-list">
+                {content.bullets.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            )}
             {content.deal && (
               <ul>
                 <li><b>Supplier:</b> {content.deal.supplierName}</li>
@@ -614,10 +619,13 @@ function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
               </ul>
             )}
             <div className="modal-actions">
+              {content.actions?.map((action) => (
+                <button key={action.label} onClick={() => { onClose(); action.onClick?.(); }}>{action.label}</button>
+              ))}
               {featureFlags.enableAffiliateRedirects !== false && content.deal?.partnerUrl && isSafeUrl(content.deal.partnerUrl) && <button onClick={() => { trackEvent({ type: 'partner_redirect_clicked', category: 'partner', label: content.deal.supplierName || content.deal.provider, metadata: { destination: content.deal.destination, provider: content.deal.provider, supplierName: content.deal.supplierName } }); window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer'); }}>Continue to partner</button>}
               {content.deal && <button onClick={() => content.onEnquiry?.(content.deal)}>Ask for group quote</button>}
-              <button onClick={onClose}>Shortlist this trip</button>
-              <button onClick={() => { onClose(); scrollToId('search'); }}>Edit search</button>
+              <button onClick={onClose}>{content.deal ? 'Shortlist this trip' : 'Close'}</button>
+              {content.deal && <button onClick={() => { onClose(); scrollToId('search'); }}>Edit search</button>}
             </div>
           </>
         )}
@@ -833,7 +841,7 @@ function PublicContentPageApp() {
     }).catch(() => { if (!cancelled) { setStatus('missing'); updateSeoMeta({ title: 'Page not found | PickyHoliday', metaTitle: 'Page not found | PickyHoliday', metaDescription: 'This PickyHoliday content page is unavailable.' }); } });
     return () => { cancelled = true; };
   }, [slug]);
-  const openMessage = (title, message, label) => setPage((current) => ({ ...current, toast: { title, message, label } }));
+  const openMessage = (title, body, kicker) => setModal(typeof title === 'object' ? title : { title, body, kicker });
   const openSignIn = () => setModal({ type: 'admin-login' });
   if (status === 'loading') return <><Header onAction={() => {}} onSignIn={openSignIn} /><main className="content-page"><div className="loading-state">Loading content page…</div></main><Footer onAction={() => {}} onSignIn={openSignIn} /><Dialog content={modal} onClose={() => setModal(null)} /></>;
   if (!page || status === 'missing') return <><Header onAction={() => {}} onSignIn={openSignIn} /><main className="content-page"><h1>Page not found</h1><p>This page is not published or is temporarily unavailable.</p><a className="primary-link" href="/">Return home</a></main><Footer onAction={() => {}} onSignIn={openSignIn} /><Dialog content={modal} onClose={() => setModal(null)} /></>;
@@ -925,7 +933,7 @@ function App() {
     });
   }, [activeTab, dealList, search.destination]);
 
-  const openMessage = (title, body, kicker) => setModal({ title, body, kicker });
+  const openMessage = (title, body, kicker) => setModal(typeof title === 'object' ? title : { title, body, kicker });
   const openSignIn = () => setModal({ type: 'admin-login' });
   const showNotice = (message) => setNotice(message);
 
@@ -1133,6 +1141,194 @@ function App() {
   );
 }
 
+
+const footerWidgetCopy = {
+  Holidays: {
+    kicker: 'Book holidays',
+    title: 'Package holidays for groups',
+    body: 'Search flexible flight-and-hotel ideas for friends, families and larger groups, then save an enquiry so an advisor can help with rooms, deposits and availability.',
+    bullets: ['Compare package-style ideas without creating a booking automatically.', 'Use group size, airport and date filters before asking for a quote.', 'Advisor follow-up can help with room splits and special requests.'],
+    search: { intent: 'Holidays' },
+  },
+  Villas: {
+    kicker: 'Book villas',
+    title: 'Private villas for group trips',
+    body: 'Find villa-style stays where the whole group can share a base, then ask PickyHoliday to follow up on sleeping arrangements, deposits and local extras.',
+    bullets: ['Good for families, celebrations and friends who want shared space.', 'Use the search panel with Villas selected to narrow destination ideas.', 'Enquiries remain saved quote requests, not confirmed reservations.'],
+    search: { intent: 'Villas', destination: 'Villas' },
+  },
+  'Group hotel stays': {
+    kicker: 'Group hotels',
+    title: 'Hotels set up for group stays',
+    body: 'Shortlist hotels that suit multi-room groups and ask for a tailored quote covering room types, lead passenger details and group-friendly terms.',
+    bullets: ['Built for 2+ rooms, larger parties and mixed room requirements.', 'Advisor follow-up can clarify board basis, baggage and transfer needs.', 'No payment is taken when you submit an enquiry.'],
+    search: { intent: 'Group hotel stays', destination: 'Group hotel stays' },
+  },
+  'Stag & Hen': {
+    kicker: 'Stag & hen',
+    title: 'Stag and hen group holidays',
+    body: 'Start with party-friendly destination ideas, then save an enquiry for support with group size changes, hotel suitability and timing.',
+    bullets: ['Useful for Ibiza, Prague, Benidorm, Albufeira and other celebration spots.', 'Group quote support helps when numbers are still moving.', 'PickyHoliday will not auto-book flights, hotels or activities from this widget.'],
+    search: { intent: 'Stag & Hen', destination: 'Stag & Hen' },
+    guideSlug: 'how-to-plan-a-stag-or-hen-trip',
+  },
+  Families: {
+    kicker: 'Family holidays',
+    title: 'Family group holidays',
+    body: 'Explore family-friendly ideas for multi-generation trips, school holiday breaks and groups that need flexible rooms or child-friendly facilities.',
+    bullets: ['Start a Families search for resorts, villas and hotel ideas.', 'Ask for an advisor follow-up when you need cots, rooms nearby or flexible deposits.', 'Saved enquiries keep the planning conversation in one place.'],
+    search: { intent: 'Families', destination: 'Families' },
+    guideSlug: 'best-family-group-holidays',
+  },
+  'Help Centre': {
+    kicker: 'Help centre',
+    title: 'Get help planning with PickyHoliday',
+    body: 'Use the help hub for guidance on searches, saved enquiries, partner redirects and what happens before an advisor contacts you.',
+    bullets: ['Search results are ideas and partner options, not automatic bookings.', 'Enquiries are saved so the team can review your group requirements.', 'For account access, use owner sign-in in the footer or header.'],
+    guideSlug: 'how-group-holiday-enquiries-work',
+  },
+  'Manage enquiries': {
+    kicker: 'Saved enquiries',
+    title: 'Manage saved group enquiries',
+    body: 'The customer enquiry hub is planned for saved quotes and advisor updates. Owner and operations users can sign in to review enquiries now.',
+    bullets: ['Saved enquiries capture destination, date, group size and contact details.', 'Advisor follow-up is required before any booking or payment step.', 'Use secure owner sign-in if you have an admin access key.'],
+    admin: true,
+  },
+  'How quotes work': {
+    kicker: 'Quote process',
+    title: 'How group quotes work',
+    body: 'PickyHoliday keeps the first step enquiry-first: you can share what the group needs, then the team checks options before any booking commitment.',
+    bullets: ['Submit or shortlist an idea without paying today.', 'An advisor checks availability, room splits and supplier conditions.', 'You decide next steps only after the quote has been reviewed.'],
+    guideSlug: 'how-group-holiday-enquiries-work',
+  },
+  FAQs: {
+    kicker: 'FAQs',
+    title: 'Frequently asked questions',
+    body: 'Quick answers for common group holiday questions, including deposits, supplier redirects, saved enquiries and how PickyHoliday avoids accidental bookings.',
+    bullets: ['Results may include live, affiliate, promoted or mock fallback providers.', 'Partner redirects open separately when available and enabled.', 'Submitting an enquiry does not reserve seats, rooms or prices.'],
+    guideSlug: 'how-group-holiday-enquiries-work',
+  },
+  'About us': {
+    kicker: 'About PickyHoliday',
+    title: 'Group holiday planning without the faff',
+    body: 'PickyHoliday helps groups compare ideas, save enquiries and get advisor follow-up before anyone commits to payment or a booking.',
+    bullets: ['Designed around group decisions, flexible dates and changing party sizes.', 'Combines destination inspiration, provider search and admin follow-up.', 'Clear enquiry-first safeguards are built into the customer journey.'],
+  },
+  Careers: {
+    kicker: 'Careers',
+    title: 'Careers at PickyHoliday',
+    body: 'The careers area is not connected to live vacancies yet, but this widget now explains what the link is for and where future roles will sit.',
+    bullets: ['Future roles will focus on travel operations, customer support, engineering and content.', 'The team values clear travel guidance and careful supplier hand-offs.', 'Check back as the operations hub grows.'],
+  },
+  'Terms & Conditions': {
+    kicker: 'Legal',
+    title: 'Terms and conditions',
+    body: 'This area will host the full customer terms. For now, the important product rule is that PickyHoliday enquiries are quote requests and do not create bookings automatically.',
+    bullets: ['Search results and widgets are planning tools.', 'Supplier terms apply separately if you continue to a partner.', 'No booking, payment or reservation is created by saving an enquiry.'],
+  },
+  'Privacy Policy': {
+    kicker: 'Privacy',
+    title: 'Privacy policy',
+    body: 'This area will explain how PickyHoliday handles enquiry details, contact information and analytics events used to improve the planning flow.',
+    bullets: ['Enquiry details are used for advisor follow-up.', 'Admin access is protected separately from customer-facing widgets.', 'Analytics events help monitor searches, redirects and submitted enquiries.'],
+  },
+  Facebook: {
+    kicker: 'Social',
+    title: 'Facebook community',
+    body: 'The Facebook button is reserved for a future community page with group travel polls, destination ideas and customer stories.',
+    bullets: ['No external social page is opened until the live channel is connected.', 'Use guides and destination pages for inspiration today.', 'Future updates can link straight to the community once approved.'],
+    guideSlug: 'best-group-holiday-destinations',
+  },
+  Instagram: {
+    kicker: 'Social',
+    title: 'Instagram inspiration feed',
+    body: 'The Instagram button is intended for visual destination inspiration, hotel walk-throughs and short group travel tips.',
+    bullets: ['The live profile link can be connected when marketing channels are ready.', 'Today you can use the guides area for curated inspiration.', 'Destination ideas remain enquiry-first and do not auto-book.'],
+    guideSlug: 'best-group-holiday-destinations',
+  },
+  'Travel wheel': {
+    kicker: 'Inspiration',
+    title: 'Travel wheel destination picker',
+    body: 'This widget explains the travel wheel: a playful way to rotate through featured destinations when the group cannot decide where to go.',
+    bullets: ['Use it for quick inspiration rather than a confirmed recommendation.', 'Start a search after choosing a destination idea.', 'Advisor follow-up can help narrow the shortlist.'],
+    search: { intent: 'Holidays' },
+  },
+  'Video guides': {
+    kicker: 'Video guides',
+    title: 'Destination videos and hotel walk-throughs',
+    body: 'Video guides are planned for short destination explainers, hotel previews and practical group travel tips.',
+    bullets: ['The button no longer opens a generic message.', 'Future videos can be linked from this specific widget.', 'Use written guides while video content is being connected.'],
+    guideSlug: 'best-group-holiday-destinations',
+  },
+  'App Store': {
+    kicker: 'Mobile app',
+    title: 'PickyHoliday for iPhone',
+    body: 'The iOS app button is a placeholder for a future app store listing focused on saved enquiries, shortlists and advisor updates.',
+    bullets: ['No app store redirect happens until a live listing is ready.', 'The group travel hub concept is explained here instead of using generic copy.', 'For now, continue planning on the website.'],
+  },
+  'Google Play': {
+    kicker: 'Mobile app',
+    title: 'PickyHoliday for Android',
+    body: 'The Android app button is a placeholder for a future Google Play listing for saved enquiries and group planning updates.',
+    bullets: ['No Google Play redirect happens until a live listing is ready.', 'This keeps expectations clear while the app experience is planned.', 'Use the website search and enquiry flow today.'],
+  },
+  'Ask for a group quote': {
+    kicker: 'Group quote',
+    title: 'Ask for a tailored group quote',
+    body: 'Tell PickyHoliday the group size, rough dates and destination ideas so an advisor can review options and come back with next steps.',
+    bullets: ['Best for 8+ travellers, multi-room stays or special requirements.', 'Submitting details saves an enquiry only; it is not a booking.', 'You can start from the search panel and choose any suitable trip idea.'],
+    search: { intent: 'Holidays' },
+  },
+  'Footer promise': {
+    kicker: 'How it works',
+    title: 'How PickyHoliday works',
+    body: 'PickyHoliday keeps planning safe for groups by separating inspiration, partner redirects and saved enquiries from confirmed bookings.',
+    bullets: ['Browse ideas from configured providers and curated promoted deals.', 'Save an enquiry when the group needs advisor help.', 'Only continue to suppliers or payments after you choose the next step.'],
+    guideSlug: 'how-group-holiday-enquiries-work',
+  },
+};
+
+const footerSearchUrl = ({ intent = 'Holidays', destination = '' } = {}) => `/?${new URLSearchParams({ intent, ...(destination ? { destination } : {}) }).toString()}#search`;
+
+function footerWidgetFor(label, onSignIn) {
+  const content = footerWidgetCopy[label] || {
+    kicker: 'PickyHoliday',
+    title: label,
+    body: `Open ${label.toLowerCase()} options, useful links and next steps for group holiday planning.`,
+    bullets: ['Explore relevant group holiday ideas.', 'Save an enquiry when you need advisor follow-up.', 'No booking is created from this widget.'],
+  };
+  const actions = [];
+
+  if (content.search) {
+    actions.push({
+      label: 'Start matching search',
+      onClick: () => window.location.assign(footerSearchUrl(content.search)),
+    });
+  }
+
+  if (content.guideSlug) {
+    actions.push({
+      label: 'Open related guide',
+      onClick: () => window.location.assign(contentPathForSlug(content.guideSlug)),
+    });
+  }
+
+  if (content.admin) {
+    actions.push({
+      label: 'Owner sign in',
+      onClick: () => (onSignIn ? onSignIn() : window.location.assign('/admin/login')),
+    });
+  }
+
+  return {
+    kicker: content.kicker,
+    title: content.title,
+    body: content.body,
+    bullets: content.bullets,
+    actions: actions.length ? actions : [{ label: 'Browse inspiration', onClick: () => window.location.assign('/guides/best-group-holiday-destinations') }],
+  };
+}
+
 function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
   const currentYear = new Date().getFullYear();
   const cols = [
@@ -1151,7 +1347,7 @@ function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
       <div className="footer-promise content">
         <span><BadgeCheck /> Enquiry-first, never auto-booked</span>
         <span><Users /> Built for groups, mates and families</span>
-        <button onClick={() => onAction('Footer promise', 'PickyHoliday compares inspiration, partner redirects and saved enquiries without creating bookings, payments or supplier reservations automatically.')}>How PickyHoliday works</button>
+        <button onClick={() => onAction(footerWidgetFor('Footer promise', onSignIn))}>How PickyHoliday works</button>
       </div>
       <div className="foot content">
         <div className="brand">
@@ -1164,10 +1360,10 @@ function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
           </div>
           <span>Follow us</span>
           <div className="social">
-            <button aria-label="Facebook community" onClick={() => onAction('Facebook', 'This would open the PickyHoliday Facebook community.')}><i>f</i></button>
-            <button aria-label="Instagram inspiration feed" onClick={() => onAction('Instagram', 'This would open the PickyHoliday travel inspiration feed.')}><i>◎</i></button>
-            <button aria-label="Travel wheel" onClick={() => onAction('Travel wheel', 'Spin through featured group destinations and hand-picked deals.')}><ShipWheel /></button>
-            <button aria-label="Video guides" onClick={() => onAction('Video guides', 'Watch destination guides, hotel walk-throughs and group travel tips.')}><i>▶</i></button>
+            <button aria-label="Facebook community" onClick={() => onAction(footerWidgetFor('Facebook', onSignIn))}><i>f</i></button>
+            <button aria-label="Instagram inspiration feed" onClick={() => onAction(footerWidgetFor('Instagram', onSignIn))}><i>◎</i></button>
+            <button aria-label="Travel wheel" onClick={() => onAction(footerWidgetFor('Travel wheel', onSignIn))}><ShipWheel /></button>
+            <button aria-label="Video guides" onClick={() => onAction(footerWidgetFor('Video guides', onSignIn))}><i>▶</i></button>
           </div>
         </div>
         {cols.map(([heading, links]) => (
@@ -1176,7 +1372,7 @@ function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
             {links.map((link) => {
               const slug = link.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
               const prefix = heading === 'Destinations' ? '/destinations/' : heading === 'Group holidays' ? '/group-holidays/' : heading === 'Guides' ? '/guides/' : '';
-              return prefix ? <a key={link} href={`${prefix}${slug}`}>{link}</a> : <button key={link} onClick={() => onAction(link, `Open ${link.toLowerCase()} options, useful links and next steps.`)}>{link}</button>;
+              return prefix ? <a key={link} href={`${prefix}${slug}`}>{link}</a> : <button key={link} onClick={() => onAction(footerWidgetFor(link, onSignIn))}>{link}</button>;
             })}
           </div>
         ))}
@@ -1185,10 +1381,10 @@ function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
           <h3>Keep the whole group in sync</h3>
           <p>Manage saved enquiries, destination shortlists and advisor updates from one place.</p>
           <div className="app-buttons">
-            <button aria-label="App Store placeholder" onClick={() => onAction('App Store', 'The iOS app link is ready for connection to the live store listing.')}> App Store</button>
-            <button aria-label="Google Play placeholder" onClick={() => onAction('Google Play', 'The Android app link is ready for connection to the live store listing.')}>▶ Google Play</button>
+            <button aria-label="App Store placeholder" onClick={() => onAction(footerWidgetFor('App Store', onSignIn))}> App Store</button>
+            <button aria-label="Google Play placeholder" onClick={() => onAction(footerWidgetFor('Google Play', onSignIn))}>▶ Google Play</button>
           </div>
-          <button className="footer-cta" onClick={() => onAction('Ask for a group quote', 'Tell us your group size, destination ideas and timing. PickyHoliday will save your enquiry for advisor follow-up.')}>Ask for a group quote</button>
+          <button className="footer-cta" onClick={() => onAction(footerWidgetFor('Ask for a group quote', onSignIn))}>Ask for a group quote</button>
         </div>
       </div>
       <div className="copy content">
