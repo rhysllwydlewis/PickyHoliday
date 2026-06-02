@@ -172,3 +172,14 @@ Admin content-page routes require `ADMIN_ACCESS_TOKEN` in normal environments:
 ```bash
 curl -s -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN" http://localhost:8787/api/admin/content-pages | jq '.results | length'
 ```
+
+## Operations centre API checks
+
+```bash
+curl -i /api/admin/analytics/summary
+curl -i -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN" /api/admin/analytics/summary
+curl -i -X POST /api/analytics/events -H 'Content-Type: application/json' -d '{"type":"search_submitted","label":"Barcelona","metadata":{"destination":"Barcelona"}}'
+curl -i -X POST -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN" -H 'Content-Type: application/json' /api/admin/ops/run-tests -d '{"includeWriteTests":false}'
+```
+
+Webhook tests should use HTTPS targets or localhost in development/test only, and payloads must not include secrets.

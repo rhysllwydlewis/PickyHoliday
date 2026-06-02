@@ -28,3 +28,17 @@ Use this checklist before merging changes to PickyHoliday.
 - Do not create supplier reservations.
 - Do not claim an enquiry is a booking confirmation.
 - Do not make fake protection, ATOL or package booking claims.
+
+## Admin operations centre checks
+
+- [ ] `/admin/ops` loads after admin login.
+- [ ] Analytics summary and recent activity load without secret values.
+- [ ] Safe system tests return pass/warn/fail rows.
+- [ ] Optional write test creates only the marked admin test enquiry.
+- [ ] Webhook tester rejects invalid, `javascript:`, `data:`, `file:` and `ftp:` URLs.
+- [ ] No booking/payment/order/reservation/email sending flow has been added.
+
+## Admin login check
+
+- [ ] In non-live test mode, `/admin/login` accepts `pickyholiday-test-admin` when `ADMIN_ACCESS_TOKEN` is unset and `ENABLE_TEST_ADMIN_LOGIN=true`.
+- [ ] Production launch plan sets a real `ADMIN_ACCESS_TOKEN` and disables temporary test login.

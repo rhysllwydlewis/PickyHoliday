@@ -27,8 +27,10 @@ import {
 import './styles.css';
 import { imageUrls, getaways, guides, reviews } from './data/mockDeals.js';
 import {
+  captureAnalyticsEvent,
   createAdminContentPage,
   createAdminPromotedDeal,
+  getAdminAnalyticsSummary,
   getAdminSiteConfig,
   getBackendHealth,
   getFrontendProviderMode,
@@ -36,11 +38,14 @@ import {
   getPublicPromotedDeals,
   getSiteConfig,
   getPublicContentPage,
+  listAdminAnalyticsEvents,
   listAdminContentPages,
   listAdminEnquiries,
   listAdminPromotedDeals,
   searchHolidays,
+  runAdminOpsTests,
   searchLocations,
+  sendAdminTestWebhook,
   submitEnquiry,
   updateAdminContentPage,
   updateAdminContentPageStatus,
@@ -75,11 +80,12 @@ const defaultSiteConfig = {
   featureFlags: defaultFeatureFlags,
 };
 const isSafeUrl = (value) => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol); } catch { return false; } };
-const adminPaths = ['/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/pages', '/admin/content', '/admin/features', '/admin/settings'];
+const adminPaths = ['/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/pages', '/admin/content', '/admin/features', '/admin/settings', '/admin/ops'];
 const adminTokenStorageKey = 'pickyholiday-admin-token';
 const enquiryStatuses = ['new', 'reviewing', 'contacted', 'quoted', 'closed'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const friendlyDate = (value) => (value ? new Date(value).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Not recorded');
+const trackEvent = (payload) => { captureAnalyticsEvent({ path: window.location.pathname, ...payload }).catch(() => {}); };
 
 const readAdminToken = () => {
   try {
@@ -531,7 +537,7 @@ function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
               </ul>
             )}
             <div className="modal-actions">
-              {featureFlags.enableAffiliateRedirects !== false && content.deal?.partnerUrl && isSafeUrl(content.deal.partnerUrl) && <button onClick={() => window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer')}>Continue to partner</button>}
+              {featureFlags.enableAffiliateRedirects !== false && content.deal?.partnerUrl && isSafeUrl(content.deal.partnerUrl) && <button onClick={() => { trackEvent({ type: 'partner_redirect_clicked', category: 'partner', label: content.deal.supplierName || content.deal.provider, metadata: { destination: content.deal.destination, provider: content.deal.provider, supplierName: content.deal.supplierName } }); window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer'); }}>Continue to partner</button>}
               {content.deal && <button onClick={() => content.onEnquiry?.(content.deal)}>Ask for group quote</button>}
               <button onClick={onClose}>Shortlist this trip</button>
               <button onClick={() => { onClose(); scrollToId('search'); }}>Edit search</button>
@@ -744,7 +750,7 @@ function PublicContentPageApp() {
         updateSeoMeta({ title: 'Page not found | PickyHoliday', metaTitle: 'Page not found | PickyHoliday', metaDescription: 'This PickyHoliday content page is unavailable.' });
         return undefined;
       }
-      setPage(nextPage); setStatus('ready'); updateSeoMeta(nextPage); replaceJsonLd(pageSchema(nextPage));
+      setPage(nextPage); setStatus('ready'); updateSeoMeta(nextPage); replaceJsonLd(pageSchema(nextPage)); trackEvent({ type: 'content_page_view', category: 'content', label: nextPage.title, metadata: { slug: nextPage.slug, type: nextPage.type } });
       return searchHolidays(nextPage.searchDefaults || {}).then((results) => { if (!cancelled) setDeals((results.results || []).slice(0, 3)); }).catch(() => {});
     }).catch(() => { if (!cancelled) { setStatus('missing'); updateSeoMeta({ title: 'Page not found | PickyHoliday', metaTitle: 'Page not found | PickyHoliday', metaDescription: 'This PickyHoliday content page is unavailable.' }); } });
     return () => { cancelled = true; };
@@ -923,6 +929,7 @@ function App() {
   }, []);
 
   const handleSearch = () => {
+    trackEvent({ type: 'search_submitted', category: 'search', label: search.destination || activeTab, metadata: { destination: search.destination, intent: activeTab } });
     runHolidaySearch({ ...search, intent: activeTab });
   };
 
@@ -958,10 +965,13 @@ function App() {
       kicker: selected.savingLabel,
       deal: selected,
       onEnquiry: (deal) => {
+        trackEvent({ type: 'enquiry_form_opened', category: 'enquiry', label: deal.destination || deal.hotelName, metadata: { destination: deal.destination, resultId: deal.id || deal.resultId } });
         setModal({
           type: 'enquiry',
           deal,
-          onSubmitted: (enquiry) => showNotice(enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.'),
+          onSubmitted: (enquiry) => {
+            showNotice(enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.');
+          },
         });
       },
     });
@@ -1104,6 +1114,7 @@ const adminNav = [
   ['Pages', '/admin/pages'],
   ['Site Content', '/admin/content'],
   ['Feature Flags', '/admin/features'],
+  ['Operations', '/admin/ops'],
   ['Settings', '/admin/settings'],
 ];
 
@@ -1184,6 +1195,7 @@ function AdminLoginApp() {
         <span>Owner admin</span>
         <h1>Sign in to PickyHoliday</h1>
         <p>Enter the server-side admin access key. It is stored in sessionStorage only for this browser session and is never saved to localStorage.</p>
+        <p className="admin-muted"><b>Temporary non-live test key:</b> pickyholiday-test-admin. Replace this with a real server-side ADMIN_ACCESS_TOKEN before launch.</p>
         <form onSubmit={submit}>
           <label>
             <span>Admin access key</span>
@@ -1313,15 +1325,16 @@ function AdminDashboardPanel({ token }) {
     setLoading(true);
     setError('');
     try {
-      const [enquiries, deals, health] = await Promise.all([
+      const [enquiries, deals, health, analytics] = await Promise.all([
         listAdminEnquiries(token),
         listAdminPromotedDeals(token),
         getBackendHealth(),
+        getAdminAnalyticsSummary(token),
       ]);
       setState({
         enquiries: enquiries.results || [],
         deals: deals.results || [],
-        health,
+        health: { ...health, analyticsSummary: analytics.summary || {} },
         loadedAt: new Date().toLocaleString('en-GB'),
       });
     } catch (dashboardError) {
@@ -1346,6 +1359,12 @@ function AdminDashboardPanel({ token }) {
     ['Storage mode', state.health.enquiryStorageMode || 'json'],
     ['Database status', state.health.databaseStatus || 'unknown'],
     ['Provider mode', state.health.providerMode || 'mock'],
+    ['Analytics storage', state.health.analyticsStorageMode || 'json'],
+    ['Last search event', state.health.analyticsSummary?.latestSearchTime ? friendlyDate(state.health.analyticsSummary.latestSearchTime) : 'none'],
+    ['Last enquiry event', state.health.analyticsSummary?.latestEnquiryTime ? friendlyDate(state.health.analyticsSummary.latestEnquiryTime) : 'none'],
+    ['Readiness', state.health.databaseStatus === 'json' || state.health.databaseStatus === 'postgres-ready' ? 'ready' : 'warning'],
+    ['Request logging', state.health.observability?.requestLogging ? 'enabled' : 'disabled'],
+    ['Rate limits', `${state.health.security?.publicRateLimitMax ?? '?'} public / ${state.health.security?.adminRateLimitMax ?? '?'} admin`],
   ];
 
   return (
@@ -1685,6 +1704,74 @@ function AdminContentPanel({ token, featureOnly = false }) {
   );
 }
 
+
+function AdminOpsPanel({ token }) {
+  const [summary, setSummary] = useState({});
+  const [events, setEvents] = useState([]);
+  const [tests, setTests] = useState(null);
+  const [includeWriteTests, setIncludeWriteTests] = useState(false);
+  const [webhook, setWebhook] = useState({ url: '', eventType: 'admin.test', payload: '{\n  "message": "PickyHoliday admin test"\n}' });
+  const [webhookResult, setWebhookResult] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const loadOps = useCallback(async () => {
+    setError('');
+    try {
+      const [summaryResponse, eventsResponse] = await Promise.all([getAdminAnalyticsSummary(token), listAdminAnalyticsEvents(token, 20)]);
+      setSummary(summaryResponse.summary || {});
+      setEvents(eventsResponse.results || []);
+    } catch (loadError) {
+      setError(loadError.message || 'Could not load operations data.');
+    }
+  }, [token]);
+
+  useEffect(() => { loadOps(); }, [loadOps]);
+
+  const runTests = async () => {
+    setLoading(true); setError('');
+    try {
+      const result = await runAdminOpsTests({ includeWriteTests }, token);
+      setTests(result);
+      await loadOps();
+    } catch (testError) { setError(testError.message || 'Could not run system tests.'); }
+    finally { setLoading(false); }
+  };
+
+  const sendWebhook = async () => {
+    setLoading(true); setError(''); setWebhookResult(null);
+    try {
+      const parsedPayload = webhook.payload.trim() ? JSON.parse(webhook.payload) : {};
+      const response = await sendAdminTestWebhook({ url: webhook.url, eventType: webhook.eventType, payload: parsedPayload }, token);
+      setWebhookResult(response.webhook || response);
+      await loadOps();
+    } catch (webhookError) { setError(webhookError.message || 'Could not send webhook test. Check the URL and JSON payload.'); }
+    finally { setLoading(false); }
+  };
+
+  const cards = [
+    ['Searches today', summary.searchesToday ?? 0],
+    ['Enquiries today', summary.enquiriesToday ?? 0],
+    ['Partner redirects today', summary.partnerRedirectsToday ?? 0],
+    ['Provider errors today', summary.providerErrorsToday ?? 0],
+    ['Enquiries last 7 days', summary.enquiriesLast7Days ?? 0],
+    ['Latest enquiry', summary.latestEnquiryTime ? friendlyDate(summary.latestEnquiryTime) : 'None'],
+  ];
+
+  return (
+    <>
+      <AdminPageTitle kicker="Operations centre" title="Analytics, system tests and webhook tools" copy="Monitor whether the website is working without exposing secrets or creating bookings/payments/reservations." action={<button onClick={loadOps}>Refresh</button>} />
+      {error && <div className="error-state">{error}</div>}
+      <div className="admin-cards">{cards.map(([label, value]) => <article key={label}><span>{label}</span><b>{value}</b></article>)}</div>
+      <section className="admin-panel"><h2>Top destinations</h2><p>{(summary.topDestinationsSearched || []).map((item) => `${item.label} (${item.count})`).join(', ') || 'No search analytics yet.'}</p></section>
+      <section className="admin-panel"><h2>Recent activity</h2><div className="admin-table"><table><thead><tr><th>Type</th><th>Created</th><th>Category</th><th>Label</th><th>Metadata</th></tr></thead><tbody>{events.map((event) => <tr key={event.id}><td>{event.type}</td><td>{friendlyDate(event.createdAt)}</td><td>{event.category || '—'}</td><td>{event.label || '—'}</td><td>{JSON.stringify(event.metadata || {}).slice(0, 120)}</td></tr>)}</tbody></table></div>{events.length === 0 && <p className="admin-muted">No analytics events recorded yet.</p>}</section>
+      <section className="admin-panel"><h2>System tests</h2><label className="admin-check"><input type="checkbox" checked={includeWriteTests} onChange={(event) => setIncludeWriteTests(event.target.checked)} /> Include write test enquiry</label><button onClick={runTests} disabled={loading}>{loading ? 'Running…' : 'Run safe tests'}</button>{tests && <div className="admin-table"><table><thead><tr><th>Status</th><th>Check</th><th>Message</th><th>Duration</th></tr></thead><tbody>{(tests.checks || []).map((check) => <tr key={check.name}><td><span className={`ops-badge ops-${check.status}`}>{check.status}</span></td><td>{check.name}</td><td>{check.message}</td><td>{check.durationMs}ms</td></tr>)}</tbody></table></div>}</section>
+      <section className="admin-panel"><h2>Webhook tester</h2><p className="admin-muted">This sends a test payload only. Do not include secrets.</p><label><span>URL</span><input value={webhook.url} onChange={(event) => setWebhook((current) => ({ ...current, url: event.target.value }))} placeholder="https://example.com/webhook" /></label><label><span>Event type</span><input value={webhook.eventType} onChange={(event) => setWebhook((current) => ({ ...current, eventType: event.target.value }))} /></label><label><span>JSON payload</span><textarea value={webhook.payload} rows="6" onChange={(event) => setWebhook((current) => ({ ...current, payload: event.target.value }))} /></label><button onClick={sendWebhook} disabled={loading || !webhook.url}>Send test webhook</button>{webhookResult && <pre className="ops-result">{JSON.stringify(webhookResult, null, 2)}</pre>}</section>
+      <section className="admin-panel"><h2>Quick links</h2><div className="quick-links"><a href="/api/health">/api/health</a><a href="/api/readiness">/api/readiness</a><a href="/sitemap.xml">/sitemap.xml</a><a href="/robots.txt">/robots.txt</a></div></section>
+    </>
+  );
+}
+
 function AdminSettingsPanel() {
   const [health, setHealth] = useState({});
 
@@ -1704,6 +1791,12 @@ function AdminSettingsPanel() {
     ['Railway database configured', health.databaseConfigured ? 'yes' : 'no'],
     ['Duffel configured', health.duffelConfigured ? 'yes' : 'no'],
     ['Amadeus configured', health.amadeusConfigured ? 'yes' : 'no'],
+    ['Analytics storage mode', health.analyticsStorageMode],
+    ['Analytics storage status', health.analyticsStorageStatus],
+    ['Webhook allowlist configured', health.adminSafeSettings?.webhookTestAllowlistConfigured ? 'yes' : 'no'],
+    ['Webhook timeout ms', health.adminSafeSettings?.webhookTestTimeoutMs],
+    ['Public analytics capture', health.adminSafeSettings?.publicAnalyticsEnabled ? 'enabled' : 'disabled'],
+    ['Temporary test admin login', health.adminSafeSettings?.testAdminLoginEnabled ? 'enabled' : 'disabled'],
   ];
 
   return (
@@ -1747,6 +1840,7 @@ function AdminApp() {
   if (path === '/admin/pages') panel = <AdminContentPagesPanel token={token} />;
   if (path === '/admin/content') panel = <AdminContentPanel token={token} />;
   if (path === '/admin/features') panel = <AdminContentPanel token={token} featureOnly />;
+  if (path === '/admin/ops') panel = <AdminOpsPanel token={token} />;
   if (path === '/admin/settings') panel = <AdminSettingsPanel />;
 
   return <AdminLayout onLogout={logout}>{panel}</AdminLayout>;

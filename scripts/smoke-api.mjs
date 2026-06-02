@@ -3,7 +3,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const shouldStartLocalServer = !process.env.API_BASE_URL;
 const baseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
-const adminAccessToken = process.env.ADMIN_ACCESS_TOKEN || (shouldStartLocalServer ? 'smoke-admin-token' : '');
+const fallbackTestAdminAccessToken = process.env.TEST_ADMIN_ACCESS_TOKEN || 'pickyholiday-test-admin';
+const adminAccessToken = process.env.ADMIN_ACCESS_TOKEN || (shouldStartLocalServer ? fallbackTestAdminAccessToken : '');
 const unprotectedAdminAllowed = `${process.env.ALLOW_UNPROTECTED_ADMIN || ''}`.toLowerCase() === 'true';
 let localServer;
 let contentPageJsonBackup;
@@ -21,8 +22,26 @@ const restoreContentPageJson = async () => {
 
 const waitForLocalServer = async () => {
   if (!shouldStartLocalServer) return;
+  const serverEnv = {
+    ...process.env,
+    PORT: '8787',
+    NODE_ENV: 'test',
+    PROMOTED_DEAL_STORAGE_MODE: 'json',
+    SITE_CONFIG_STORAGE_MODE: 'json',
+    CONTENT_PAGE_STORAGE_MODE: 'json',
+    ANALYTICS_STORAGE_MODE: 'json',
+    PUBLIC_ANALYTICS_ENABLED: 'true',
+    REQUEST_LOGGING: 'false',
+    ENQUIRY_RATE_LIMIT_MAX: '3',
+  };
+  if (process.env.ADMIN_ACCESS_TOKEN) serverEnv.ADMIN_ACCESS_TOKEN = adminAccessToken;
+  else {
+    delete serverEnv.ADMIN_ACCESS_TOKEN;
+    serverEnv.ENABLE_TEST_ADMIN_LOGIN = 'true';
+    serverEnv.TEST_ADMIN_ACCESS_TOKEN = fallbackTestAdminAccessToken;
+  }
   localServer = spawn(process.execPath, ['server/index.js'], {
-    env: { ...process.env, PORT: '8787', NODE_ENV: 'test', ADMIN_ACCESS_TOKEN: adminAccessToken, PROMOTED_DEAL_STORAGE_MODE: 'json', SITE_CONFIG_STORAGE_MODE: 'json', CONTENT_PAGE_STORAGE_MODE: 'json', REQUEST_LOGGING: 'false', ENQUIRY_RATE_LIMIT_MAX: '3' },
+    env: serverEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   localServer.stdout.on('data', (chunk) => process.stdout.write(chunk));
@@ -98,8 +117,11 @@ const assertHealth = (data) => {
   if (!data.siteConfigStorageStatus) throw new Error('/api/health did not expose siteConfigStorageStatus.');
   if (!['json', 'postgres'].includes(data.contentPageStorageMode)) throw new Error('/api/health did not expose contentPageStorageMode.');
   if (!['json', 'postgres-ready', 'postgres-not-configured', 'postgres-error'].includes(data.contentPageStorageStatus)) throw new Error('/api/health did not expose a valid contentPageStorageStatus.');
+  if (!['json', 'postgres-ready', 'postgres-not-configured', 'postgres-error'].includes(data.analyticsStorageStatus)) throw new Error('/api/health did not expose a valid analyticsStorageStatus.');
+  if (!['json', 'postgres'].includes(data.analyticsStorageMode)) throw new Error('/api/health did not expose analyticsStorageMode.');
   if (!data.observability?.requestId) throw new Error('/api/health did not expose observability.requestId.');
   if (!data.security || typeof data.security.maxBodyBytes !== 'number') throw new Error('/api/health did not expose security limits.');
+  if (typeof data.adminSafeSettings?.testAdminLoginEnabled !== 'boolean') throw new Error('/api/health did not expose temporary test admin login status.');
   const healthJson = JSON.stringify(data);
   if (healthJson.includes('postgres://') || healthJson.includes('postgresql://')) {
     throw new Error('/api/health appeared to expose a database connection string.');
@@ -192,12 +214,49 @@ const request = async ({ method, path, body }) => {
 
 
 const assertAdminUnauthorized = async () => {
-  for (const path of ['/api/admin/enquiries', '/api/admin/promoted-deals', '/api/admin/content-pages', '/api/admin/site-config']) {
+  for (const path of ['/api/admin/enquiries', '/api/admin/promoted-deals', '/api/admin/content-pages', '/api/admin/site-config', '/api/admin/analytics/summary', '/api/admin/analytics/events']) {
     const response = await fetch(`${baseUrl}${path}`);
     const data = await parseJson(response, `GET ${path} unauthorized`);
     if (response.status !== 401) throw new Error(`GET ${path} without token returned ${response.status}, expected 401.`);
     assertEnvelope(data, `GET ${path} unauthorized`);
   }
+
+  for (const path of ['/api/admin/ops/run-tests', '/api/admin/ops/test-webhook']) {
+    const response = await fetch(`${baseUrl}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const data = await parseJson(response, `POST ${path} unauthorized`);
+    if (response.status !== 401) throw new Error(`POST ${path} without token returned ${response.status}, expected 401.`);
+    assertEnvelope(data, `POST ${path} unauthorized`);
+  }
+};
+
+
+const assertAnalyticsAndOps = async () => {
+  const publicEvent = await fetch(`${baseUrl}/api/analytics/events`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'search_submitted', label: 'Barcelona', metadata: { destination: 'Barcelona', ADMIN_ACCESS_TOKEN: 'should-not-store' } }) });
+  const publicData = await parseJson(publicEvent, 'POST /api/analytics/events');
+  if (publicEvent.status !== 201 || publicData.event?.type !== 'search_submitted') throw new Error('Public analytics event was not accepted.');
+  const unsafeEvent = await fetch(`${baseUrl}/api/analytics/events`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'admin_login_success' }) });
+  if (unsafeEvent.status !== 400) throw new Error(`Unsafe analytics event returned ${unsafeEvent.status}, expected 400.`);
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${adminAccessToken}` };
+  const summary = await fetch(`${baseUrl}/api/admin/analytics/summary`, { headers });
+  const summaryData = await parseJson(summary, 'GET /api/admin/analytics/summary');
+  if (!summary.ok || !summaryData.summary || typeof summaryData.summary.searchesToday !== 'number') throw new Error('Admin analytics summary did not include counters.');
+  const events = await fetch(`${baseUrl}/api/admin/analytics/events?limit=20`, { headers });
+  const eventsData = await parseJson(events, 'GET /api/admin/analytics/events');
+  if (!events.ok || !Array.isArray(eventsData.results)) throw new Error('Admin analytics events did not return results.');
+  const body = JSON.stringify(eventsData);
+  for (const secret of ['ADMIN_ACCESS_TOKEN', 'DATABASE_URL', 'postgres://', 'postgresql://', 'should-not-store']) {
+    if (body.includes(secret)) throw new Error(`Analytics events exposed ${secret}.`);
+  }
+  const ops = await fetch(`${baseUrl}/api/admin/ops/run-tests`, { method: 'POST', headers, body: JSON.stringify({ includeWriteTests: false }) });
+  const opsData = await parseJson(ops, 'POST /api/admin/ops/run-tests');
+  if (!ops.ok || !Array.isArray(opsData.checks) || opsData.checks.length === 0) throw new Error('Ops run-tests did not return checks.');
+  const invalidWebhook = await fetch(`${baseUrl}/api/admin/ops/test-webhook`, { method: 'POST', headers, body: JSON.stringify({ url: 'not-a-url', eventType: 'test', payload: {} }) });
+  if (invalidWebhook.status !== 400) throw new Error(`Invalid webhook URL returned ${invalidWebhook.status}, expected 400.`);
+  for (const badUrl of ['javascript:alert(1)', 'data:text/plain,hello']) {
+    const bad = await fetch(`${baseUrl}/api/admin/ops/test-webhook`, { method: 'POST', headers, body: JSON.stringify({ url: badUrl, eventType: 'test', payload: {} }) });
+    if (bad.status !== 400) throw new Error(`${badUrl} webhook URL returned ${bad.status}, expected 400.`);
+  }
+  console.log('✓ Analytics and admin ops endpoints passed');
 };
 
 const assertAdminPromotedDeals = async () => {
@@ -364,6 +423,7 @@ try {
     console.log('✓ Admin routes without a token returned controlled 401 envelopes');
   }
   await assertAdminList();
+  await assertAnalyticsAndOps();
   await assertAdminPromotedDeals();
   await assertContentPages();
   await assertSitemapAndRobots();

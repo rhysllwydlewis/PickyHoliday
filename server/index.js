@@ -11,6 +11,7 @@ import { publicEnquiry } from '../src/services/enquiries/enquiryModel.js';
 import { createPromotedDeal, getPromotedDealStorageStatus, listPromotedDeals, listPublicPromotedDeals, updatePromotedDeal, updatePromotedDealStatus } from './deals/promotedDealStore.js';
 import { getPublicSiteConfig, getSiteConfig, getSiteConfigStorageStatus, updateSiteConfig } from './site/siteConfigStore.js';
 import { createContentPage, getContentPageStorageStatus, getPublicContentPageBySlug, listAdminContentPages, listPublicContentPages, updateContentPage, updateContentPageStatus } from './content/contentPageStore.js';
+import { PUBLIC_ANALYTICS_EVENT_TYPES, anonymiseIp, getAnalyticsStorageStatus, getAnalyticsSummary, listAnalyticsEvents, recordAnalyticsEvent, sanitiseMetadata, summariseUserAgent } from './analytics/analyticsStore.js';
 
 const port = Number(process.env.PORT || 8787);
 const registry = createTravelProviderRegistry(process.env);
@@ -29,6 +30,17 @@ const adminRateLimitMax = numberFromEnv('ADMIN_RATE_LIMIT_MAX', 60);
 const enquiryRateLimitMax = numberFromEnv('ENQUIRY_RATE_LIMIT_MAX', 20);
 const rateLimitBuckets = new Map();
 const publicSiteUrl = (process.env.PUBLIC_SITE_URL || 'https://pickyholiday.co.uk').replace(/\/$/, '');
+const publicAnalyticsEnabled = `${process.env.PUBLIC_ANALYTICS_ENABLED || 'true'}`.toLowerCase() !== 'false';
+const webhookTestTimeoutMs = numberFromEnv('WEBHOOK_TEST_TIMEOUT_MS', 5000, { min: 100 });
+const webhookTestAllowedHosts = () => `${process.env.WEBHOOK_TEST_ALLOWED_HOSTS || ''}`.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
+const defaultTestAdminToken = 'pickyholiday-test-admin';
+const testAdminAccessToken = () => `${process.env.TEST_ADMIN_ACCESS_TOKEN || defaultTestAdminToken}`;
+const testAdminLoginEnabled = () => {
+  if (process.env.ADMIN_ACCESS_TOKEN) return false;
+  const configured = `${process.env.ENABLE_TEST_ADMIN_LOGIN || ''}`.toLowerCase();
+  if (configured) return configured === 'true';
+  return process.env.NODE_ENV !== 'production';
+};
 
 const isPathInside = (parent, child) => {
   const relativePath = path.relative(parent, child);
@@ -258,10 +270,161 @@ const enquiryEnvelope = (record, notifierResult) => ({
   },
 });
 
+
+const safeAnalyticsFromRequest = (request, body = {}) => ({
+  type: body.type,
+  category: body.category,
+  label: body.label,
+  path: body.path,
+  provider: body.provider,
+  requestId: request.requestId,
+  metadata: sanitiseMetadata(body.metadata || {}),
+  anonymisedIp: anonymiseIp(clientIp(request)),
+  userAgentSummary: summariseUserAgent(request.headers['user-agent'] || ''),
+});
+
+const recordAnalyticsSafely = async (event) => {
+  try {
+    return await recordAnalyticsEvent(event);
+  } catch (error) {
+    return null;
+  }
+};
+
+const adminEnvelope = (extra = {}) => ({
+  ok: true,
+  providerMode: registry.mode,
+  results: [],
+  providerErrors: [],
+  meta: { totalResults: 0, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() },
+  ...extra,
+});
+
+const buildHealthPayload = async (request) => {
+  const [enquiryStorageStatus, promotedDealStorageStatus, siteConfigStorageStatus, contentPageStorageStatus, analyticsStorageStatus] = await Promise.all([
+    getEnquiryStorageStatus(),
+    getPromotedDealStorageStatus(),
+    getSiteConfigStorageStatus(),
+    getContentPageStorageStatus(),
+    getAnalyticsStorageStatus(),
+  ]);
+  return {
+    ...registry.status(),
+    ...enquiryStorageStatus,
+    ...promotedDealStorageStatus,
+    ...siteConfigStorageStatus,
+    ...contentPageStorageStatus,
+    ...analyticsStorageStatus,
+    observability: { requestId: request.requestId, requestLogging: requestLogEnabled },
+    security: { hstsEnabled, maxBodyBytes, rateLimitWindowMs, publicRateLimitMax, adminRateLimitMax, enquiryRateLimitMax },
+    adminSafeSettings: {
+      analyticsStorageMode: analyticsStorageStatus.analyticsStorageMode,
+      analyticsStorageStatus: analyticsStorageStatus.analyticsStorageStatus,
+      webhookTestAllowlistConfigured: webhookTestAllowedHosts().length > 0,
+      webhookTestTimeoutMs,
+      publicAnalyticsEnabled,
+      testAdminLoginEnabled: testAdminLoginEnabled(),
+    },
+  };
+};
+
+const readinessFromHealth = (health) => {
+  const storageStatuses = [
+    health.databaseStatus,
+    health.promotedDealStorageStatus,
+    health.siteConfigStorageStatus,
+    health.contentPageStorageStatus,
+  ].filter(Boolean);
+  const ready = storageStatuses.every((status) => !`${status}`.includes('error') && !`${status}`.includes('not-configured'));
+  const analyticsRequired = health.analyticsStorageMode === 'postgres';
+  const analyticsReady = !analyticsRequired || !['postgres-not-configured', 'postgres-error'].includes(health.analyticsStorageStatus);
+  return { ready: ready && analyticsReady, analyticsRequired, analyticsReady };
+};
+
+const timedCheck = async (name, fn) => {
+  const started = Date.now();
+  try {
+    const result = await fn();
+    return { name, status: result?.status || 'pass', message: result?.message || 'Passed.', durationMs: Date.now() - started };
+  } catch (error) {
+    return { name, status: 'fail', message: error.status ? error.message : 'Check failed in a controlled way.', durationMs: Date.now() - started };
+  }
+};
+
+const generateSitemapXml = async () => {
+  const pages = await listPublicContentPages();
+  const urls = ['/', ...pages.map((page) => page.canonicalPath)].map((item) => `${publicSiteUrl}${item.startsWith('/') ? item : `/${item}`}`);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((loc) => `  <url><loc>${loc.replace(/&/g, '&amp;')}</loc></url>`).join('\n')}\n</urlset>`;
+};
+
+const generateRobotsTxt = () => `User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: ${publicSiteUrl}/sitemap.xml\n`;
+
+const runOpsTests = async (request, includeWriteTests = false) => {
+  const startedAt = new Date().toISOString();
+  const startMs = Date.now();
+  const checks = [];
+  const add = async (name, fn) => checks.push(await timedCheck(name, fn));
+  await add('/api/health payload builds', async () => ({ message: (await buildHealthPayload(request)).providerMode ? 'Health payload built without exposing secrets.' : 'Health payload missing provider mode.' }));
+  await add('readiness/storage statuses', async () => { const health = await buildHealthPayload(request); const status = readinessFromHealth(health); return { status: status.ready ? 'pass' : 'warn', message: status.ready ? 'Configured storage is ready.' : 'One or more configured storage checks is warning or unavailable.' }; });
+  await add('enquiry storage list', async () => ({ message: `${(await listEnquiries()).length} enquiries listed.` }));
+  await add('promoted deal storage list', async () => ({ message: `${(await listPromotedDeals()).length} promoted deals listed.` }));
+  await add('site config storage', async () => ({ message: (await getSiteConfig()).hero ? 'Site config loaded.' : 'Site config loaded with defaults.' }));
+  await add('content page storage', async () => ({ message: `${(await listAdminContentPages()).length} content pages listed.` }));
+  await add('public content pages list', async () => ({ message: `${(await listPublicContentPages()).length} public pages listed.` }));
+  await add('public promoted deals list', async () => ({ message: `${(await listPublicPromotedDeals()).length} public deals listed.` }));
+  await add('provider registry status', async () => ({ message: `${registry.status().activeProviders.length} active providers reported.` }));
+  await add('Duffel configured flag safe', async () => ({ message: `Duffel configured: ${Boolean(registry.status().duffelConfigured)}.` }));
+  await add('database configured flag safe', async () => ({ message: `Database configured: ${Boolean(process.env.DATABASE_URL)}.` }));
+  await add('sitemap generation', async () => ({ message: (await generateSitemapXml()).includes('<urlset') ? 'Sitemap generated.' : 'Sitemap output missing urlset.' }));
+  await add('robots.txt generation', async () => ({ message: generateRobotsTxt().includes('Disallow: /admin') ? 'Robots generated.' : 'Robots output missing admin disallow.' }));
+  if (includeWriteTests) {
+    await add('optional write test enquiry', async () => {
+      const record = await createEnquiry({ customerName: 'Admin Test', customerEmail: 'admin-test@example.invalid', destination: 'Barcelona', consentToContact: true, internalNotes: 'Automated admin test enquiry', source: 'admin-ops-write-test' });
+      const found = (await listEnquiries()).some((item) => item.id === record.id);
+      return { status: found ? 'pass' : 'fail', message: found ? `Created test enquiry ${record.id}; no email, booking, payment or reservation was created.` : 'Test enquiry could not be listed.' };
+    });
+  }
+  const completedAt = new Date().toISOString();
+  const ok = checks.every((check) => check.status !== 'fail');
+  await recordAnalyticsSafely({ type: 'system_test_run', category: 'admin_ops', label: includeWriteTests ? 'write-tests' : 'safe-tests', requestId: request.requestId, metadata: { includeWriteTests, ok, checks: checks.length } });
+  return { ok, requestId: request.requestId, startedAt, completedAt, durationMs: Date.now() - startMs, checks };
+};
+
+const validateWebhookTarget = (rawUrl) => {
+  let target;
+  try { target = new URL(rawUrl); } catch { const error = new Error('Webhook URL must be a valid URL.'); error.status = 400; throw error; }
+  const protocol = target.protocol.toLowerCase();
+  const isLocal = ['localhost', '127.0.0.1', '::1'].includes(target.hostname.toLowerCase());
+  const devMode = ['development', 'test'].includes(process.env.NODE_ENV || '');
+  if (protocol !== 'https:' && !(protocol === 'http:' && isLocal && devMode)) { const error = new Error('Webhook URL must use https. Localhost http is allowed only in development/test.'); error.status = 400; throw error; }
+  const allowlist = webhookTestAllowedHosts();
+  if (allowlist.length > 0 && !allowlist.includes(target.hostname.toLowerCase())) { const error = new Error('Webhook host is not on the configured allowlist.'); error.status = 400; throw error; }
+  return target;
+};
+
+const testWebhook = async (request, body = {}) => {
+  const target = validateWebhookTarget(body.url || '');
+  const eventType = `${body.eventType || 'admin.test'}`.replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 80) || 'admin.test';
+  const payload = sanitiseMetadata(body.payload || {});
+  const started = Date.now();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), webhookTestTimeoutMs);
+  try {
+    const webhookResponse = await fetch(target, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-PickyHoliday-Test': 'true', 'X-PickyHoliday-Event': eventType }, body: JSON.stringify({ eventType, test: true, payload }), signal: controller.signal });
+    const text = await webhookResponse.text().catch(() => '');
+    const durationMs = Date.now() - started;
+    await recordAnalyticsSafely({ type: 'webhook_test_sent', category: 'admin_ops', label: eventType, requestId: request.requestId, metadata: { host: target.hostname, path: target.pathname, statusCode: webhookResponse.status, durationMs } });
+    return { ok: true, statusCode: webhookResponse.status, durationMs, responseSnippet: text.slice(0, 500) };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 const canUseAdminRoutes = (request) => {
   const token = process.env.ADMIN_ACCESS_TOKEN;
   const header = request.headers.authorization || '';
   if (token) return header === `Bearer ${token}`;
+  if (testAdminLoginEnabled() && header === `Bearer ${testAdminAccessToken()}`) return true;
 
   const explicitlyAllowed = `${process.env.ALLOW_UNPROTECTED_ADMIN || ''}`.toLowerCase() === 'true';
   const safeLocalMode = registry.mode === 'mock' && ['development', 'test'].includes(process.env.NODE_ENV || '');
@@ -357,45 +520,32 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === 'GET' && url.pathname === '/api/health') {
-    const [enquiryStorageStatus, promotedDealStorageStatus, siteConfigStorageStatus, contentPageStorageStatus] = await Promise.all([
-      getEnquiryStorageStatus(),
-      getPromotedDealStorageStatus(),
-      getSiteConfigStorageStatus(),
-      getContentPageStorageStatus(),
-    ]);
-    sendJson(request, response, 200, {
-      ...registry.status(),
-      ...enquiryStorageStatus,
-      ...promotedDealStorageStatus,
-      ...siteConfigStorageStatus,
-      ...contentPageStorageStatus,
-      observability: { requestId: request.requestId, requestLogging: requestLogEnabled },
-      security: { hstsEnabled, maxBodyBytes, rateLimitWindowMs, publicRateLimitMax, adminRateLimitMax, enquiryRateLimitMax },
-    });
+    sendJson(request, response, 200, await buildHealthPayload(request));
     return;
   }
 
   if (request.method === 'GET' && url.pathname === '/api/readiness') {
-    const [enquiryStorageStatus, promotedDealStorageStatus, siteConfigStorageStatus, contentPageStorageStatus] = await Promise.all([
-      getEnquiryStorageStatus(),
-      getPromotedDealStorageStatus(),
-      getSiteConfigStorageStatus(),
-      getContentPageStorageStatus(),
-    ]);
-    const storageStatuses = [
-      enquiryStorageStatus.databaseStatus,
-      promotedDealStorageStatus.promotedDealStorageStatus,
-      siteConfigStorageStatus.siteConfigStorageStatus,
-      contentPageStorageStatus.contentPageStorageStatus,
-    ].filter(Boolean);
-    const ready = storageStatuses.every((status) => !`${status}`.includes('error') && !`${status}`.includes('not-configured'));
+    const health = await buildHealthPayload(request);
+    const { ready } = readinessFromHealth(health);
     sendJson(request, response, ready ? 200 : 503, {
       ok: ready,
       providerMode: registry.mode,
       results: [],
-      providerErrors: ready ? [] : [{ provider: 'storage', method: 'readiness', message: 'One or more configured storage backends are not ready.' }],
+      providerErrors: ready ? [] : [{ provider: 'storage', method: 'readiness', message: 'One or more configured storage backends are not ready. Analytics is warning-only unless postgres analytics is selected.' }],
       providerStatus: registry.status().providerStatus,
-      storage: { ...enquiryStorageStatus, ...promotedDealStorageStatus, ...siteConfigStorageStatus, ...contentPageStorageStatus },
+      storage: {
+        enquiryStorageMode: health.enquiryStorageMode,
+        databaseConfigured: health.databaseConfigured,
+        databaseStatus: health.databaseStatus,
+        promotedDealStorageMode: health.promotedDealStorageMode,
+        promotedDealStorageStatus: health.promotedDealStorageStatus,
+        siteConfigStorageMode: health.siteConfigStorageMode,
+        siteConfigStorageStatus: health.siteConfigStorageStatus,
+        contentPageStorageMode: health.contentPageStorageMode,
+        contentPageStorageStatus: health.contentPageStorageStatus,
+        analyticsStorageMode: health.analyticsStorageMode,
+        analyticsStorageStatus: health.analyticsStorageStatus,
+      },
       observability: { requestId: request.requestId, requestLogging: requestLogEnabled },
       meta: { totalResults: 0, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString(), status: ready ? 200 : 503 },
     });
@@ -405,10 +555,7 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'GET' && url.pathname === '/sitemap.xml') {
     try {
-      const pages = await listPublicContentPages();
-      const urls = ['/', ...pages.map((page) => page.canonicalPath)].map((item) => `${publicSiteUrl}${item.startsWith('/') ? item : `/${item}`}`);
-      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((loc) => `  <url><loc>${loc.replace(/&/g, '&amp;')}</loc></url>`).join('\n')}\n</urlset>`;
-      sendText(response, 200, xml, 'application/xml');
+      sendText(response, 200, await generateSitemapXml(), 'application/xml');
     } catch (error) {
       sendText(response, 503, '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>', 'application/xml');
     }
@@ -416,7 +563,7 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === 'GET' && url.pathname === '/robots.txt') {
-    sendText(response, 200, `User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: ${publicSiteUrl}/sitemap.xml\n`, 'text/plain');
+    sendText(response, 200, generateRobotsTxt(), 'text/plain');
     return;
   }
 
@@ -483,6 +630,67 @@ const server = http.createServer(async (request, response) => {
 
 
 
+
+  if (request.method === 'POST' && url.pathname === '/api/analytics/events') {
+    if (!publicAnalyticsEnabled) {
+      sendJson(request, response, 200, adminEnvelope({ event: null, message: 'Public analytics capture is disabled.' }));
+      return;
+    }
+    try {
+      const body = await readJsonBody(request);
+      if (!PUBLIC_ANALYTICS_EVENT_TYPES.includes(body.type)) {
+        sendJson(request, response, 400, errorEnvelope(400, 'Unsupported public analytics event type.'));
+        return;
+      }
+      const event = await recordAnalyticsEvent(safeAnalyticsFromRequest(request, body));
+      sendJson(request, response, 201, adminEnvelope({ event: { id: event.id, createdAt: event.createdAt, type: event.type } }));
+    } catch (error) {
+      sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not capture analytics event.'));
+    }
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/admin/analytics/summary') {
+    if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
+    try {
+      const summary = await getAnalyticsSummary();
+      sendJson(request, response, 200, adminEnvelope({ summary }));
+    } catch (error) { sendJson(request, response, 503, errorEnvelope(503, 'Could not read analytics summary.')); }
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/admin/analytics/events') {
+    if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
+    try {
+      const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 50), 1), 200);
+      const events = await listAnalyticsEvents({ limit });
+      sendJson(request, response, 200, adminEnvelope({ results: events, meta: { totalResults: events.length, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } }));
+    } catch (error) { sendJson(request, response, 503, errorEnvelope(503, 'Could not read analytics events.')); }
+    return;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/admin/ops/run-tests') {
+    if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
+    try {
+      const body = await readJsonBody(request);
+      const result = await runOpsTests(request, body.includeWriteTests === true);
+      sendJson(request, response, 200, adminEnvelope(result));
+    } catch (error) { sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not run operations tests.')); }
+    return;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/admin/ops/test-webhook') {
+    if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
+    try {
+      const result = await testWebhook(request, await readJsonBody(request));
+      sendJson(request, response, 200, adminEnvelope({ webhook: result }));
+    } catch (error) {
+      const status = error.status || (error.name === 'AbortError' ? 504 : 502);
+      sendJson(request, response, status, errorEnvelope(status, error.status ? error.message : (error.name === 'AbortError' ? 'Webhook test timed out.' : 'Webhook test failed.')));
+    }
+    return;
+  }
+
   if (request.method === 'GET' && url.pathname === '/api/admin/content-pages') {
     if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
     try {
@@ -496,6 +704,7 @@ const server = http.createServer(async (request, response) => {
     if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
     try {
       const page = await createContentPage(await readJsonBody(request));
+      await recordAnalyticsSafely({ type: 'admin_content_page_saved', category: 'admin', label: page.slug || page.title, requestId: request.requestId, metadata: { id: page.id, status: page.status } });
       sendJson(request, response, 201, { ok: true, providerMode: registry.mode, results: [page], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
     } catch (error) { sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not create content page.', { fieldErrors: error.fieldErrors || [] })); }
     return;
@@ -517,6 +726,7 @@ const server = http.createServer(async (request, response) => {
     if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
     try {
       const page = await updateContentPage(decodeURIComponent(adminContentMatch[1] || ''), await readJsonBody(request));
+      await recordAnalyticsSafely({ type: 'admin_content_page_saved', category: 'admin', label: page.slug || page.title, requestId: request.requestId, metadata: { id: page.id, status: page.status } });
       sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: [page], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
     } catch (error) { sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not update content page.', { fieldErrors: error.fieldErrors || [] })); }
     return;
@@ -543,6 +753,7 @@ const server = http.createServer(async (request, response) => {
     }
     try {
       const deal = await createPromotedDeal(await readJsonBody(request));
+      await recordAnalyticsSafely({ type: 'admin_promoted_deal_saved', category: 'admin', label: deal.title || deal.hotelName, requestId: request.requestId, metadata: { id: deal.id, status: deal.status } });
       sendJson(request, response, 201, { ok: true, providerMode: registry.mode, results: [deal], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
     } catch (error) {
       sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not create promoted deal.', { fieldErrors: error.fieldErrors || [] }));
@@ -574,6 +785,7 @@ const server = http.createServer(async (request, response) => {
     }
     try {
       const deal = await updatePromotedDeal(decodeURIComponent(adminDealMatch[1] || ''), await readJsonBody(request));
+      await recordAnalyticsSafely({ type: 'admin_promoted_deal_saved', category: 'admin', label: deal.title || deal.hotelName, requestId: request.requestId, metadata: { id: deal.id, status: deal.status } });
       sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: [deal], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
     } catch (error) {
       sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not update promoted deal.', { fieldErrors: error.fieldErrors || [] }));
@@ -611,10 +823,28 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'GET' && url.pathname === '/api/admin/enquiries') {
     if (!canUseAdminRoutes(request)) {
+      await recordAnalyticsSafely({
+        type: 'admin_login_failed',
+        category: 'admin_auth',
+        label: 'admin-enquiries',
+        requestId: request.requestId,
+        metadata: { path: url.pathname },
+        anonymisedIp: anonymiseIp(clientIp(request)),
+        userAgentSummary: summariseUserAgent(request.headers['user-agent'] || ''),
+      });
       sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
       return;
     }
     try {
+      await recordAnalyticsSafely({
+        type: 'admin_login_success',
+        category: 'admin_auth',
+        label: 'admin-enquiries',
+        requestId: request.requestId,
+        metadata: { path: url.pathname },
+        anonymisedIp: anonymiseIp(clientIp(request)),
+        userAgentSummary: summariseUserAgent(request.headers['user-agent'] || ''),
+      });
       const enquiries = await listEnquiries();
       sendJson(request, response, 200, {
         ok: true,
@@ -645,6 +875,7 @@ const server = http.createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const id = decodeURIComponent(adminStatusMatch[1] || '');
       const updated = await updateEnquiryStatus(id, body.status);
+      await recordAnalyticsSafely({ type: 'admin_status_update', category: 'admin', label: body.status, requestId: request.requestId, metadata: { id } });
       sendJson(request, response, 200, {
         ok: true,
         providerMode: registry.mode,
@@ -682,6 +913,7 @@ const server = http.createServer(async (request, response) => {
     try {
       const body = await readJsonBody(request);
       const payload = await handleCreateEnquiry(body);
+      await recordAnalyticsSafely({ type: 'enquiry_created', category: 'enquiry', label: payload.enquiry?.destination || body.destination, requestId: request.requestId, metadata: { destination: payload.enquiry?.destination || body.destination, source: body.source || 'public' } });
       sendJson(request, response, 200, payload);
     } catch (error) {
       const status = error.status || 500;
@@ -696,6 +928,8 @@ const server = http.createServer(async (request, response) => {
     try {
       const body = await readJsonBody(request);
       const payload = await postRoutes[url.pathname](body);
+      if (url.pathname === '/api/travel/search') await recordAnalyticsSafely({ type: 'search_submitted', category: 'search', label: body.destination || body.intent || 'search', requestId: request.requestId, metadata: { destination: body.destination || '', intent: body.intent || '' } });
+      if ((payload.providerErrors || []).length) await recordAnalyticsSafely({ type: 'api_provider_error', category: 'provider', label: url.pathname, requestId: request.requestId, metadata: { errors: (payload.providerErrors || []).map((item) => item.provider).slice(0, 5) } });
       sendJson(request, response, 200, payload);
     } catch (error) {
       const status = error.status || 500;
