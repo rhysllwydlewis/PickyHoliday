@@ -1,0 +1,945 @@
+[
+  {
+    "id": "content-destination-barcelona",
+    "slug": "barcelona",
+    "type": "destination",
+    "status": "published",
+    "title": "Barcelona group holidays",
+    "shortTitle": "Barcelona",
+    "metaTitle": "Barcelona group holidays | PickyHoliday",
+    "metaDescription": "Plan enquiry-first group holidays to Barcelona with destination ideas, group-friendly stays and advisor-led quote requests.",
+    "canonicalPath": "/destinations/barcelona",
+    "heroEyebrow": "Destination guide",
+    "heroTitle": "Barcelona group holidays",
+    "heroSubtitle": "Explore Barcelona for flexible group trips, family breaks and celebration getaways.",
+    "heroImage": "",
+    "intro": "Use this Barcelona page to start an enquiry, compare group-friendly ideas and ask PickyHoliday advisors for tailored options. Results and enquiries are not bookings or supplier reservations.",
+    "sections": [
+      {
+        "id": "why-go",
+        "heading": "Why groups choose Barcelona",
+        "body": "Barcelona works well for groups that need a mix of beaches, culture, nightlife and relaxed planning. Share your preferred dates, airports and group size so an advisor can help shape suitable options."
+      },
+      {
+        "id": "planning-tips",
+        "heading": "Planning tips",
+        "body": "Keep dates flexible where possible, confirm approximate room splits early and tell us about accessibility needs, children or celebration plans before requesting a quote."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "booking",
+        "question": "Can I book Barcelona holidays directly on PickyHoliday?",
+        "answer": "No. PickyHoliday is enquiry-first. We save your request and help with next steps; we do not take payment or create supplier reservations."
+      },
+      {
+        "id": "groups",
+        "question": "What group sizes can enquire?",
+        "answer": "Small families, friendship groups and larger parties can all send an enquiry. Include your estimated group size so the options are relevant."
+      }
+    ],
+    "relatedSlugs": [
+      "stag-and-hen",
+      "family-holidays",
+      "best-group-holiday-destinations"
+    ],
+    "searchDefaults": {
+      "destination": "Barcelona",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "Barcelona",
+      "destination",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public destination page."
+  },
+  {
+    "id": "content-destination-ibiza",
+    "slug": "ibiza",
+    "type": "destination",
+    "status": "published",
+    "title": "Ibiza group holidays",
+    "shortTitle": "Ibiza",
+    "metaTitle": "Ibiza group holidays | PickyHoliday",
+    "metaDescription": "Plan enquiry-first group holidays to Ibiza with destination ideas, group-friendly stays and advisor-led quote requests.",
+    "canonicalPath": "/destinations/ibiza",
+    "heroEyebrow": "Destination guide",
+    "heroTitle": "Ibiza group holidays",
+    "heroSubtitle": "Explore Ibiza for flexible group trips, family breaks and celebration getaways.",
+    "heroImage": "",
+    "intro": "Use this Ibiza page to start an enquiry, compare group-friendly ideas and ask PickyHoliday advisors for tailored options. Results and enquiries are not bookings or supplier reservations.",
+    "sections": [
+      {
+        "id": "why-go",
+        "heading": "Why groups choose Ibiza",
+        "body": "Ibiza works well for groups that need a mix of beaches, culture, nightlife and relaxed planning. Share your preferred dates, airports and group size so an advisor can help shape suitable options."
+      },
+      {
+        "id": "planning-tips",
+        "heading": "Planning tips",
+        "body": "Keep dates flexible where possible, confirm approximate room splits early and tell us about accessibility needs, children or celebration plans before requesting a quote."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "booking",
+        "question": "Can I book Ibiza holidays directly on PickyHoliday?",
+        "answer": "No. PickyHoliday is enquiry-first. We save your request and help with next steps; we do not take payment or create supplier reservations."
+      },
+      {
+        "id": "groups",
+        "question": "What group sizes can enquire?",
+        "answer": "Small families, friendship groups and larger parties can all send an enquiry. Include your estimated group size so the options are relevant."
+      }
+    ],
+    "relatedSlugs": [
+      "stag-and-hen",
+      "family-holidays",
+      "best-group-holiday-destinations"
+    ],
+    "searchDefaults": {
+      "destination": "Ibiza",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "Ibiza",
+      "destination",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public destination page."
+  },
+  {
+    "id": "content-destination-tenerife",
+    "slug": "tenerife",
+    "type": "destination",
+    "status": "published",
+    "title": "Tenerife group holidays",
+    "shortTitle": "Tenerife",
+    "metaTitle": "Tenerife group holidays | PickyHoliday",
+    "metaDescription": "Plan enquiry-first group holidays to Tenerife with destination ideas, group-friendly stays and advisor-led quote requests.",
+    "canonicalPath": "/destinations/tenerife",
+    "heroEyebrow": "Destination guide",
+    "heroTitle": "Tenerife group holidays",
+    "heroSubtitle": "Explore Tenerife for flexible group trips, family breaks and celebration getaways.",
+    "heroImage": "",
+    "intro": "Use this Tenerife page to start an enquiry, compare group-friendly ideas and ask PickyHoliday advisors for tailored options. Results and enquiries are not bookings or supplier reservations.",
+    "sections": [
+      {
+        "id": "why-go",
+        "heading": "Why groups choose Tenerife",
+        "body": "Tenerife works well for groups that need a mix of beaches, culture, nightlife and relaxed planning. Share your preferred dates, airports and group size so an advisor can help shape suitable options."
+      },
+      {
+        "id": "planning-tips",
+        "heading": "Planning tips",
+        "body": "Keep dates flexible where possible, confirm approximate room splits early and tell us about accessibility needs, children or celebration plans before requesting a quote."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "booking",
+        "question": "Can I book Tenerife holidays directly on PickyHoliday?",
+        "answer": "No. PickyHoliday is enquiry-first. We save your request and help with next steps; we do not take payment or create supplier reservations."
+      },
+      {
+        "id": "groups",
+        "question": "What group sizes can enquire?",
+        "answer": "Small families, friendship groups and larger parties can all send an enquiry. Include your estimated group size so the options are relevant."
+      }
+    ],
+    "relatedSlugs": [
+      "stag-and-hen",
+      "family-holidays",
+      "best-group-holiday-destinations"
+    ],
+    "searchDefaults": {
+      "destination": "Tenerife",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "Tenerife",
+      "destination",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public destination page."
+  },
+  {
+    "id": "content-destination-majorca",
+    "slug": "majorca",
+    "type": "destination",
+    "status": "published",
+    "title": "Majorca group holidays",
+    "shortTitle": "Majorca",
+    "metaTitle": "Majorca group holidays | PickyHoliday",
+    "metaDescription": "Plan enquiry-first group holidays to Majorca with destination ideas, group-friendly stays and advisor-led quote requests.",
+    "canonicalPath": "/destinations/majorca",
+    "heroEyebrow": "Destination guide",
+    "heroTitle": "Majorca group holidays",
+    "heroSubtitle": "Explore Majorca for flexible group trips, family breaks and celebration getaways.",
+    "heroImage": "",
+    "intro": "Use this Majorca page to start an enquiry, compare group-friendly ideas and ask PickyHoliday advisors for tailored options. Results and enquiries are not bookings or supplier reservations.",
+    "sections": [
+      {
+        "id": "why-go",
+        "heading": "Why groups choose Majorca",
+        "body": "Majorca works well for groups that need a mix of beaches, culture, nightlife and relaxed planning. Share your preferred dates, airports and group size so an advisor can help shape suitable options."
+      },
+      {
+        "id": "planning-tips",
+        "heading": "Planning tips",
+        "body": "Keep dates flexible where possible, confirm approximate room splits early and tell us about accessibility needs, children or celebration plans before requesting a quote."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "booking",
+        "question": "Can I book Majorca holidays directly on PickyHoliday?",
+        "answer": "No. PickyHoliday is enquiry-first. We save your request and help with next steps; we do not take payment or create supplier reservations."
+      },
+      {
+        "id": "groups",
+        "question": "What group sizes can enquire?",
+        "answer": "Small families, friendship groups and larger parties can all send an enquiry. Include your estimated group size so the options are relevant."
+      }
+    ],
+    "relatedSlugs": [
+      "stag-and-hen",
+      "family-holidays",
+      "best-group-holiday-destinations"
+    ],
+    "searchDefaults": {
+      "destination": "Majorca",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "Majorca",
+      "destination",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public destination page."
+  },
+  {
+    "id": "content-destination-malaga",
+    "slug": "malaga",
+    "type": "destination",
+    "status": "published",
+    "title": "Malaga group holidays",
+    "shortTitle": "Malaga",
+    "metaTitle": "Malaga group holidays | PickyHoliday",
+    "metaDescription": "Plan enquiry-first group holidays to Malaga with destination ideas, group-friendly stays and advisor-led quote requests.",
+    "canonicalPath": "/destinations/malaga",
+    "heroEyebrow": "Destination guide",
+    "heroTitle": "Malaga group holidays",
+    "heroSubtitle": "Explore Malaga for flexible group trips, family breaks and celebration getaways.",
+    "heroImage": "",
+    "intro": "Use this Malaga page to start an enquiry, compare group-friendly ideas and ask PickyHoliday advisors for tailored options. Results and enquiries are not bookings or supplier reservations.",
+    "sections": [
+      {
+        "id": "why-go",
+        "heading": "Why groups choose Malaga",
+        "body": "Malaga works well for groups that need a mix of beaches, culture, nightlife and relaxed planning. Share your preferred dates, airports and group size so an advisor can help shape suitable options."
+      },
+      {
+        "id": "planning-tips",
+        "heading": "Planning tips",
+        "body": "Keep dates flexible where possible, confirm approximate room splits early and tell us about accessibility needs, children or celebration plans before requesting a quote."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "booking",
+        "question": "Can I book Malaga holidays directly on PickyHoliday?",
+        "answer": "No. PickyHoliday is enquiry-first. We save your request and help with next steps; we do not take payment or create supplier reservations."
+      },
+      {
+        "id": "groups",
+        "question": "What group sizes can enquire?",
+        "answer": "Small families, friendship groups and larger parties can all send an enquiry. Include your estimated group size so the options are relevant."
+      }
+    ],
+    "relatedSlugs": [
+      "stag-and-hen",
+      "family-holidays",
+      "best-group-holiday-destinations"
+    ],
+    "searchDefaults": {
+      "destination": "Malaga",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "Malaga",
+      "destination",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public destination page."
+  },
+  {
+    "id": "content-destination-prague",
+    "slug": "prague",
+    "type": "destination",
+    "status": "published",
+    "title": "Prague group holidays",
+    "shortTitle": "Prague",
+    "metaTitle": "Prague group holidays | PickyHoliday",
+    "metaDescription": "Plan enquiry-first group holidays to Prague with destination ideas, group-friendly stays and advisor-led quote requests.",
+    "canonicalPath": "/destinations/prague",
+    "heroEyebrow": "Destination guide",
+    "heroTitle": "Prague group holidays",
+    "heroSubtitle": "Explore Prague for flexible group trips, family breaks and celebration getaways.",
+    "heroImage": "",
+    "intro": "Use this Prague page to start an enquiry, compare group-friendly ideas and ask PickyHoliday advisors for tailored options. Results and enquiries are not bookings or supplier reservations.",
+    "sections": [
+      {
+        "id": "why-go",
+        "heading": "Why groups choose Prague",
+        "body": "Prague works well for groups that need a mix of beaches, culture, nightlife and relaxed planning. Share your preferred dates, airports and group size so an advisor can help shape suitable options."
+      },
+      {
+        "id": "planning-tips",
+        "heading": "Planning tips",
+        "body": "Keep dates flexible where possible, confirm approximate room splits early and tell us about accessibility needs, children or celebration plans before requesting a quote."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "booking",
+        "question": "Can I book Prague holidays directly on PickyHoliday?",
+        "answer": "No. PickyHoliday is enquiry-first. We save your request and help with next steps; we do not take payment or create supplier reservations."
+      },
+      {
+        "id": "groups",
+        "question": "What group sizes can enquire?",
+        "answer": "Small families, friendship groups and larger parties can all send an enquiry. Include your estimated group size so the options are relevant."
+      }
+    ],
+    "relatedSlugs": [
+      "stag-and-hen",
+      "family-holidays",
+      "best-group-holiday-destinations"
+    ],
+    "searchDefaults": {
+      "destination": "Prague",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "Prague",
+      "destination",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public destination page."
+  },
+  {
+    "id": "content-destination-albufeira",
+    "slug": "albufeira",
+    "type": "destination",
+    "status": "published",
+    "title": "Albufeira group holidays",
+    "shortTitle": "Albufeira",
+    "metaTitle": "Albufeira group holidays | PickyHoliday",
+    "metaDescription": "Plan enquiry-first group holidays to Albufeira with destination ideas, group-friendly stays and advisor-led quote requests.",
+    "canonicalPath": "/destinations/albufeira",
+    "heroEyebrow": "Destination guide",
+    "heroTitle": "Albufeira group holidays",
+    "heroSubtitle": "Explore Albufeira for flexible group trips, family breaks and celebration getaways.",
+    "heroImage": "",
+    "intro": "Use this Albufeira page to start an enquiry, compare group-friendly ideas and ask PickyHoliday advisors for tailored options. Results and enquiries are not bookings or supplier reservations.",
+    "sections": [
+      {
+        "id": "why-go",
+        "heading": "Why groups choose Albufeira",
+        "body": "Albufeira works well for groups that need a mix of beaches, culture, nightlife and relaxed planning. Share your preferred dates, airports and group size so an advisor can help shape suitable options."
+      },
+      {
+        "id": "planning-tips",
+        "heading": "Planning tips",
+        "body": "Keep dates flexible where possible, confirm approximate room splits early and tell us about accessibility needs, children or celebration plans before requesting a quote."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "booking",
+        "question": "Can I book Albufeira holidays directly on PickyHoliday?",
+        "answer": "No. PickyHoliday is enquiry-first. We save your request and help with next steps; we do not take payment or create supplier reservations."
+      },
+      {
+        "id": "groups",
+        "question": "What group sizes can enquire?",
+        "answer": "Small families, friendship groups and larger parties can all send an enquiry. Include your estimated group size so the options are relevant."
+      }
+    ],
+    "relatedSlugs": [
+      "stag-and-hen",
+      "family-holidays",
+      "best-group-holiday-destinations"
+    ],
+    "searchDefaults": {
+      "destination": "Albufeira",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "Albufeira",
+      "destination",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public destination page."
+  },
+  {
+    "id": "content-group-stag-and-hen",
+    "slug": "stag-and-hen",
+    "type": "group-type",
+    "status": "published",
+    "title": "Stag and hen for groups",
+    "shortTitle": "Stag and hen",
+    "metaTitle": "Stag and hen for groups | PickyHoliday",
+    "metaDescription": "Plan stag and hen with enquiry-first support, group-friendly ideas and no automatic bookings or payments.",
+    "canonicalPath": "/group-holidays/stag-and-hen",
+    "heroEyebrow": "Group holiday ideas",
+    "heroTitle": "Stag and hen for groups",
+    "heroSubtitle": "Start with flexible inspiration, then send one clear enquiry for advisor review.",
+    "heroImage": "",
+    "intro": "PickyHoliday helps groups turn early ideas into a quote-ready enquiry. Tell us who is travelling, when you want to go and what matters most.",
+    "sections": [
+      {
+        "id": "how-it-works",
+        "heading": "How this trip type works",
+        "body": "Use the page to prefill the holiday search, browse promoted ideas where available and send an enquiry when the group is ready to compare options."
+      },
+      {
+        "id": "what-to-share",
+        "heading": "What to include",
+        "body": "Include destination preferences, group size, age mix, room requirements, budget range and any must-have facilities so follow-up advice is useful."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "payment",
+        "question": "Do we pay on this site?",
+        "answer": "No. PickyHoliday does not take payments or create live bookings in this flow."
+      },
+      {
+        "id": "changes",
+        "question": "Can we enquire with flexible details?",
+        "answer": "Yes. Share what you know and mention what is still flexible."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "ibiza",
+      "how-group-holiday-enquiries-work"
+    ],
+    "searchDefaults": {
+      "intent": "Stag & Hen",
+      "destination": "Stag and hen"
+    },
+    "tags": [
+      "Stag and hen",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public group type page."
+  },
+  {
+    "id": "content-group-family-holidays",
+    "slug": "family-holidays",
+    "type": "group-type",
+    "status": "published",
+    "title": "Family holidays for groups",
+    "shortTitle": "Family holidays",
+    "metaTitle": "Family holidays for groups | PickyHoliday",
+    "metaDescription": "Plan family holidays with enquiry-first support, group-friendly ideas and no automatic bookings or payments.",
+    "canonicalPath": "/group-holidays/family-holidays",
+    "heroEyebrow": "Group holiday ideas",
+    "heroTitle": "Family holidays for groups",
+    "heroSubtitle": "Start with flexible inspiration, then send one clear enquiry for advisor review.",
+    "heroImage": "",
+    "intro": "PickyHoliday helps groups turn early ideas into a quote-ready enquiry. Tell us who is travelling, when you want to go and what matters most.",
+    "sections": [
+      {
+        "id": "how-it-works",
+        "heading": "How this trip type works",
+        "body": "Use the page to prefill the holiday search, browse promoted ideas where available and send an enquiry when the group is ready to compare options."
+      },
+      {
+        "id": "what-to-share",
+        "heading": "What to include",
+        "body": "Include destination preferences, group size, age mix, room requirements, budget range and any must-have facilities so follow-up advice is useful."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "payment",
+        "question": "Do we pay on this site?",
+        "answer": "No. PickyHoliday does not take payments or create live bookings in this flow."
+      },
+      {
+        "id": "changes",
+        "question": "Can we enquire with flexible details?",
+        "answer": "Yes. Share what you know and mention what is still flexible."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "ibiza",
+      "how-group-holiday-enquiries-work"
+    ],
+    "searchDefaults": {
+      "intent": "Families",
+      "destination": "Family holidays"
+    },
+    "tags": [
+      "Family holidays",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public group type page."
+  },
+  {
+    "id": "content-group-group-hotel-stays",
+    "slug": "group-hotel-stays",
+    "type": "group-type",
+    "status": "published",
+    "title": "Group hotel stays for groups",
+    "shortTitle": "Group hotel stays",
+    "metaTitle": "Group hotel stays for groups | PickyHoliday",
+    "metaDescription": "Plan group hotel stays with enquiry-first support, group-friendly ideas and no automatic bookings or payments.",
+    "canonicalPath": "/group-holidays/group-hotel-stays",
+    "heroEyebrow": "Group holiday ideas",
+    "heroTitle": "Group hotel stays for groups",
+    "heroSubtitle": "Start with flexible inspiration, then send one clear enquiry for advisor review.",
+    "heroImage": "",
+    "intro": "PickyHoliday helps groups turn early ideas into a quote-ready enquiry. Tell us who is travelling, when you want to go and what matters most.",
+    "sections": [
+      {
+        "id": "how-it-works",
+        "heading": "How this trip type works",
+        "body": "Use the page to prefill the holiday search, browse promoted ideas where available and send an enquiry when the group is ready to compare options."
+      },
+      {
+        "id": "what-to-share",
+        "heading": "What to include",
+        "body": "Include destination preferences, group size, age mix, room requirements, budget range and any must-have facilities so follow-up advice is useful."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "payment",
+        "question": "Do we pay on this site?",
+        "answer": "No. PickyHoliday does not take payments or create live bookings in this flow."
+      },
+      {
+        "id": "changes",
+        "question": "Can we enquire with flexible details?",
+        "answer": "Yes. Share what you know and mention what is still flexible."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "ibiza",
+      "how-group-holiday-enquiries-work"
+    ],
+    "searchDefaults": {
+      "intent": "Group hotel stays",
+      "destination": "Group hotel stays"
+    },
+    "tags": [
+      "Group hotel stays",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public group type page."
+  },
+  {
+    "id": "content-group-villas-for-groups",
+    "slug": "villas-for-groups",
+    "type": "group-type",
+    "status": "published",
+    "title": "Villas for groups for groups",
+    "shortTitle": "Villas for groups",
+    "metaTitle": "Villas for groups for groups | PickyHoliday",
+    "metaDescription": "Plan villas for groups with enquiry-first support, group-friendly ideas and no automatic bookings or payments.",
+    "canonicalPath": "/group-holidays/villas-for-groups",
+    "heroEyebrow": "Group holiday ideas",
+    "heroTitle": "Villas for groups for groups",
+    "heroSubtitle": "Start with flexible inspiration, then send one clear enquiry for advisor review.",
+    "heroImage": "",
+    "intro": "PickyHoliday helps groups turn early ideas into a quote-ready enquiry. Tell us who is travelling, when you want to go and what matters most.",
+    "sections": [
+      {
+        "id": "how-it-works",
+        "heading": "How this trip type works",
+        "body": "Use the page to prefill the holiday search, browse promoted ideas where available and send an enquiry when the group is ready to compare options."
+      },
+      {
+        "id": "what-to-share",
+        "heading": "What to include",
+        "body": "Include destination preferences, group size, age mix, room requirements, budget range and any must-have facilities so follow-up advice is useful."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "payment",
+        "question": "Do we pay on this site?",
+        "answer": "No. PickyHoliday does not take payments or create live bookings in this flow."
+      },
+      {
+        "id": "changes",
+        "question": "Can we enquire with flexible details?",
+        "answer": "Yes. Share what you know and mention what is still flexible."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "ibiza",
+      "how-group-holiday-enquiries-work"
+    ],
+    "searchDefaults": {
+      "intent": "Villas",
+      "destination": "Villas for groups"
+    },
+    "tags": [
+      "Villas for groups",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public group type page."
+  },
+  {
+    "id": "content-group-party-holidays",
+    "slug": "party-holidays",
+    "type": "group-type",
+    "status": "published",
+    "title": "Party holidays for groups",
+    "shortTitle": "Party holidays",
+    "metaTitle": "Party holidays for groups | PickyHoliday",
+    "metaDescription": "Plan party holidays with enquiry-first support, group-friendly ideas and no automatic bookings or payments.",
+    "canonicalPath": "/group-holidays/party-holidays",
+    "heroEyebrow": "Group holiday ideas",
+    "heroTitle": "Party holidays for groups",
+    "heroSubtitle": "Start with flexible inspiration, then send one clear enquiry for advisor review.",
+    "heroImage": "",
+    "intro": "PickyHoliday helps groups turn early ideas into a quote-ready enquiry. Tell us who is travelling, when you want to go and what matters most.",
+    "sections": [
+      {
+        "id": "how-it-works",
+        "heading": "How this trip type works",
+        "body": "Use the page to prefill the holiday search, browse promoted ideas where available and send an enquiry when the group is ready to compare options."
+      },
+      {
+        "id": "what-to-share",
+        "heading": "What to include",
+        "body": "Include destination preferences, group size, age mix, room requirements, budget range and any must-have facilities so follow-up advice is useful."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "payment",
+        "question": "Do we pay on this site?",
+        "answer": "No. PickyHoliday does not take payments or create live bookings in this flow."
+      },
+      {
+        "id": "changes",
+        "question": "Can we enquire with flexible details?",
+        "answer": "Yes. Share what you know and mention what is still flexible."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "ibiza",
+      "how-group-holiday-enquiries-work"
+    ],
+    "searchDefaults": {
+      "intent": "Holidays",
+      "destination": "Party holidays"
+    },
+    "tags": [
+      "Party holidays",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public group type page."
+  },
+  {
+    "id": "content-group-city-breaks",
+    "slug": "city-breaks",
+    "type": "group-type",
+    "status": "published",
+    "title": "City breaks for groups",
+    "shortTitle": "City breaks",
+    "metaTitle": "City breaks for groups | PickyHoliday",
+    "metaDescription": "Plan city breaks with enquiry-first support, group-friendly ideas and no automatic bookings or payments.",
+    "canonicalPath": "/group-holidays/city-breaks",
+    "heroEyebrow": "Group holiday ideas",
+    "heroTitle": "City breaks for groups",
+    "heroSubtitle": "Start with flexible inspiration, then send one clear enquiry for advisor review.",
+    "heroImage": "",
+    "intro": "PickyHoliday helps groups turn early ideas into a quote-ready enquiry. Tell us who is travelling, when you want to go and what matters most.",
+    "sections": [
+      {
+        "id": "how-it-works",
+        "heading": "How this trip type works",
+        "body": "Use the page to prefill the holiday search, browse promoted ideas where available and send an enquiry when the group is ready to compare options."
+      },
+      {
+        "id": "what-to-share",
+        "heading": "What to include",
+        "body": "Include destination preferences, group size, age mix, room requirements, budget range and any must-have facilities so follow-up advice is useful."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "payment",
+        "question": "Do we pay on this site?",
+        "answer": "No. PickyHoliday does not take payments or create live bookings in this flow."
+      },
+      {
+        "id": "changes",
+        "question": "Can we enquire with flexible details?",
+        "answer": "Yes. Share what you know and mention what is still flexible."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "ibiza",
+      "how-group-holiday-enquiries-work"
+    ],
+    "searchDefaults": {
+      "intent": "Holidays",
+      "destination": "City breaks"
+    },
+    "tags": [
+      "City breaks",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public group type page."
+  },
+  {
+    "id": "content-guide-best-group-holiday-destinations",
+    "slug": "best-group-holiday-destinations",
+    "type": "guide",
+    "status": "published",
+    "title": "Best group holiday destinations",
+    "shortTitle": "group holiday destinations",
+    "metaTitle": "Best group holiday destinations | PickyHoliday Guides",
+    "metaDescription": "Compare popular group destinations and start an enquiry for tailored ideas.",
+    "canonicalPath": "/guides/best-group-holiday-destinations",
+    "heroEyebrow": "Travel guide",
+    "heroTitle": "Best group holiday destinations",
+    "heroSubtitle": "Compare popular group destinations and start an enquiry for tailored ideas.",
+    "heroImage": "",
+    "intro": "Use this guide for practical planning before sending an enquiry. PickyHoliday provides inspiration and advisor follow-up, not instant booking confirmation.",
+    "sections": [
+      {
+        "id": "start",
+        "heading": "Start with the basics",
+        "body": "Agree your preferred dates, approximate budget, group size and must-have destination style before comparing ideas."
+      },
+      {
+        "id": "enquiry",
+        "heading": "Turn ideas into an enquiry",
+        "body": "When the group has a direction, send one enquiry with the details you know. An advisor can then review suitable options and next steps."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "confirmation",
+        "question": "Is an enquiry a booking confirmation?",
+        "answer": "No. An enquiry is only a request for follow-up and does not reserve travel or accommodation."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "stag-and-hen",
+      "family-holidays"
+    ],
+    "searchDefaults": {
+      "destination": "Barcelona",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "guide",
+      "planning",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public guide page."
+  },
+  {
+    "id": "content-guide-how-to-plan-a-stag-or-hen-trip",
+    "slug": "how-to-plan-a-stag-or-hen-trip",
+    "type": "guide",
+    "status": "published",
+    "title": "How to plan a stag or hen trip",
+    "shortTitle": "plan a stag or hen trip",
+    "metaTitle": "How to plan a stag or hen trip | PickyHoliday Guides",
+    "metaDescription": "A practical enquiry-first checklist for celebration trips.",
+    "canonicalPath": "/guides/how-to-plan-a-stag-or-hen-trip",
+    "heroEyebrow": "Travel guide",
+    "heroTitle": "How to plan a stag or hen trip",
+    "heroSubtitle": "A practical enquiry-first checklist for celebration trips.",
+    "heroImage": "",
+    "intro": "Use this guide for practical planning before sending an enquiry. PickyHoliday provides inspiration and advisor follow-up, not instant booking confirmation.",
+    "sections": [
+      {
+        "id": "start",
+        "heading": "Start with the basics",
+        "body": "Agree your preferred dates, approximate budget, group size and must-have destination style before comparing ideas."
+      },
+      {
+        "id": "enquiry",
+        "heading": "Turn ideas into an enquiry",
+        "body": "When the group has a direction, send one enquiry with the details you know. An advisor can then review suitable options and next steps."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "confirmation",
+        "question": "Is an enquiry a booking confirmation?",
+        "answer": "No. An enquiry is only a request for follow-up and does not reserve travel or accommodation."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "stag-and-hen",
+      "family-holidays"
+    ],
+    "searchDefaults": {
+      "destination": "Barcelona",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "guide",
+      "planning",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public guide page."
+  },
+  {
+    "id": "content-guide-best-family-group-holidays",
+    "slug": "best-family-group-holidays",
+    "type": "guide",
+    "status": "published",
+    "title": "Best family group holidays",
+    "shortTitle": "family group holidays",
+    "metaTitle": "Best family group holidays | PickyHoliday Guides",
+    "metaDescription": "Ideas for multi-family and extended-family holidays.",
+    "canonicalPath": "/guides/best-family-group-holidays",
+    "heroEyebrow": "Travel guide",
+    "heroTitle": "Best family group holidays",
+    "heroSubtitle": "Ideas for multi-family and extended-family holidays.",
+    "heroImage": "",
+    "intro": "Use this guide for practical planning before sending an enquiry. PickyHoliday provides inspiration and advisor follow-up, not instant booking confirmation.",
+    "sections": [
+      {
+        "id": "start",
+        "heading": "Start with the basics",
+        "body": "Agree your preferred dates, approximate budget, group size and must-have destination style before comparing ideas."
+      },
+      {
+        "id": "enquiry",
+        "heading": "Turn ideas into an enquiry",
+        "body": "When the group has a direction, send one enquiry with the details you know. An advisor can then review suitable options and next steps."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "confirmation",
+        "question": "Is an enquiry a booking confirmation?",
+        "answer": "No. An enquiry is only a request for follow-up and does not reserve travel or accommodation."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "stag-and-hen",
+      "family-holidays"
+    ],
+    "searchDefaults": {
+      "destination": "Barcelona",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "guide",
+      "planning",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public guide page."
+  },
+  {
+    "id": "content-guide-how-group-holiday-enquiries-work",
+    "slug": "how-group-holiday-enquiries-work",
+    "type": "guide",
+    "status": "published",
+    "title": "How group holiday enquiries work",
+    "shortTitle": "How group holiday enquiries work",
+    "metaTitle": "How group holiday enquiries work | PickyHoliday Guides",
+    "metaDescription": "What happens after you send a PickyHoliday enquiry.",
+    "canonicalPath": "/guides/how-group-holiday-enquiries-work",
+    "heroEyebrow": "Travel guide",
+    "heroTitle": "How group holiday enquiries work",
+    "heroSubtitle": "What happens after you send a PickyHoliday enquiry.",
+    "heroImage": "",
+    "intro": "Use this guide for practical planning before sending an enquiry. PickyHoliday provides inspiration and advisor follow-up, not instant booking confirmation.",
+    "sections": [
+      {
+        "id": "start",
+        "heading": "Start with the basics",
+        "body": "Agree your preferred dates, approximate budget, group size and must-have destination style before comparing ideas."
+      },
+      {
+        "id": "enquiry",
+        "heading": "Turn ideas into an enquiry",
+        "body": "When the group has a direction, send one enquiry with the details you know. An advisor can then review suitable options and next steps."
+      }
+    ],
+    "faqs": [
+      {
+        "id": "confirmation",
+        "question": "Is an enquiry a booking confirmation?",
+        "answer": "No. An enquiry is only a request for follow-up and does not reserve travel or accommodation."
+      }
+    ],
+    "relatedSlugs": [
+      "barcelona",
+      "stag-and-hen",
+      "family-holidays"
+    ],
+    "searchDefaults": {
+      "destination": "Barcelona",
+      "intent": "Holidays"
+    },
+    "tags": [
+      "guide",
+      "planning",
+      "group holidays"
+    ],
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "updatedAt": "2026-06-02T16:32:09.917Z",
+    "internalNotes": "Seed public guide page."
+  }
+]

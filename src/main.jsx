@@ -27,6 +27,7 @@ import {
 import './styles.css';
 import { imageUrls, getaways, guides, reviews } from './data/mockDeals.js';
 import {
+  createAdminContentPage,
   createAdminPromotedDeal,
   getAdminSiteConfig,
   getBackendHealth,
@@ -34,11 +35,15 @@ import {
   getProviderStatus,
   getPublicPromotedDeals,
   getSiteConfig,
+  getPublicContentPage,
+  listAdminContentPages,
   listAdminEnquiries,
   listAdminPromotedDeals,
   searchHolidays,
   searchLocations,
   submitEnquiry,
+  updateAdminContentPage,
+  updateAdminContentPageStatus,
   updateAdminEnquiryStatus,
   updateAdminPromotedDeal,
   updateAdminPromotedDealStatus,
@@ -70,7 +75,7 @@ const defaultSiteConfig = {
   featureFlags: defaultFeatureFlags,
 };
 const isSafeUrl = (value) => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol); } catch { return false; } };
-const adminPaths = ['/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/content', '/admin/features', '/admin/settings'];
+const adminPaths = ['/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/pages', '/admin/content', '/admin/features', '/admin/settings'];
 const adminTokenStorageKey = 'pickyholiday-admin-token';
 const enquiryStatuses = ['new', 'reviewing', 'contacted', 'quoted', 'closed'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -107,10 +112,10 @@ const benefits = [
 
 const navTargets = {
   Holidays: 'deals',
-  Destinations: 'getaways',
-  'Group Types': 'getaways',
+  Destinations: '/destinations/barcelona',
+  'Group Types': '/group-holidays/stag-and-hen',
   Deals: 'deals',
-  Inspiration: 'guides',
+  Inspiration: '/guides/best-group-holiday-destinations',
   Support: 'footer',
 };
 
@@ -178,7 +183,9 @@ function Header({ onAction }) {
 
   const handleNav = (label) => {
     setMobileOpen(false);
-    scrollToId(navTargets[label]);
+    const target = navTargets[label];
+    if (target?.startsWith('/')) window.location.assign(target);
+    else scrollToId(target);
   };
 
   return (
@@ -664,6 +671,109 @@ function ReviewsSection({ onAction }) {
   );
 }
 
+
+const defaultPublicLinks = {
+  destinations: ['barcelona', 'ibiza', 'tenerife', 'majorca', 'malaga', 'prague', 'albufeira'],
+  groups: ['stag-and-hen', 'family-holidays', 'group-hotel-stays', 'villas-for-groups', 'party-holidays', 'city-breaks'],
+  guides: ['best-group-holiday-destinations', 'how-to-plan-a-stag-or-hen-trip', 'best-family-group-holidays', 'how-group-holiday-enquiries-work'],
+};
+const labelFromSlug = (slug) => slug.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+const publicRouteMatch = () => window.location.pathname.match(/^\/(destinations|group-holidays|guides)\/([^/]+)$/);
+const publicRouteSlug = () => {
+  const match = publicRouteMatch();
+  return match ? decodeURIComponent(match[2]) : '';
+};
+const publicRouteType = () => {
+  const match = publicRouteMatch();
+  return { destinations: 'destination', 'group-holidays': 'group-type', guides: 'guide' }[match?.[1]] || '';
+};
+const contentPathForSlug = (slug) => {
+  if (defaultPublicLinks.destinations.includes(slug)) return `/destinations/${slug}`;
+  if (defaultPublicLinks.groups.includes(slug)) return `/group-holidays/${slug}`;
+  if (defaultPublicLinks.guides.includes(slug)) return `/guides/${slug}`;
+  if (slug.startsWith('how-') || slug.startsWith('best-')) return `/guides/${slug}`;
+  if (slug.includes('stag') || slug.includes('villa') || slug.includes('party') || slug.includes('city') || slug.includes('family-holidays') || slug.includes('group-hotel')) return `/group-holidays/${slug}`;
+  return `/destinations/${slug}`;
+};
+const setMetaTag = (name, content, property = false) => {
+  if (!content) return;
+  const attr = property ? 'property' : 'name';
+  let tag = document.head.querySelector(`meta[${attr}="${name}"]`);
+  if (!tag) { tag = document.createElement('meta'); tag.setAttribute(attr, name); document.head.appendChild(tag); }
+  tag.setAttribute('content', content);
+};
+const updateSeoMeta = (page) => {
+  const title = page?.metaTitle || page?.title || 'PickyHoliday | Group holidays made easy';
+  const description = page?.metaDescription || page?.intro || 'Plan group holidays with enquiry-first support from PickyHoliday.';
+  document.title = title;
+  setMetaTag('description', description);
+  setMetaTag('og:title', title, true); setMetaTag('og:description', description, true); setMetaTag('og:type', page?.type === 'guide' ? 'article' : 'website', true);
+  setMetaTag('twitter:card', 'summary_large_image'); setMetaTag('twitter:title', title); setMetaTag('twitter:description', description);
+  let canonical = document.head.querySelector('link[rel="canonical"]');
+  if (!canonical) { canonical = document.createElement('link'); canonical.setAttribute('rel', 'canonical'); document.head.appendChild(canonical); }
+  canonical.setAttribute('href', `${window.location.origin}${page?.canonicalPath || window.location.pathname}`);
+};
+const replaceJsonLd = (items) => {
+  document.querySelectorAll('script[data-pickyholiday-jsonld]').forEach((node) => node.remove());
+  items.filter(Boolean).forEach((item) => { const script = document.createElement('script'); script.type = 'application/ld+json'; script.dataset.pickyholidayJsonld = 'true'; script.textContent = JSON.stringify(item); document.head.appendChild(script); });
+};
+const pageSchema = (page) => {
+  const site = window.location.origin;
+  const breadcrumb = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: site },
+    { '@type': 'ListItem', position: 2, name: page.type === 'guide' ? 'Guides' : page.type === 'destination' ? 'Destinations' : 'Group Holidays', item: `${site}${page.type === 'guide' ? '/guides' : page.type === 'destination' ? '/destinations' : '/group-holidays'}` },
+    { '@type': 'ListItem', position: 3, name: page.title, item: `${site}${page.canonicalPath}` },
+  ] };
+  const faq = page.faqs?.length ? { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: page.faqs.map((item) => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) } : null;
+  const article = page.type === 'guide' ? { '@context': 'https://schema.org', '@type': 'Article', headline: page.title, description: page.metaDescription || page.intro, mainEntityOfPage: `${site}${page.canonicalPath}` } : null;
+  return [breadcrumb, faq, article];
+};
+
+function PublicContentPageApp() {
+  const [page, setPage] = useState(null);
+  const [deals, setDeals] = useState([]);
+  const [status, setStatus] = useState('loading');
+  const slug = publicRouteSlug();
+  useEffect(() => {
+    let cancelled = false;
+    getPublicContentPage(slug).then((data) => {
+      if (cancelled) return;
+      const nextPage = data.page || data.results?.[0];
+      if (!nextPage || nextPage.type !== publicRouteType()) {
+        setStatus('missing');
+        updateSeoMeta({ title: 'Page not found | PickyHoliday', metaTitle: 'Page not found | PickyHoliday', metaDescription: 'This PickyHoliday content page is unavailable.' });
+        return undefined;
+      }
+      setPage(nextPage); setStatus('ready'); updateSeoMeta(nextPage); replaceJsonLd(pageSchema(nextPage));
+      return searchHolidays(nextPage.searchDefaults || {}).then((results) => { if (!cancelled) setDeals((results.results || []).slice(0, 3)); }).catch(() => {});
+    }).catch(() => { if (!cancelled) { setStatus('missing'); updateSeoMeta({ title: 'Page not found | PickyHoliday', metaTitle: 'Page not found | PickyHoliday', metaDescription: 'This PickyHoliday content page is unavailable.' }); } });
+    return () => { cancelled = true; };
+  }, [slug]);
+  const openMessage = (title, message, label) => setPage((current) => ({ ...current, toast: { title, message, label } }));
+  if (status === 'loading') return <><Header onAction={() => {}} /><main className="content-page"><div className="loading-state">Loading content page…</div></main><Footer onAction={() => {}} /></>;
+  if (!page || status === 'missing') return <><Header onAction={() => {}} /><main className="content-page"><h1>Page not found</h1><p>This page is not published or is temporarily unavailable.</p><a className="primary-link" href="/">Return home</a></main><Footer onAction={() => {}} /></>;
+  const related = (page.relatedSlugs || []).slice(0, 6);
+  return (
+    <>
+      <Header onAction={openMessage} />
+      <main className={`content-page content-page-${page.type}`}>
+        <section className="content-hero">
+          <span>{page.heroEyebrow || (page.type === 'guide' ? 'Travel guide' : 'Group holiday page')}</span>
+          <h1>{page.heroTitle || page.title}</h1>
+          <p>{page.heroSubtitle || page.intro}</p>
+          <div className="content-hero-actions"><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}&intent=${encodeURIComponent(page.searchDefaults?.intent || '')}#search`}>Search ideas</a><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}#enquiry`}>Ask for group quote</a></div>
+        </section>
+        <section className="content-body"><p className="intro-copy">{page.intro}</p>{(page.sections || []).map((section) => <article key={section.id}><h2>{section.heading}</h2><p>{section.body}</p></article>)}</section>
+        {deals.length > 0 && <section className="content-related"><h2>Related holiday ideas</h2><div className="deal-grid compact">{deals.map((deal) => <DealCard key={deal.id || deal.resultId} deal={deal} onAction={openMessage} />)}</div></section>}
+        {(page.faqs || []).length > 0 && <section className="content-faq"><h2>FAQs</h2>{page.faqs.map((faq) => <details key={faq.id}><summary>{faq.question}</summary><p>{faq.answer}</p></details>)}</section>}
+        <section className="content-cta"><h2>Ready to plan this group trip?</h2><p>Send an enquiry for advisor follow-up. This is not a booking confirmation and no payment is taken.</p><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || page.title)}#enquiry`}>Ask for group quote</a></section>
+        {related.length > 0 && <section className="content-links"><h2>Related links</h2>{related.map((item) => <a key={item} href={contentPathForSlug(item)}>{labelFromSlug(item)}</a>)}</section>}
+      </main>
+      <Footer onAction={openMessage} />
+    </>
+  );
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('Holidays');
   const [search, setSearch] = useState({
@@ -695,6 +805,22 @@ function App() {
     providerErrors: [],
     providerStatus: [],
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const destination = params.get('destination');
+    const intent = params.get('intent');
+    if (destination || intent) {
+      setSearch((current) => ({ ...current, ...(destination ? { destination } : {}) }));
+      if (intent) setActiveTab(intent);
+      if (window.location.hash) window.setTimeout(() => scrollToId(window.location.hash.slice(1)), 100);
+    }
+  }, []);
+
+  useEffect(() => {
+    updateSeoMeta({ metaTitle: 'PickyHoliday | Group holidays made easy', metaDescription: 'Plan enquiry-first group holidays with PickyHoliday destination ideas, group travel guides and advisor follow-up.', canonicalPath: '/' });
+    replaceJsonLd([{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'PickyHoliday', url: window.location.origin }, { '@context': 'https://schema.org', '@type': 'TravelAgency', name: 'PickyHoliday', url: window.location.origin, description: 'Enquiry-first group holiday planning support.' }]);
+  }, []);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -919,7 +1045,9 @@ function App() {
 function Footer({ onAction, siteConfig = defaultSiteConfig }) {
   const cols = [
     ['Book', ['Holidays', 'Villas', 'Group hotel stays', 'Stag & Hen', 'Families']],
-    ['Explore', ['Destinations', 'Inspiration', 'Travel guides', 'Group travel ideas', 'Deals']],
+    ['Destinations', defaultPublicLinks.destinations.map(labelFromSlug)],
+    ['Group holidays', defaultPublicLinks.groups.map(labelFromSlug)],
+    ['Guides', defaultPublicLinks.guides.map(labelFromSlug)],
     ['Help', ['Help Centre', 'Manage enquiries', 'How quotes work', 'FAQs']],
     ['About PickyHoliday', ['About us', 'Careers', 'Terms & Conditions', 'Privacy Policy']],
   ];
@@ -941,7 +1069,11 @@ function Footer({ onAction, siteConfig = defaultSiteConfig }) {
         {cols.map(([heading, links]) => (
           <div className="fcol" key={heading}>
             <h3>{heading}</h3>
-            {links.map((link) => <button key={link} onClick={() => onAction(link, `Open ${link.toLowerCase()} options, useful links and next steps.`)}>{link}</button>)}
+            {links.map((link) => {
+              const slug = link.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+              const prefix = heading === 'Destinations' ? '/destinations/' : heading === 'Group holidays' ? '/group-holidays/' : heading === 'Guides' ? '/guides/' : '';
+              return prefix ? <a key={link} href={`${prefix}${slug}`}>{link}</a> : <button key={link} onClick={() => onAction(link, `Open ${link.toLowerCase()} options, useful links and next steps.`)}>{link}</button>;
+            })}
           </div>
         ))}
         <div className="apps">
@@ -969,6 +1101,7 @@ const adminNav = [
   ['Dashboard', '/admin'],
   ['Enquiries', '/admin/enquiries'],
   ['Promoted Deals', '/admin/deals'],
+  ['Pages', '/admin/pages'],
   ['Site Content', '/admin/content'],
   ['Feature Flags', '/admin/features'],
   ['Settings', '/admin/settings'],
@@ -1386,6 +1519,78 @@ function AdminDealsPanel({ token }) {
   );
 }
 
+
+const emptyContentPage = {
+  slug: '', type: 'destination', status: 'draft', title: '', shortTitle: '', metaTitle: '', metaDescription: '', canonicalPath: '',
+  heroEyebrow: '', heroTitle: '', heroSubtitle: '', heroImage: '', intro: '',
+  sections: [{ id: 'section-1', heading: '', body: '' }], faqs: [{ id: 'faq-1', question: '', answer: '' }],
+  relatedSlugs: '', searchDefaults: '{\n  "destination": "",\n  "intent": "Holidays"\n}', tags: '', internalNotes: '',
+};
+const pagePathPrefix = (type) => ({ destination: '/destinations/', 'group-type': '/group-holidays/', guide: '/guides/', landing: '/' }[type] || '/');
+const pageToForm = (page = emptyContentPage) => ({
+  ...emptyContentPage, ...page,
+  sections: page.sections?.length ? page.sections : emptyContentPage.sections,
+  faqs: page.faqs?.length ? page.faqs : emptyContentPage.faqs,
+  relatedSlugs: Array.isArray(page.relatedSlugs) ? page.relatedSlugs.join(', ') : (page.relatedSlugs || ''),
+  tags: Array.isArray(page.tags) ? page.tags.join(', ') : (page.tags || ''),
+  searchDefaults: typeof page.searchDefaults === 'string' ? page.searchDefaults : JSON.stringify(page.searchDefaults || {}, null, 2),
+});
+const formToPage = (form) => ({
+  ...form,
+  relatedSlugs: form.relatedSlugs.split(',').map((item) => item.trim()).filter(Boolean),
+  tags: form.tags.split(',').map((item) => item.trim()).filter(Boolean),
+  searchDefaults: JSON.parse(form.searchDefaults || '{}'),
+  sections: form.sections.filter((item) => item.heading || item.body),
+  faqs: form.faqs.filter((item) => item.question || item.answer),
+});
+
+function AdminContentPagesPanel({ token }) {
+  const [pages, setPages] = useState([]);
+  const [form, setForm] = useState(emptyContentPage);
+  const [selectedId, setSelectedId] = useState('');
+  const [filters, setFilters] = useState({ type: '', status: '' });
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+  const loadPages = useCallback(() => listAdminContentPages(token).then((data) => setPages(data.results || [])).catch((loadError) => setError(loadError.message)), [token]);
+  useEffect(() => { loadPages(); }, [loadPages]);
+  const filtered = pages.filter((page) => (!filters.type || page.type === filters.type) && (!filters.status || page.status === filters.status));
+  const patch = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const updateRow = (key, index, field, value) => setForm((current) => ({ ...current, [key]: current[key].map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row) }));
+  const addRow = (key, row) => setForm((current) => ({ ...current, [key]: [...current[key], row] }));
+  const removeRow = (key, index) => setForm((current) => ({ ...current, [key]: current[key].filter((_, rowIndex) => rowIndex !== index) }));
+  const selectPage = (page) => { setSelectedId(page.id); setForm(pageToForm(page)); setNotice(''); setError(''); };
+  const reset = () => { setSelectedId(''); setForm(emptyContentPage); setNotice(''); setError(''); };
+  const save = async (event) => {
+    event.preventDefault(); setError(''); setNotice('');
+    try {
+      const payload = formToPage(form);
+      const saved = selectedId ? await updateAdminContentPage(selectedId, payload, token) : await createAdminContentPage(payload, token);
+      const page = saved.results?.[0]; setNotice(selectedId ? 'Content page updated.' : 'Content page created.'); setSelectedId(page?.id || selectedId); if (page) setForm(pageToForm(page)); await loadPages();
+    } catch (saveError) { setError(saveError.message || 'Could not save content page. Check JSON fields and required fields.'); }
+  };
+  const changeStatus = async (page, status) => { setError(''); await updateAdminContentPageStatus(page.id, status, token).then(loadPages).catch((statusError) => setError(statusError.message)); };
+  return (
+    <>
+      <AdminPageTitle kicker="SEO content" title="Content Pages" copy="Create destination, group holiday and guide pages for the public site." action={<button onClick={reset}>New page</button>} />
+      {error && <div className="error-state">{error}</div>}{notice && <div className="loading-state">{notice}</div>}
+      <div className="admin-split">
+        <section className="admin-list-panel">
+          <div className="admin-filters"><select value={filters.type} onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}><option value="">All types</option><option value="destination">Destination</option><option value="group-type">Group type</option><option value="guide">Guide</option><option value="landing">Landing</option></select><select value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}><option value="">All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></div>
+          {filtered.map((page) => <article key={page.id} className="admin-card"><button onClick={() => selectPage(page)}><b>{page.title}</b><span>{page.type} · {page.status}</span></button><a href={`${pagePathPrefix(page.type)}${page.slug}`} target="_blank" rel="noreferrer">Preview</a><div><button onClick={() => changeStatus(page, 'published')}>Publish</button><button onClick={() => changeStatus(page, 'draft')}>Unpublish</button><button onClick={() => changeStatus(page, 'archived')}>Archive</button></div></article>)}
+        </section>
+        <form className="admin-form" onSubmit={save}>
+          <fieldset><legend>Page basics</legend><label><span>Title</span><input value={form.title} onChange={(e) => patch('title', e.target.value)} required /></label><label><span>Slug</span><input value={form.slug} onChange={(e) => patch('slug', e.target.value.toLowerCase())} required /></label><label><span>Type</span><select value={form.type} onChange={(e) => patch('type', e.target.value)}><option value="destination">Destination</option><option value="group-type">Group type</option><option value="guide">Guide</option><option value="landing">Landing</option></select></label><label><span>Status</span><select value={form.status} onChange={(e) => patch('status', e.target.value)}><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label><label><span>Short title</span><input value={form.shortTitle} onChange={(e) => patch('shortTitle', e.target.value)} /></label></fieldset>
+          <fieldset><legend>SEO and hero</legend><label><span>Meta title</span><input value={form.metaTitle} onChange={(e) => patch('metaTitle', e.target.value)} /></label><label><span>Meta description</span><textarea value={form.metaDescription} onChange={(e) => patch('metaDescription', e.target.value)} /></label><label><span>Canonical path</span><input value={form.canonicalPath} onChange={(e) => patch('canonicalPath', e.target.value)} /></label><label><span>Hero eyebrow</span><input value={form.heroEyebrow} onChange={(e) => patch('heroEyebrow', e.target.value)} /></label><label><span>Hero title</span><input value={form.heroTitle} onChange={(e) => patch('heroTitle', e.target.value)} /></label><label><span>Hero subtitle</span><textarea value={form.heroSubtitle} onChange={(e) => patch('heroSubtitle', e.target.value)} /></label></fieldset>
+          <fieldset><legend>Content</legend><label><span>Intro</span><textarea value={form.intro} onChange={(e) => patch('intro', e.target.value)} /></label>{form.sections.map((section, index) => <div className="admin-row" key={index}><input placeholder="Section heading" value={section.heading} onChange={(e) => updateRow('sections', index, 'heading', e.target.value)} /><textarea placeholder="Section body" value={section.body} onChange={(e) => updateRow('sections', index, 'body', e.target.value)} /><button type="button" onClick={() => removeRow('sections', index)}>Remove</button></div>)}<button type="button" onClick={() => addRow('sections', { id: `section-${form.sections.length + 1}`, heading: '', body: '' })}>Add section</button></fieldset>
+          <fieldset><legend>FAQs</legend>{form.faqs.map((faq, index) => <div className="admin-row" key={index}><input placeholder="Question" value={faq.question} onChange={(e) => updateRow('faqs', index, 'question', e.target.value)} /><textarea placeholder="Answer" value={faq.answer} onChange={(e) => updateRow('faqs', index, 'answer', e.target.value)} /><button type="button" onClick={() => removeRow('faqs', index)}>Remove</button></div>)}<button type="button" onClick={() => addRow('faqs', { id: `faq-${form.faqs.length + 1}`, question: '', answer: '' })}>Add FAQ</button></fieldset>
+          <fieldset><legend>Search and related</legend><label><span>Search defaults JSON</span><textarea value={form.searchDefaults} onChange={(e) => patch('searchDefaults', e.target.value)} /></label><label><span>Related slugs</span><input value={form.relatedSlugs} onChange={(e) => patch('relatedSlugs', e.target.value)} /></label><label><span>Tags</span><input value={form.tags} onChange={(e) => patch('tags', e.target.value)} /></label><label><span>Internal notes</span><textarea value={form.internalNotes} onChange={(e) => patch('internalNotes', e.target.value)} /></label></fieldset>
+          <button type="submit">Save page</button>
+        </form>
+      </div>
+    </>
+  );
+}
+
 function AdminContentPanel({ token, featureOnly = false }) {
   const [config, setConfig] = useState(defaultSiteConfig);
   const [error, setError] = useState('');
@@ -1539,6 +1744,7 @@ function AdminApp() {
   let panel = <AdminDashboardPanel token={token} />;
   if (path === '/admin/enquiries') panel = <AdminEnquiriesPanel token={token} />;
   if (path === '/admin/deals') panel = <AdminDealsPanel token={token} />;
+  if (path === '/admin/pages') panel = <AdminContentPagesPanel token={token} />;
   if (path === '/admin/content') panel = <AdminContentPanel token={token} />;
   if (path === '/admin/features') panel = <AdminContentPanel token={token} featureOnly />;
   if (path === '/admin/settings') panel = <AdminSettingsPanel />;
@@ -1546,6 +1752,7 @@ function AdminApp() {
   return <AdminLayout onLogout={logout}>{panel}</AdminLayout>;
 }
 
-const Root = window.location.pathname === '/admin/login' ? AdminLoginApp : (adminPaths.includes(window.location.pathname) ? AdminApp : App);
+const isPublicContentPath = /^\/(destinations|group-holidays|guides)\/[^/]+$/.test(window.location.pathname);
+const Root = window.location.pathname === '/admin/login' ? AdminLoginApp : (adminPaths.includes(window.location.pathname) ? AdminApp : (isPublicContentPath ? PublicContentPageApp : App));
 
 createRoot(document.getElementById('root')).render(<Root />);

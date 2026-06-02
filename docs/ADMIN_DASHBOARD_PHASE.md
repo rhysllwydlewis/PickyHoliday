@@ -26,3 +26,7 @@ The dashboard shows enquiry counts, promoted deal counts, storage mode, database
 ## Guardrails
 
 This phase does not create live bookings, payments, Duffel orders, Amadeus orders, supplier reservations, public sign-up, customer login, password reset or role management.
+
+## Content page admin addition
+
+The dashboard now links to `/admin/pages`, a lightweight editor for destination, group holiday, guide and landing pages. It follows the existing admin token protection pattern and supports draft, published and archived states without adding a heavy CMS dependency.

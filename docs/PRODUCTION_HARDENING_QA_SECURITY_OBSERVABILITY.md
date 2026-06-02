@@ -80,3 +80,9 @@ Before promoting a deployment:
 4. Keep `ENABLE_HSTS=true` in HTTPS production environments.
 5. Review `npm run test:api` output and check that no response includes `DATABASE_URL`, `ADMIN_ACCESS_TOKEN`, `DUFFEL_ACCESS_TOKEN` or `AMADEUS_CLIENT_SECRET`.
 6. Add platform-level rate limiting/WAF once real traffic starts; the in-memory limiter resets when a process restarts and is per-process when horizontally scaled.
+
+## Content page readiness
+
+Health and readiness now include `contentPageStorageMode` and `contentPageStorageStatus`. Valid statuses are `json`, `postgres-ready`, `postgres-not-configured` and `postgres-error`. These diagnostics must not expose `DATABASE_URL` or any admin/provider token.
+
+The public content endpoints, sitemap and robots routes use controlled errors and do not expose `internalNotes` or secrets.

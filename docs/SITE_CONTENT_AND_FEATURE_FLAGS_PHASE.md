@@ -28,3 +28,7 @@ These are UI/safe-public toggles only. Backend environment protections still win
 - JSON fallback: `data/site-config.json`.
 - Postgres mode: set `SITE_CONFIG_STORAGE_MODE=postgres` and provide `DATABASE_URL`.
 - Postgres uses a simple `site_settings` table with `key`, `payload` and `updated_at`.
+
+## Content pages versus site config
+
+Site config continues to manage homepage copy and feature flags. SEO public content pages are managed separately at `/admin/pages` and stored through `CONTENT_PAGE_STORAGE_MODE`, with JSON fallback and optional Postgres storage.

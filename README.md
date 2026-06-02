@@ -165,3 +165,15 @@ Promoted deals are managed at `/admin/deals` and stored in `data/promoted-deals.
 Site content and feature flags are managed at `/admin/content` and `/admin/features`. Public clients read safe copy and flags from `GET /api/site-config`; no secrets, database URLs or admin tokens are exposed. JSON fallback writes to `data/site-config.json`; Postgres mode uses `SITE_CONFIG_STORAGE_MODE=postgres` and `DATABASE_URL`.
 
 This remains enquiry-first: no live booking, payments, Duffel orders, Amadeus orders, supplier reservations or real emails are created by the admin tools.
+
+## SEO public content pages
+
+PickyHoliday now includes a lightweight content-page foundation for destination pages, group holiday pages and guide articles. Public content routes include `/destinations/barcelona`, `/group-holidays/stag-and-hen` and `/guides/best-group-holiday-destinations`.
+
+Content page storage defaults to JSON through `CONTENT_PAGE_STORAGE_MODE=json` and can use Railway Postgres with `CONTENT_PAGE_STORAGE_MODE=postgres` plus server-side `DATABASE_URL`. Public endpoints only return published content and strip admin-only fields such as `internalNotes`.
+
+The admin editor is available at `/admin/pages` for users with `ADMIN_ACCESS_TOKEN`. It supports simple page fields, SEO metadata, sections, FAQ rows, search defaults, related slugs and tags without a heavy CMS dependency.
+
+Provider diagnostics remain hidden by default unless `VITE_SHOW_PROVIDER_DIAGNOSTICS=true` or the admin/debug configuration explicitly enables them. They are not always publicly visible near deals.
+
+Guardrail: PickyHoliday remains enquiry-first. This codebase does not add live booking, payments, Duffel orders, Amadeus orders or supplier reservations.
