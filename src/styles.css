@@ -207,3 +207,57 @@ footer{background:linear-gradient(135deg,#063c83,#021f4c);color:#dcecff;margin-t
 .provider-errors{margin-top:12px;background:#fff8e7;border:1px solid #ffe3a2;border-radius:12px;padding:10px 12px}
 .provider-errors b{display:block;font-size:12px;margin-bottom:5px;color:#8a5b00}.provider-errors p{margin:4px 0;color:#7a5a18;font-size:12px;font-weight:800}
 @media(max-width:900px){.provider-diagnostics dl{grid-template-columns:auto 1fr}.location-suggestions{position:static;width:100%}}
+
+
+.enquiry-form{display:grid;gap:14px}
+.enquiry-trip-summary{border:1px solid #dceafa;background:#f7fbff;border-radius:15px;padding:13px 14px;display:grid;gap:4px}
+.enquiry-trip-summary b{color:#082a62}
+.enquiry-trip-summary small,.enquiry-ref{color:#607696;font-weight:800}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form-grid label,.notes-field{display:grid;gap:6px;color:#143b70;font-size:13px;font-weight:900}
+.form-grid input,.notes-field textarea,.admin-token-card input,.admin-card-top select{border:1px solid #cfe0f5;border-radius:12px;padding:11px 12px;font:inherit;color:#082a62;background:white}
+.notes-field textarea{resize:vertical}
+.form-grid input[aria-invalid=true]{border-color:#d94a4a;background:#fff8f8}
+.form-grid small,.form-error{color:#a43737;font-size:12px;font-weight:800}
+.consent-field{display:flex;align-items:flex-start;gap:10px;color:#395177;font-size:13px;font-weight:800}
+.consent-field input{margin-top:3px}
+.error-state.compact{margin:0;padding:10px 12px}
+.modal-actions button:disabled{opacity:.65;cursor:not-allowed}
+.enquiry-success{display:grid;gap:10px}
+.enquiry-success h2{margin-bottom:0}
+.provider-diagnostics.collapsed{padding:10px 14px;background:#f8fbff}
+.provider-diagnostics.collapsed>div:first-child{margin-bottom:0}
+.provider-refresh-row{display:flex;justify-content:flex-end;margin:-4px 0 8px}
+.provider-refresh-row button{background:#eef6ff;color:#075edb}
+.admin-page{min-height:100vh;background:linear-gradient(135deg,#eef7ff,#f8fbff);padding:34px 18px;color:#082a62}
+.admin-shell{width:min(1120px,100%);margin:0 auto;display:grid;gap:18px}
+.admin-header{display:flex;gap:22px;align-items:center;background:white;border:1px solid #dceafa;border-radius:24px;padding:24px;box-shadow:var(--shadow)}
+.admin-header .logo{flex:none}
+.admin-header span{color:#00a6a6;font-size:12px;font-weight:1000;text-transform:uppercase;letter-spacing:.7px}
+.admin-header h1{font:700 42px/1.05 Lora,serif;margin:4px 0}
+.admin-header p{margin:0;color:#607696;max-width:720px}
+.admin-token-card,.admin-actions,.admin-enquiry-card{background:white;border:1px solid #dceafa;border-radius:20px;padding:20px;box-shadow:0 12px 32px rgba(15,62,119,.08)}
+.admin-token-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:end}
+.admin-token-card label{display:grid;gap:6px;font-weight:900}
+.admin-token-card p{grid-column:1/-1;margin:0;color:#607696}
+.admin-token-card code{background:#eef6ff;padding:2px 6px;border-radius:6px}
+.admin-token-card button,.admin-actions button{height:42px;border-radius:999px;background:#075edb;color:white;padding:0 18px;font-weight:900}
+.admin-actions{display:flex;justify-content:flex-end;gap:10px}
+.admin-actions button+button{background:#eef6ff;color:#075edb}
+.admin-list{display:grid;gap:16px}
+.admin-card-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;border-bottom:1px solid #e7f0fb;padding-bottom:14px;margin-bottom:14px}
+.admin-card-top h2{margin:7px 0 4px;font-size:22px}
+.admin-card-top p{margin:0;color:#607696;font-size:13px}
+.admin-card-top label{display:grid;gap:6px;font-size:12px;font-weight:900;color:#607696}
+.status-pill{display:inline-flex;border-radius:999px;padding:5px 10px;background:#eef6ff;color:#075edb;font-size:11px;font-weight:1000;text-transform:uppercase;letter-spacing:.5px}
+.status-contacted,.status-quoted{background:#e8fff7;color:#008060}
+.status-closed{background:#f1f3f6;color:#5a6475}
+.status-reviewing{background:#fff8e7;color:#9a6400}
+.admin-fields{display:grid;grid-template-columns:repeat(4,auto minmax(0,1fr));gap:8px 11px;margin:0 0 14px;font-size:13px}
+.admin-fields dt{font-weight:1000;color:#123d76}
+.admin-fields dd{margin:0;color:#536b8e;overflow-wrap:anywhere}
+.admin-notes{background:#f8fbff;border:1px solid #e4effb;border-radius:14px;padding:12px 14px}
+.admin-notes p{margin:5px 0 0;color:#536b8e;white-space:pre-wrap}
+.admin-page .empty-state{grid-column:auto}
+.admin-page .loading-state,.admin-page .error-state{grid-column:auto;margin:0}
+@media(max-width:820px){.form-grid,.admin-token-card{grid-template-columns:1fr}.admin-header,.admin-card-top{display:grid}.admin-fields{grid-template-columns:auto 1fr}.admin-actions{justify-content:stretch;display:grid}.admin-token-card button,.admin-actions button{width:100%}}

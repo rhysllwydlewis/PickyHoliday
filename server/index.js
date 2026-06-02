@@ -214,14 +214,16 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === 'PATCH' && url.pathname.startsWith('/api/admin/enquiries/')) {
+  const adminStatusMatch = url.pathname.match(/^\/api\/admin\/enquiries\/([^/]+)\/status$/);
+
+  if (request.method === 'PATCH' && adminStatusMatch) {
     if (!canUseAdminRoutes(request)) {
       sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.'));
       return;
     }
     try {
       const body = await readJsonBody(request);
-      const id = decodeURIComponent(url.pathname.split('/').pop() || '');
+      const id = decodeURIComponent(adminStatusMatch[1] || '');
       const updated = await updateEnquiryStatus(id, body.status);
       sendJson(request, response, 200, {
         ok: true,

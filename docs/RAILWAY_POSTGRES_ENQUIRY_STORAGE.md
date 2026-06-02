@@ -131,3 +131,17 @@ curl -X PATCH https://YOUR_APP_URL/api/admin/enquiries/ENQUIRY_ID/status \
 - JSON remains a fallback only and may not persist across Railway redeploys.
 - Postgres mode creates, lists, and updates enquiry records only.
 - No booking, payment, Duffel order, Amadeus order, supplier reservation, or real email is created by this storage change.
+
+## Customer form/admin UI Railway checks
+
+For the form/admin phase, keep the Railway server variables server-side only:
+
+```bash
+ENQUIRY_STORAGE_MODE=postgres
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+ADMIN_ACCESS_TOKEN=<strong runtime token>
+```
+
+After deployment, submit an enquiry from the public **Ask for group quote** form. Open `/admin/enquiries`, enter the runtime admin token, confirm the enquiry appears, update the status to `contacted`, refresh, and confirm it persists. The admin token is stored in `sessionStorage` only by the browser UI and is sent as an Authorization bearer token; it is not hardcoded and should not be exposed as a `VITE_*` variable.
+
+The customer flow remains enquiry-only. It does not create bookings, payments, Duffel orders, Amadeus orders, supplier reservations or real email sends. Provider diagnostics can remain hidden on the public homepage with `VITE_SHOW_PROVIDER_DIAGNOSTICS=false`.

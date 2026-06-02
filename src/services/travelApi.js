@@ -7,6 +7,12 @@ const localAffiliatePackageProvider = createAffiliatePackageProvider();
 
 const apiUrl = (path) => `${apiBaseUrl}${path}`;
 
+const safeApiMessage = (data, fallback) => {
+  const message = data?.message || data?.providerErrors?.[0]?.message || fallback;
+  if (!message || /stack|trace|at .*\(|database_url|postgres(?:ql)?:\/\/|password|secret/i.test(message)) return fallback;
+  return message;
+};
+
 const apiPost = async (path, payload) => {
   const response = await fetch(apiUrl(path), {
     method: 'POST',
@@ -15,14 +21,47 @@ const apiPost = async (path, payload) => {
   });
 
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.providerErrors?.[0]?.message || `Travel API request failed: ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(safeApiMessage(data, `Travel API request failed: ${response.status}`));
+    error.status = response.status;
+    error.fieldErrors = data?.fieldErrors || [];
+    error.payload = data;
+    throw error;
+  }
   return data;
 };
 
-const apiGet = async (path) => {
-  const response = await fetch(apiUrl(path));
+const apiPatch = async (path, payload, token) => {
+  const response = await fetch(apiUrl(path), {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.providerErrors?.[0]?.message || `Travel API request failed: ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(safeApiMessage(data, `Travel API request failed: ${response.status}`));
+    error.status = response.status;
+    error.payload = data;
+    throw error;
+  }
+  return data;
+};
+
+const apiGet = async (path, token) => {
+  const response = await fetch(apiUrl(path), {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(safeApiMessage(data, `Travel API request failed: ${response.status}`));
+    error.status = response.status;
+    error.payload = data;
+    throw error;
+  }
   return data;
 };
 
@@ -112,13 +151,21 @@ export async function searchHolidays(criteria) {
 }
 
 export async function submitEnquiry(payload) {
+  const enquiryPayload = {
+    ...payload,
+    consentToContact: payload?.consentToContact === true,
+  };
+
   if (travelProviderMode === 'mock') {
+    const mockEnquiryId = `mock-enquiry-${Date.now()}`;
     return {
       ok: true,
       providerMode: 'mock',
       enquiry: {
-        enquiryId: `mock-enquiry-${Date.now()}`,
-        message: 'Enquiry saved in mock mode. No booking has been created.',
+        ...enquiryPayload,
+        id: mockEnquiryId,
+        enquiryId: mockEnquiryId,
+        message: 'Thanks, your enquiry has been saved. This is not a booking confirmation.',
       },
       providerErrors: [],
       providerStatus: [
@@ -130,5 +177,24 @@ export async function submitEnquiry(payload) {
     };
   }
 
-  return apiPost('/api/travel/enquiries', payload);
+  try {
+    return await apiPost('/api/travel/enquiries', enquiryPayload);
+  } catch (error) {
+    if (error.status === 400) {
+      error.userMessage = 'Please check the highlighted enquiry fields and try again.';
+    } else if (error.status === 503) {
+      error.userMessage = 'Enquiries are temporarily unavailable while storage is being configured. Please try again shortly.';
+    } else {
+      error.userMessage = 'Sorry, we could not save your enquiry right now. Please try again.';
+    }
+    throw error;
+  }
+}
+
+export async function listAdminEnquiries(token) {
+  return apiGet('/api/admin/enquiries', token);
+}
+
+export async function updateAdminEnquiryStatus(id, status, token) {
+  return apiPatch(`/api/admin/enquiries/${encodeURIComponent(id)}/status`, { status }, token);
 }

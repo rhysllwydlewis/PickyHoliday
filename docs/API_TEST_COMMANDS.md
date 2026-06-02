@@ -121,3 +121,15 @@ curl -X POST http://localhost:8787/api/travel/packages -H 'Content-Type: applica
 ```
 
 Do not make live Duffel, live affiliate, booking, payment, or supplier-reservation calls required for CI/local smoke tests. All travel routes should return a JSON envelope with `providerMode`, `results`, `providerErrors`, and `meta` where applicable.
+
+## Frontend enquiry/admin UI checks
+
+The browser form uses the same enquiry endpoint as the curl examples, but sends the full customer payload plus selected-result context:
+
+```bash
+curl -X POST http://localhost:8787/api/travel/enquiries \
+  -H 'Content-Type: application/json' \
+  -d '{"resultId":"demo-1","resultType":"package","provider":"mock","supplierName":"Mock Supplier","destination":"Barcelona","country":"Spain","hotelName":"Demo Hotel","departureAirport":"London","dateLabel":"Flexible dates","groupSizeLabel":"8 people, 2+ rooms","priceFrom":299,"currency":"GBP","customerName":"Test User","customerEmail":"test@example.com","customerPhone":"+441234567890","customerNotes":"Please include family rooms.","consentToContact":true}'
+```
+
+Admin UI calls are the same as the admin curl checks. The `/admin/enquiries` page asks for `ADMIN_ACCESS_TOKEN` at runtime, stores it in `sessionStorage`, and sends `Authorization: Bearer <token>`. A `401` response should be shown as a friendly unauthorized state. A controlled `503` from Postgres-not-configured storage should be shown as a temporary storage configuration message rather than a stack trace.
