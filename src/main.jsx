@@ -1134,6 +1134,7 @@ function App() {
 }
 
 function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
+  const currentYear = new Date().getFullYear();
   const cols = [
     ['Book', ['Holidays', 'Villas', 'Group hotel stays', 'Stag & Hen', 'Families']],
     ['Destinations', defaultPublicLinks.destinations.map(labelFromSlug)],
@@ -1145,16 +1146,28 @@ function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
 
   return (
     <footer id="footer">
+      <div className="footer-glow footer-glow-gold" aria-hidden="true" />
+      <div className="footer-glow footer-glow-blue" aria-hidden="true" />
+      <div className="footer-promise content">
+        <span><BadgeCheck /> Enquiry-first, never auto-booked</span>
+        <span><Users /> Built for groups, mates and families</span>
+        <button onClick={() => onAction('Footer promise', 'PickyHoliday compares inspiration, partner redirects and saved enquiries without creating bookings, payments or supplier reservations automatically.')}>How PickyHoliday works</button>
+      </div>
       <div className="foot content">
         <div className="brand">
           <Logo footer />
           <p>{siteConfig.footer?.shortDescription || 'Group holidays made easy.'}</p>
+          <div className="footer-trust-pills" aria-label="PickyHoliday safeguards">
+            <span><ShieldCheck /> Enquiry-first</span>
+            <span><LockKeyhole /> Secure follow-up</span>
+            <span><Clock3 /> Advisor support</span>
+          </div>
           <span>Follow us</span>
           <div className="social">
-            <button onClick={() => onAction('Facebook', 'This would open the PickyHoliday Facebook community.')}><i>f</i></button>
-            <button onClick={() => onAction('Instagram', 'This would open the PickyHoliday travel inspiration feed.')}><i>◎</i></button>
-            <button onClick={() => onAction('Travel wheel', 'Spin through featured group destinations and hand-picked deals.')}><ShipWheel /></button>
-            <button onClick={() => onAction('Video guides', 'Watch destination guides, hotel walk-throughs and group travel tips.')}><i>▶</i></button>
+            <button aria-label="Facebook community" onClick={() => onAction('Facebook', 'This would open the PickyHoliday Facebook community.')}><i>f</i></button>
+            <button aria-label="Instagram inspiration feed" onClick={() => onAction('Instagram', 'This would open the PickyHoliday travel inspiration feed.')}><i>◎</i></button>
+            <button aria-label="Travel wheel" onClick={() => onAction('Travel wheel', 'Spin through featured group destinations and hand-picked deals.')}><ShipWheel /></button>
+            <button aria-label="Video guides" onClick={() => onAction('Video guides', 'Watch destination guides, hotel walk-throughs and group travel tips.')}><i>▶</i></button>
           </div>
         </div>
         {cols.map(([heading, links]) => (
@@ -1168,16 +1181,18 @@ function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
           </div>
         ))}
         <div className="apps">
-          <h3>Download the app</h3>
-          <p>Manage saved enquiries, get alerts<br />and group travel ideas.</p>
-          <div>
-            <button onClick={() => onAction('App Store', 'The iOS app link is ready for connection to the live store listing.')}> App Store</button>
-            <button onClick={() => onAction('Google Play', 'The Android app link is ready for connection to the live store listing.')}>▶ Google Play</button>
+          <span className="footer-kicker">Group travel hub</span>
+          <h3>Keep the whole group in sync</h3>
+          <p>Manage saved enquiries, destination shortlists and advisor updates from one place.</p>
+          <div className="app-buttons">
+            <button aria-label="App Store placeholder" onClick={() => onAction('App Store', 'The iOS app link is ready for connection to the live store listing.')}> App Store</button>
+            <button aria-label="Google Play placeholder" onClick={() => onAction('Google Play', 'The Android app link is ready for connection to the live store listing.')}>▶ Google Play</button>
           </div>
+          <button className="footer-cta" onClick={() => onAction('Ask for a group quote', 'Tell us your group size, destination ideas and timing. PickyHoliday will save your enquiry for advisor follow-up.')}>Ask for a group quote</button>
         </div>
       </div>
       <div className="copy content">
-        <p>© 2025 PickyHoliday.co.uk. All rights reserved.</p>
+        <p>© {currentYear} PickyHoliday.co.uk. All rights reserved.</p>
         <span><ShieldCheck /> Enquiry-first planning</span>
         <span><ShieldCheck /> Secure enquiries</span>
         <span><Clock3 /> 24/7 support</span>
