@@ -138,3 +138,13 @@ npm run test:api
 ```
 
 See `docs/API_TEST_COMMANDS.md` for curl commands.
+
+## Customer enquiries and admin review
+
+The site now treats **Ask for group quote** as a saved enquiry flow. Users complete name, email, optional phone, editable group size/dates, notes, and consent-to-contact before `POST /api/travel/enquiries` is called. The success state shows an enquiry reference and clearly states that it is not a booking confirmation. Search results and partner redirects remain inspiration/redirect/enquiry flows only; PickyHoliday does not create live bookings, supplier reservations, Duffel orders, Amadeus orders or payments.
+
+A lightweight admin review page is available at `/admin/enquiries`. It asks for the admin token at runtime, stores it in `sessionStorage` only, and calls `GET /api/admin/enquiries` / `PATCH /api/admin/enquiries/:id/status` with `Authorization: Bearer <token>`. Configure the server-side `ADMIN_ACCESS_TOKEN` in Railway or your API environment; never expose it through frontend code.
+
+Enquiry storage remains controlled by `ENQUIRY_STORAGE_MODE=json|postgres`. Railway Postgres still requires `DATABASE_URL` when `ENQUIRY_STORAGE_MODE=postgres`; JSON fallback remains available for local/mock use. Provider diagnostics are hidden by default behind a developer/provider status toggle and can be opened by default with `VITE_SHOW_PROVIDER_DIAGNOSTICS=true`.
+
+See `docs/ENQUIRY_FORM_AND_ADMIN_UI_PHASE.md` for the full form/admin rollout notes.

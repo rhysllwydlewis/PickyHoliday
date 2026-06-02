@@ -59,3 +59,11 @@ Authorization: Bearer <ADMIN_ACCESS_TOKEN>
 2. Add admin UI for reviewing enquiries.
 3. Add email notifications with a confirmed provider and sender/domain.
 4. Move storage from JSON to a database or CRM.
+
+## Follow-up: customer form and admin UI
+
+The enquiry persistence endpoints are now used by a full customer enquiry form opened from **Ask for group quote**. The form sends customer name, email, optional phone, group size, rough dates, notes, consent-to-contact, and selected-result context to `POST /api/travel/enquiries`. Success copy confirms that the enquiry was saved and is not a booking confirmation.
+
+A lightweight `/admin/enquiries` frontend page lists persisted enquiries and updates statuses with the existing admin API. The admin token is entered at runtime, stored in `sessionStorage` only, and must match the server-side `ADMIN_ACCESS_TOKEN` configured in Railway/the API runtime.
+
+This does not change storage selection: `ENQUIRY_STORAGE_MODE=json` keeps JSON fallback, while `ENQUIRY_STORAGE_MODE=postgres` requires `DATABASE_URL`. No booking, payment, supplier reservation, Duffel order, Amadeus order or real email sending is added.
