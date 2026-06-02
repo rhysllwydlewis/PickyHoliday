@@ -92,3 +92,14 @@
 - No live booking, payment, supplier reservation, Duffel order, Amadeus order or real email flow is introduced.
 - Run `npm install`, `npm run build` and `npm run test:api`.
 - `/api/travel/search` includes active promoted deals when enabled and excludes paused/inactive deals.
+
+## Production hardening phase pre-merge checklist (2026-06-02)
+
+- [x] Reviewed the production-hardening patch for malformed configuration handling, unsafe request-id echoing, CORS fallback behaviour, readiness semantics, rate-limit coverage and documentation gaps.
+- [x] Confirmed response security headers and `X-Request-Id` are applied through the shared response writer for JSON and static responses.
+- [x] Confirmed caller-supplied request ids are accepted only when short and header-safe; malformed values fall back to generated UUIDs.
+- [x] Confirmed numeric hardening settings fall back to safe defaults when environment values are missing, invalid or below minimums.
+- [x] Confirmed blank `CORS_ORIGIN` configuration falls back to local development origins instead of emitting an invalid header value.
+- [x] Confirmed `/api/readiness` returns a normal envelope with storage detail and marks missing/error storage backends as not ready.
+- [x] Confirmed smoke tests cover health diagnostics, readiness, security headers, invalid JSON, invalid enquiry validation, admin route protection, admin mutations and controlled `429` rate-limit behaviour.
+- [x] Confirmed no booking, payment, Duffel order, Amadeus order, supplier reservation, real email sending or committed secret was added.

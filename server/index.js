@@ -1,5 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
+import crypto from 'node:crypto';
 import http from 'node:http';
 import path from 'node:path';
 import { createTravelProviderRegistry } from './travelProviderRegistry.js';
@@ -13,7 +14,19 @@ import { getPublicSiteConfig, getSiteConfig, getSiteConfigStorageStatus, updateS
 const port = Number(process.env.PORT || 8787);
 const registry = createTravelProviderRegistry(process.env);
 const distDir = path.resolve(process.cwd(), 'dist');
-const maxBodyBytes = Number(process.env.API_MAX_BODY_BYTES || 1_000_000);
+const numberFromEnv = (name, fallback, { min = 0 } = {}) => {
+  const value = Number(process.env[name] ?? fallback);
+  return Number.isFinite(value) && value >= min ? value : fallback;
+};
+
+const maxBodyBytes = numberFromEnv('API_MAX_BODY_BYTES', 1_000_000, { min: 1 });
+const requestLogEnabled = `${process.env.REQUEST_LOGGING || 'true'}`.toLowerCase() !== 'false';
+const hstsEnabled = `${process.env.ENABLE_HSTS || (process.env.NODE_ENV === 'production' ? 'true' : 'false')}`.toLowerCase() === 'true';
+const rateLimitWindowMs = numberFromEnv('API_RATE_LIMIT_WINDOW_MS', 60_000, { min: 1 });
+const publicRateLimitMax = numberFromEnv('API_RATE_LIMIT_MAX', 120);
+const adminRateLimitMax = numberFromEnv('ADMIN_RATE_LIMIT_MAX', 60);
+const enquiryRateLimitMax = numberFromEnv('ENQUIRY_RATE_LIMIT_MAX', 20);
+const rateLimitBuckets = new Map();
 
 const isPathInside = (parent, child) => {
   const relativePath = path.relative(parent, child);
@@ -30,6 +43,88 @@ const mimeTypes = {
   '.webp': 'image/webp',
 };
 
+
+const securityHeaders = () => ({
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+  ...(hstsEnabled ? { 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' } : {}),
+});
+
+const requestIdFrom = (headers) => {
+  const rawRequestId = Array.isArray(headers['x-request-id']) ? headers['x-request-id'][0] : headers['x-request-id'];
+  const requestId = `${rawRequestId || ''}`.trim();
+  return /^[A-Za-z0-9._:-]{1,128}$/.test(requestId) ? requestId : crypto.randomUUID();
+};
+
+const writeHead = (response, status, headers = {}) => {
+  response.writeHead(status, {
+    ...securityHeaders(),
+    ...(response.requestId ? { 'X-Request-Id': response.requestId } : {}),
+    ...headers,
+  });
+};
+
+const clientIp = (request) => {
+  const forwardedFor = request.headers['x-forwarded-for'];
+  if (typeof forwardedFor === 'string' && forwardedFor.trim()) return forwardedFor.split(',')[0].trim();
+  return request.socket.remoteAddress || 'unknown';
+};
+
+const rateLimitPolicy = (request, pathname) => {
+  if (!pathname.startsWith('/api/')) return null;
+  if (request.method === 'OPTIONS' || request.method === 'GET') return null;
+  if (pathname.startsWith('/api/admin/')) return { name: 'admin', max: adminRateLimitMax };
+  if (request.method === 'POST' && pathname === '/api/travel/enquiries') return { name: 'enquiry', max: enquiryRateLimitMax };
+  return { name: 'public-api', max: publicRateLimitMax };
+};
+
+const pruneRateLimitBuckets = (now) => {
+  for (const [key, bucket] of rateLimitBuckets.entries()) {
+    if (bucket.resetAt <= now) rateLimitBuckets.delete(key);
+  }
+};
+
+const checkRateLimit = (request, pathname) => {
+  const policy = rateLimitPolicy(request, pathname);
+  if (!policy || policy.max <= 0) return { limited: false, policy: policy?.name || 'none' };
+
+  const now = Date.now();
+  pruneRateLimitBuckets(now);
+  const key = `${policy.name}:${clientIp(request)}`;
+  const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + rateLimitWindowMs };
+  bucket.count += 1;
+  rateLimitBuckets.set(key, bucket);
+
+  const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+  return {
+    limited: bucket.count > policy.max,
+    policy: policy.name,
+    limit: policy.max,
+    remaining: Math.max(0, policy.max - bucket.count),
+    retryAfterSeconds,
+    resetAt: new Date(bucket.resetAt).toISOString(),
+  };
+};
+
+const redactHeaderValue = (value) => (value ? '[redacted]' : undefined);
+
+const logRequest = (request, response, startedAt) => {
+  if (!requestLogEnabled) return;
+  const durationMs = Math.round(Number(process.hrtime.bigint() - startedAt) / 1_000_000);
+  console.log('[api-request]', {
+    requestId: request.requestId,
+    method: request.method,
+    path: request.url?.split('?')[0],
+    status: response.statusCode,
+    durationMs,
+    ip: clientIp(request),
+    userAgent: request.headers['user-agent'],
+    authorization: redactHeaderValue(request.headers.authorization),
+  });
+};
+
 class BodyError extends Error {
   constructor(message, status = 400) {
     super(message);
@@ -39,10 +134,12 @@ class BodyError extends Error {
 
 const readJsonBody = (request) => new Promise((resolve, reject) => {
   let body = '';
+  let receivedBytes = 0;
   let rejected = false;
   request.on('data', (chunk) => {
     if (rejected) return;
-    if (body.length + chunk.length > maxBodyBytes) {
+    receivedBytes += chunk.length;
+    if (receivedBytes > maxBodyBytes) {
       rejected = true;
       reject(new BodyError('Request body too large', 413));
       request.resume();
@@ -72,7 +169,7 @@ const sendStatic = async (response, pathname) => {
   const filePath = path.resolve(distDir, `.${requestedPath}`);
 
   if (!isPathInside(distDir, filePath)) {
-    response.writeHead(403);
+    writeHead(response, 403);
     response.end('Forbidden');
     return true;
   }
@@ -80,14 +177,14 @@ const sendStatic = async (response, pathname) => {
   try {
     const fileStat = await stat(filePath);
     if (!fileStat.isFile()) throw new Error('Not a file');
-    response.writeHead(200, { 'Content-Type': mimeTypes[path.extname(filePath)] || 'application/octet-stream' });
+    writeHead(response, 200, { 'Content-Type': mimeTypes[path.extname(filePath)] || 'application/octet-stream' });
     createReadStream(filePath).pipe(response);
     return true;
   } catch (error) {
     const indexPath = path.join(distDir, 'index.html');
     try {
       await stat(indexPath);
-      response.writeHead(200, { 'Content-Type': 'text/html' });
+      writeHead(response, 200, { 'Content-Type': 'text/html' });
       createReadStream(indexPath).pipe(response);
       return true;
     } catch (indexError) {
@@ -98,9 +195,11 @@ const sendStatic = async (response, pathname) => {
 
 const defaultCorsOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
-const allowedCorsOrigins = () => (process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean)
-  : defaultCorsOrigins);
+const allowedCorsOrigins = () => {
+  if (!process.env.CORS_ORIGIN) return defaultCorsOrigins;
+  const configuredOrigins = process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);
+  return configuredOrigins.length > 0 ? configuredOrigins : defaultCorsOrigins;
+};
 
 const corsOrigin = (request) => {
   const allowedOrigins = allowedCorsOrigins();
@@ -111,12 +210,13 @@ const corsOrigin = (request) => {
 };
 
 const sendJson = (request, response, status, payload) => {
-  response.writeHead(status, {
+  writeHead(response, status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': corsOrigin(request),
     Vary: 'Origin',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
+    ...(payload?.rateLimit?.retryAfterSeconds ? { 'Retry-After': `${payload.rateLimit.retryAfterSeconds}` } : {}),
   });
   response.end(JSON.stringify(payload));
 };
@@ -232,7 +332,17 @@ const handleCreateEnquiry = async (body) => {
 };
 
 const server = http.createServer(async (request, response) => {
+  const startedAt = process.hrtime.bigint();
+  request.requestId = requestIdFrom(request.headers);
+  response.requestId = request.requestId;
+  response.on('finish', () => logRequest(request, response, startedAt));
+
   const url = new URL(request.url, `http://${request.headers.host}`);
+  const rateLimit = checkRateLimit(request, url.pathname);
+  if (rateLimit.limited) {
+    sendJson(request, response, 429, errorEnvelope(429, 'Too many requests. Please wait before trying again.', { rateLimit }));
+    return;
+  }
 
   if (request.method === 'OPTIONS') {
     sendJson(request, response, 204, {});
@@ -245,7 +355,39 @@ const server = http.createServer(async (request, response) => {
       getPromotedDealStorageStatus(),
       getSiteConfigStorageStatus(),
     ]);
-    sendJson(request, response, 200, { ...registry.status(), ...enquiryStorageStatus, ...promotedDealStorageStatus, ...siteConfigStorageStatus });
+    sendJson(request, response, 200, {
+      ...registry.status(),
+      ...enquiryStorageStatus,
+      ...promotedDealStorageStatus,
+      ...siteConfigStorageStatus,
+      observability: { requestId: request.requestId, requestLogging: requestLogEnabled },
+      security: { hstsEnabled, maxBodyBytes, rateLimitWindowMs, publicRateLimitMax, adminRateLimitMax, enquiryRateLimitMax },
+    });
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/readiness') {
+    const [enquiryStorageStatus, promotedDealStorageStatus, siteConfigStorageStatus] = await Promise.all([
+      getEnquiryStorageStatus(),
+      getPromotedDealStorageStatus(),
+      getSiteConfigStorageStatus(),
+    ]);
+    const storageStatuses = [
+      enquiryStorageStatus.databaseStatus,
+      promotedDealStorageStatus.promotedDealStorageStatus,
+      siteConfigStorageStatus.siteConfigStorageStatus,
+    ].filter(Boolean);
+    const ready = storageStatuses.every((status) => !`${status}`.includes('error') && !`${status}`.includes('not-configured'));
+    sendJson(request, response, ready ? 200 : 503, {
+      ok: ready,
+      providerMode: registry.mode,
+      results: [],
+      providerErrors: ready ? [] : [{ provider: 'storage', method: 'readiness', message: 'One or more configured storage backends are not ready.' }],
+      providerStatus: registry.status().providerStatus,
+      storage: { ...enquiryStorageStatus, ...promotedDealStorageStatus, ...siteConfigStorageStatus },
+      observability: { requestId: request.requestId, requestLogging: requestLogEnabled },
+      meta: { totalResults: 0, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString(), status: ready ? 200 : 503 },
+    });
     return;
   }
 

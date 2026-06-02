@@ -9,7 +9,7 @@ let localServer;
 const waitForLocalServer = async () => {
   if (!shouldStartLocalServer) return;
   localServer = spawn(process.execPath, ['server/index.js'], {
-    env: { ...process.env, PORT: '8787', NODE_ENV: 'test', ADMIN_ACCESS_TOKEN: adminAccessToken, PROMOTED_DEAL_STORAGE_MODE: 'json', SITE_CONFIG_STORAGE_MODE: 'json' },
+    env: { ...process.env, PORT: '8787', NODE_ENV: 'test', ADMIN_ACCESS_TOKEN: adminAccessToken, PROMOTED_DEAL_STORAGE_MODE: 'json', SITE_CONFIG_STORAGE_MODE: 'json', REQUEST_LOGGING: 'false', ENQUIRY_RATE_LIMIT_MAX: '3' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   localServer.stdout.on('data', (chunk) => process.stdout.write(chunk));
@@ -33,6 +33,7 @@ process.on('SIGINT', () => { stopLocalServer(); process.exit(130); });
 
 const endpoints = [
   { method: 'GET', path: '/api/health' },
+  { method: 'GET', path: '/api/readiness' },
   { method: 'POST', path: '/api/travel/search', body: { destination: 'Barcelona', intent: 'Holidays' } },
   { method: 'POST', path: '/api/travel/flights', body: { destination: 'Barcelona', origin: 'London (All Airports)' } },
   { method: 'POST', path: '/api/travel/hotels', body: { destination: 'Barcelona', intent: 'Group hotel stays' } },
@@ -58,6 +59,13 @@ const assertEnvelope = (data, label) => {
   }
 };
 
+const assertResponseHardening = (response, label) => {
+  if (!response.headers.get('x-request-id')) throw new Error(`${label} did not include X-Request-Id.`);
+  if (response.headers.get('x-content-type-options') !== 'nosniff') throw new Error(`${label} did not include X-Content-Type-Options: nosniff.`);
+  if (response.headers.get('x-frame-options') !== 'DENY') throw new Error(`${label} did not include X-Frame-Options: DENY.`);
+  if (!response.headers.get('referrer-policy')) throw new Error(`${label} did not include Referrer-Policy.`);
+};
+
 const assertHealth = (data) => {
   const providerNames = (data.providerStatus || data.providers || []).map((provider) => provider.provider);
   if (!providerNames.includes('duffel')) throw new Error('/api/health did not include Duffel in providerStatus.');
@@ -73,6 +81,8 @@ const assertHealth = (data) => {
   if (!['json', 'postgres'].includes(data.promotedDealStorageMode)) throw new Error('/api/health did not expose promotedDealStorageMode.');
   if (!data.promotedDealStorageStatus) throw new Error('/api/health did not expose promotedDealStorageStatus.');
   if (!data.siteConfigStorageStatus) throw new Error('/api/health did not expose siteConfigStorageStatus.');
+  if (!data.observability?.requestId) throw new Error('/api/health did not expose observability.requestId.');
+  if (!data.security || typeof data.security.maxBodyBytes !== 'number') throw new Error('/api/health did not expose security limits.');
   const healthJson = JSON.stringify(data);
   if (healthJson.includes('postgres://') || healthJson.includes('postgresql://')) {
     throw new Error('/api/health appeared to expose a database connection string.');
@@ -80,6 +90,11 @@ const assertHealth = (data) => {
   for (const secretName of ['DATABASE_URL', 'PGPASSWORD', 'ADMIN_ACCESS_TOKEN']) {
     if (healthJson.includes(secretName)) throw new Error(`/api/health appeared to expose ${secretName}.`);
   }
+};
+
+const assertReadiness = (data) => {
+  if (data.ok !== true) throw new Error('/api/readiness did not report ready in JSON storage smoke mode.');
+  if (!data.storage || !data.observability?.requestId) throw new Error('/api/readiness did not expose storage and observability details.');
 };
 
 const assertSiteConfig = (data) => {
@@ -130,12 +145,14 @@ const request = async ({ method, path, body }) => {
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
+  assertResponseHardening(response, label);
   const data = await parseJson(response, label);
   if (!response.ok) {
     throw new Error(`${label} failed with ${response.status}: ${JSON.stringify(data)}`);
   }
   assertEnvelope(data, label);
   if (path === '/api/health') assertHealth(data);
+  if (path === '/api/readiness') assertReadiness(data);
   if (path === '/api/site-config') assertSiteConfig(data);
   if (path === '/api/deals/promoted' && !Array.isArray(data.results)) throw new Error('/api/deals/promoted did not return a results array.');
   if (path === '/api/travel/flights') assertFlightResults(data);
@@ -224,6 +241,29 @@ const assertInvalidEnquiryEmail = async () => {
   }
 };
 
+
+const assertRateLimit = async () => {
+  const headers = { 'Content-Type': 'application/json', 'X-Forwarded-For': `smoke-rate-limit-${Date.now()}` };
+  let limitedData;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const response = await fetch(`${baseUrl}/api/travel/enquiries`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ destination: 'Barcelona', customerName: 'Rate Limit', customerEmail: 'bad-email', consentToContact: true }),
+    });
+    const data = await parseJson(response, `POST /api/travel/enquiries rate limit attempt ${attempt + 1}`);
+    if (response.status === 429) {
+      assertEnvelope(data, 'POST /api/travel/enquiries rate limit');
+      if (!data.rateLimit?.retryAfterSeconds) throw new Error('Rate limit response did not include retry metadata.');
+      if (!response.headers.get('retry-after')) throw new Error('Rate limit response did not include Retry-After header.');
+      limitedData = data;
+      break;
+    }
+    if (response.status !== 400) throw new Error(`Rate limit setup attempt returned ${response.status}, expected validation 400 before limit.`);
+  }
+  if (!limitedData) throw new Error('POST /api/travel/enquiries did not return 429 after repeated requests.');
+};
+
 const assertBadJson = async () => {
   const label = 'POST /api/travel/search bad JSON';
   const response = await fetch(`${baseUrl}/api/travel/search`, {
@@ -259,6 +299,8 @@ try {
   console.log('✓ POST /api/travel/enquiries invalid email returned controlled 400 envelope');
   await assertBadJson();
   console.log('✓ POST /api/travel/search bad JSON returned controlled 400 envelope');
+  await assertRateLimit();
+  console.log('✓ POST /api/travel/enquiries rate limit returned controlled 429 envelope');
 } finally {
   stopLocalServer();
 }
