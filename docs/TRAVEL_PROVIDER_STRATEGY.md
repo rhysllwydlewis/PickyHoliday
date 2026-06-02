@@ -114,3 +114,12 @@ The server-side proxy keeps secrets off the browser. Current routes are:
 - Do not build payments.
 - Do not create fake booking confirmations.
 - Keep the UI provider-agnostic and render the normalised result model.
+
+
+## Promoted deals as a lightweight source
+
+Admin-managed promoted deals are exposed through `GET /api/deals/promoted` and merged into public search results as normalised holiday result cards. They complement mock/manual/package providers and remain enquiry/redirect only. If promoted-deal storage fails, standard provider/mock/package results continue to work. Feature flags may hide promoted deals in the UI, but secure backend provider env settings remain authoritative.
+
+### Backend search integration
+
+`/api/travel/search` now also attempts to prepend active admin-managed promoted deals (filtered by destination text) to the normal provider results when the safe `enablePromotedDeals` flag is not disabled. This keeps API search consumers aligned with the homepage behaviour while preserving the existing mock/manual/package fallback if promoted-deal storage is temporarily unavailable.

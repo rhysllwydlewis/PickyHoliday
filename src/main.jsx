@@ -27,13 +27,22 @@ import {
 import './styles.css';
 import { imageUrls, getaways, guides, reviews } from './data/mockDeals.js';
 import {
+  createAdminPromotedDeal,
+  getAdminSiteConfig,
+  getBackendHealth,
   getFrontendProviderMode,
   getProviderStatus,
+  getPublicPromotedDeals,
+  getSiteConfig,
   listAdminEnquiries,
+  listAdminPromotedDeals,
   searchHolidays,
   searchLocations,
   submitEnquiry,
   updateAdminEnquiryStatus,
+  updateAdminPromotedDeal,
+  updateAdminPromotedDealStatus,
+  updateAdminSiteConfig,
 } from './services/travelApi.js';
 
 const img = (id) => imageUrls[id] || id;
@@ -42,6 +51,26 @@ const formatPrice = (deal) => `${deal.currency === 'GBP' ? '£' : deal.currency}
 const priceCopy = (deal) => (hasPricedAmount(deal) ? formatPrice(deal) : 'Price to confirm');
 const dealPlace = (deal) => `${deal.destination}, ${deal.country}`;
 const showProviderDiagnostics = import.meta.env.VITE_SHOW_PROVIDER_DIAGNOSTICS === 'true';
+const defaultFeatureFlags = {
+  showProviderDiagnostics: false,
+  enablePromotedDeals: true,
+  enableAffiliateRedirects: true,
+  enableDuffelSearch: true,
+  enableAmadeusSecondary: false,
+  enableNewsletterSignupPlaceholder: true,
+  enableAnnouncementBanner: false,
+  enableAdminDebugPanel: false,
+};
+const defaultSiteConfig = {
+  hero: {},
+  newsletter: {},
+  footer: {},
+  trust: {},
+  announcement: {},
+  featureFlags: defaultFeatureFlags,
+};
+const isSafeUrl = (value) => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol); } catch { return false; } };
+const adminPaths = ['/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/content', '/admin/features', '/admin/settings'];
 const adminTokenStorageKey = 'pickyholiday-admin-token';
 const enquiryStatuses = ['new', 'reviewing', 'contacted', 'quoted', 'closed'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -104,6 +133,16 @@ const getawaySearchConfig = {
   'Villas for groups': { tab: 'Villas', destination: 'Villas' },
   'Stag & hen trips': { tab: 'Stag & Hen', destination: 'Stag & Hen' },
 };
+
+function mergeHolidayResults(...resultSets) {
+  const seen = new Set();
+  return resultSets.flat().filter((result) => {
+    const id = result?.id || result?.resultId;
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
 
 function rotateList(list, direction) {
   if (list.length < 2) return list;
@@ -181,16 +220,18 @@ function Header({ onAction }) {
   );
 }
 
-function Hero() {
+function Hero({ config }) {
+  const hero = config?.hero || {};
+  const titleParts = (hero.title || 'Smart group holidays. More fun. Less fuss.').split('. ');
   return (
     <section className="hero">
       <div className="hero-bg" />
       <div className="hero-content">
-        <div className="eyebrow"><Star fill="currentColor" size={15} /> GROUP HOLIDAYS, MADE EASY</div>
-        <h1>Smart group holidays.<br /><span>More fun.</span> Less fuss.</h1>
-        <p>Compare inspiration, partner redirects and saved enquiries for mates, families<br />and every kind of group adventure.</p>
+        <div className="eyebrow"><Star fill="currentColor" size={15} /> {hero.eyebrow || 'GROUP HOLIDAYS, MADE EASY'}</div>
+        <h1>{titleParts[0] || 'Smart group holidays.'}<br /><span>{titleParts[1] || 'More fun.'}</span> {titleParts.slice(2).join('. ') || 'Less fuss.'}</h1>
+        <p>{hero.subtitle || 'Compare inspiration, partner redirects and saved enquiries for mates, families and every kind of group adventure.'}</p>
         <div className="assurances">
-          {['Best group ideas', 'Saved enquiries', 'Advisor review', 'No auto-booking'].map((assurance, index) => {
+          {(hero.assuranceChips || ['Best group ideas', 'Saved enquiries', 'Advisor review', 'No auto-booking']).map((assurance, index) => {
             const Icon = [CircleDollarSign, WalletCards, Clock3, BadgeCheck][index];
             return <span key={assurance}><Icon size={17} /> {assurance}</span>;
           })}
@@ -452,7 +493,8 @@ function EnquiryForm({ deal, onClose, onSubmitted }) {
   );
 }
 
-function Dialog({ content, onClose }) {
+function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
+  const featureFlags = siteConfig.featureFlags || defaultFeatureFlags;
   if (!content) return null;
 
   return (
@@ -482,7 +524,7 @@ function Dialog({ content, onClose }) {
               </ul>
             )}
             <div className="modal-actions">
-              {content.deal?.partnerUrl && <button onClick={() => window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer')}>Continue to partner</button>}
+              {featureFlags.enableAffiliateRedirects !== false && content.deal?.partnerUrl && isSafeUrl(content.deal.partnerUrl) && <button onClick={() => window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer')}>Continue to partner</button>}
               {content.deal && <button onClick={() => content.onEnquiry?.(content.deal)}>Ask for group quote</button>}
               <button onClick={onClose}>Shortlist this trip</button>
               <button onClick={() => { onClose(); scrollToId('search'); }}>Edit search</button>
@@ -640,6 +682,7 @@ function App() {
   const [notice, setNotice] = useState('');
   const [modal, setModal] = useState(null);
   const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [siteConfig, setSiteConfig] = useState(defaultSiteConfig);
   const [diagnostics, setDiagnostics] = useState({
     frontendMode: getFrontendProviderMode(),
     backendMode: 'mock',
@@ -659,12 +702,14 @@ function App() {
     return () => window.clearTimeout(timeoutId);
   }, [notice]);
 
+  const featureFlags = siteConfig.featureFlags || {};
   const filteredDeals = useMemo(() => {
     const destination = search.destination.trim().toLowerCase();
 
     return dealList.filter((deal) => {
       const dealContent = `${deal.destination} ${deal.country} ${deal.hotelName} ${deal.supplierName} ${deal.tags.join(' ')}`.toLowerCase();
-      return deal.tags.includes(activeTab) && (!destination || dealContent.includes(destination));
+      const isPromotedDeal = deal.provider === 'promoted-deals';
+      return (deal.tags.includes(activeTab) || isPromotedDeal) && (!destination || dealContent.includes(destination));
     });
   }, [activeTab, dealList, search.destination]);
 
@@ -717,7 +762,16 @@ function App() {
     setSearchError('');
     try {
       const response = await searchHolidays(criteria);
-      setDealList(response.results || []);
+      let results = response.results || [];
+      if (featureFlags.enablePromotedDeals !== false) {
+        try {
+          const promoted = await getPublicPromotedDeals();
+          results = mergeHolidayResults(promoted.results || [], results);
+        } catch (promotedError) {
+          response.providerErrors = [...(response.providerErrors || []), { provider: 'promoted-deals', method: 'search', message: 'Promoted deals unavailable; showing standard results.' }];
+        }
+      }
+      setDealList(results);
       setDiagnostics((current) => ({
         ...current,
         backendMode: response.providerMode,
@@ -737,6 +791,7 @@ function App() {
   };
 
   useEffect(() => {
+    getSiteConfig().then((response) => { if (response.siteConfig) setSiteConfig(response.siteConfig); }).catch(() => {});
     refreshDiagnostics();
     runHolidaySearch({ ...search, intent: activeTab }, false);
   }, []);
@@ -790,7 +845,8 @@ function App() {
     <>
       <Header onAction={openMessage} />
       <main>
-        <Hero />
+        {siteConfig.announcement?.active && siteConfig.featureFlags?.enableAnnouncementBanner !== false && siteConfig.announcement?.text && <div className="announcement">{siteConfig.announcement.text}</div>}
+        <Hero config={siteConfig} />
         <SearchPanel activeTab={activeTab} setActiveTab={setActiveTab} search={search} setSearch={setSearch} onSearch={handleSearch} locationSuggestions={locationSuggestions} onLookupLocations={lookupLocations} />
         <DealsSection
           dealsToShow={filteredDeals}
@@ -839,8 +895,8 @@ function App() {
         <form className="content newsletter" onSubmit={handleNewsletter}>
           <div className="mailicon"><Mail /></div>
           <div>
-            <h2>Get group deals & travel inspiration<br />straight to your inbox</h2>
-            <p>Be the first to hear about exclusive offers, big savings and new destinations.</p>
+            <h2>{siteConfig.newsletter?.title || 'Get group deals & travel inspiration straight to your inbox'}</h2>
+            <p>{siteConfig.newsletter?.subtitle || 'Be the first to hear about exclusive offers, big savings and new destinations.'}</p>
           </div>
           <label><Mail size={18} /><input value={newsletterEmail} onChange={(event) => setNewsletterEmail(event.target.value)} placeholder="Enter your email address" /></label>
           <button>Sign me up <ChevronRight size={17} /></button>
@@ -850,17 +906,17 @@ function App() {
           <Stars small />
           <span>Rated 4.7/5</span>
           <span><LockKeyhole size={18} /> Secure enquiries</span>
-          <span>Saved enquiries only — no automatic booking</span>
+          <span>{siteConfig.trust?.protectionCopy || 'Saved enquiries only — no automatic booking'}</span>
         </div>
       </main>
-      <Footer onAction={openMessage} />
+      <Footer onAction={openMessage} siteConfig={siteConfig} />
       {notice && <div className="toast" role="status">{notice}</div>}
-      <Dialog content={modal} onClose={() => setModal(null)} />
+      <Dialog content={modal} onClose={() => setModal(null)} siteConfig={siteConfig} />
     </>
   );
 }
 
-function Footer({ onAction }) {
+function Footer({ onAction, siteConfig = defaultSiteConfig }) {
   const cols = [
     ['Book', ['Holidays', 'Villas', 'Group hotel stays', 'Stag & Hen', 'Families']],
     ['Explore', ['Destinations', 'Inspiration', 'Travel guides', 'Group travel ideas', 'Deals']],
@@ -873,7 +929,7 @@ function Footer({ onAction }) {
       <div className="foot content">
         <div className="brand">
           <Logo footer />
-          <p>Group holidays made easy.</p>
+          <p>{siteConfig.footer?.shortDescription || 'Group holidays made easy.'}</p>
           <span>Follow us</span>
           <div className="social">
             <button onClick={() => onAction('Facebook', 'This would open the PickyHoliday Facebook community.')}><i>f</i></button>
@@ -908,65 +964,150 @@ function Footer({ onAction }) {
 }
 
 
-function AdminEnquiriesApp() {
-  const [token, setToken] = useState(readAdminToken);
+
+const adminNav = [
+  ['Dashboard', '/admin'],
+  ['Enquiries', '/admin/enquiries'],
+  ['Promoted Deals', '/admin/deals'],
+  ['Site Content', '/admin/content'],
+  ['Feature Flags', '/admin/features'],
+  ['Settings', '/admin/settings'],
+];
+
+const emptyDeal = {
+  title: '',
+  status: 'draft',
+  dealType: 'package',
+  supplierName: '',
+  destination: '',
+  country: '',
+  hotelName: '',
+  image: '',
+  priceFrom: '',
+  currency: 'GBP',
+  priceQualifier: 'pp',
+  savingLabel: '',
+  nights: '',
+  departureAirport: '',
+  returnAirport: '',
+  dateLabel: '',
+  groupSizeLabel: '',
+  boardBasis: '',
+  baggageLabel: '',
+  bookingMode: 'manual-quote',
+  partnerId: '',
+  partnerUrl: '',
+  protectionLabel: 'Enquiry only — no automatic booking or payment.',
+  tags: '',
+  internalNotes: '',
+};
+
+function AdminPageTitle({ kicker, title, copy, action }) {
+  return (
+    <div className="admin-title">
+      <div>
+        <span>{kicker}</span>
+        <h1>{title}</h1>
+        <p>{copy}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function AdminLoginApp() {
   const [tokenInput, setTokenInput] = useState('');
-  const [enquiries, setEnquiries] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [rememberForSession, setRememberForSession] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
-  const [updatingId, setUpdatingId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const hasToken = Boolean(token);
+  const submit = async (event) => {
+    event.preventDefault();
+    const token = tokenInput.trim();
+    if (!token) {
+      setError('Enter the admin access key.');
+      return;
+    }
 
-  const loadEnquiries = useCallback(async (nextToken = token) => {
-    if (!nextToken) return;
     setIsLoading(true);
     setError('');
     try {
-      const response = await listAdminEnquiries(nextToken);
+      await listAdminEnquiries(token);
+      saveAdminToken(token);
+      window.location.assign('/admin');
+    } catch (loginError) {
+      setError(loginError.status === 401
+        ? 'That access key was not accepted. Check the current server ADMIN_ACCESS_TOKEN.'
+        : (loginError.message || 'Could not verify the admin access key.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <main className="admin-page admin-login">
+      <section className="admin-login-card">
+        <Logo />
+        <span>Owner admin</span>
+        <h1>Sign in to PickyHoliday</h1>
+        <p>Enter the server-side admin access key. It is stored in sessionStorage only for this browser session and is never saved to localStorage.</p>
+        <form onSubmit={submit}>
+          <label>
+            <span>Admin access key</span>
+            <input type="password" value={tokenInput} onChange={(event) => setTokenInput(event.target.value)} autoComplete="off" placeholder="Enter admin password" />
+          </label>
+          <label className="admin-check">
+            <input type="checkbox" checked={rememberForSession} onChange={(event) => setRememberForSession(event.target.checked)} />
+            Remember for this browser session only
+          </label>
+          {!rememberForSession && <p className="admin-muted">The admin area still needs sessionStorage for navigation. Log out when finished to clear the key.</p>}
+          {error && <div className="error-state compact">{error}</div>}
+          <button disabled={isLoading}>{isLoading ? 'Checking…' : 'Log in'}</button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function AdminLayout({ children, onLogout }) {
+  const path = window.location.pathname;
+
+  return (
+    <main className="admin-page">
+      <aside className="admin-sidebar">
+        <Logo />
+        <nav aria-label="Admin navigation">
+          {adminNav.map(([label, href]) => <a key={href} className={path === href ? 'active' : ''} href={href}>{label}</a>)}
+        </nav>
+        <button className="admin-logout" onClick={onLogout}>Log out</button>
+      </aside>
+      <section className="admin-shell admin-dashboard-shell">{children}</section>
+    </main>
+  );
+}
+
+function AdminEnquiriesPanel({ token }) {
+  const [enquiries, setEnquiries] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [updatingId, setUpdatingId] = useState('');
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await listAdminEnquiries(token);
       setEnquiries(response.results || []);
     } catch (loadError) {
-      if (loadError.status === 401) {
-        setError('That admin token was not accepted. Clear it and enter the current Railway ADMIN_ACCESS_TOKEN.');
-      } else {
-        setError(loadError.message || 'Could not load enquiries right now.');
-      }
-      setEnquiries([]);
+      setError(loadError.status === 401
+        ? 'Admin access key is no longer accepted. Please log in again.'
+        : (loadError.message || 'Could not load enquiries.'));
     } finally {
       setIsLoading(false);
     }
   }, [token]);
 
-  useEffect(() => {
-    if (hasToken) loadEnquiries(token);
-  }, [hasToken, loadEnquiries, token]);
-
-  const handleTokenSubmit = (event) => {
-    event.preventDefault();
-    const nextToken = tokenInput.trim();
-    if (!nextToken) {
-      setError('Enter the admin token before loading enquiries.');
-      return;
-    }
-    try {
-      saveAdminToken(nextToken);
-      setToken(nextToken);
-      setTokenInput('');
-      setNotice('Admin token saved for this browser session only.');
-    } catch (storageError) {
-      setError('This browser would not allow session storage. Enable session storage to use the admin review page safely.');
-    }
-  };
-
-  const clearToken = () => {
-    clearAdminToken();
-    setToken('');
-    setTokenInput('');
-    setEnquiries([]);
-    setError('');
-    setNotice('Admin token cleared from this session.');
-  };
+  useEffect(() => { load(); }, [load]);
 
   const updateStatus = async (enquiry, status) => {
     setUpdatingId(enquiry.id);
@@ -975,92 +1116,436 @@ function AdminEnquiriesApp() {
       const response = await updateAdminEnquiryStatus(enquiry.id, status, token);
       const updated = response.results?.[0] || { ...enquiry, status };
       setEnquiries((current) => current.map((item) => (item.id === enquiry.id ? updated : item)));
-      setNotice(`Status updated to ${status}.`);
-    } catch (updateError) {
-      setError(updateError.status === 401 ? 'Admin token is no longer accepted. Clear it and sign in again.' : (updateError.message || 'Could not update enquiry status.'));
+    } catch (statusError) {
+      setError(statusError.message || 'Could not update enquiry.');
     } finally {
       setUpdatingId('');
     }
   };
 
   return (
-    <main className="admin-page">
-      <section className="admin-shell">
-        <div className="admin-header">
-          <Logo />
-          <div>
-            <span>Runtime admin review</span>
-            <h1>Enquiry review</h1>
-            <p>Enter the admin token at runtime to review saved customer enquiries. Tokens are kept in sessionStorage only and are never shown after entry.</p>
-          </div>
-        </div>
-
-        {!hasToken && (
-          <form className="admin-token-card" onSubmit={handleTokenSubmit}>
-            <label>
-              <span>Admin token</span>
-              <input type="password" value={tokenInput} onChange={(event) => setTokenInput(event.target.value)} placeholder="Enter ADMIN_ACCESS_TOKEN" autoComplete="off" />
-            </label>
-            <button>Load enquiries</button>
-            <p>Set <code>ADMIN_ACCESS_TOKEN</code> on Railway/the API server. Do not put it in frontend code.</p>
-          </form>
-        )}
-
-        {hasToken && (
-          <div className="admin-actions">
-            <button onClick={() => loadEnquiries(token)} disabled={isLoading}>{isLoading ? 'Refreshing…' : 'Refresh'}</button>
-            <button onClick={clearToken}>Clear admin token</button>
-          </div>
-        )}
-
-        {notice && <div className="loading-state">{notice}</div>}
-        {error && <div className="error-state">{error}</div>}
-        {isLoading && <div className="loading-state">Loading saved enquiries…</div>}
-
-        {hasToken && !isLoading && enquiries.length === 0 && !error && (
-          <div className="empty-state">No enquiries found yet. Submit the customer enquiry form, then refresh this page.</div>
-        )}
-
-        {hasToken && enquiries.length > 0 && (
-          <div className="admin-list">
-            {enquiries.map((enquiry) => (
-              <article className="admin-enquiry-card" key={enquiry.id}>
-                <div className="admin-card-top">
-                  <div>
-                    <span className={`status-pill status-${enquiry.status}`}>{enquiry.status}</span>
-                    <h2>{enquiry.customerName || 'Name not supplied'}</h2>
-                    <p>{friendlyDate(enquiry.createdAt)} · Ref {enquiry.id}</p>
-                  </div>
-                  <label>
-                    <span>Status</span>
-                    <select value={enquiry.status || 'new'} onChange={(event) => updateStatus(enquiry, event.target.value)} disabled={updatingId === enquiry.id}>
-                      {enquiryStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
-                    </select>
-                  </label>
-                </div>
-                <dl className="admin-fields">
-                  <dt>Email</dt><dd>{enquiry.customerEmail || '—'}</dd>
-                  <dt>Phone</dt><dd>{enquiry.customerPhone || '—'}</dd>
-                  <dt>Destination</dt><dd>{enquiry.destination || '—'}</dd>
-                  <dt>Hotel</dt><dd>{enquiry.hotelName || '—'}</dd>
-                  <dt>Dates</dt><dd>{enquiry.dateLabel || '—'}</dd>
-                  <dt>Group size</dt><dd>{enquiry.groupSizeLabel || '—'}</dd>
-                  <dt>Provider</dt><dd>{enquiry.provider || '—'}</dd>
-                  <dt>Supplier</dt><dd>{enquiry.supplierName || '—'}</dd>
-                </dl>
-                <div className="admin-notes">
-                  <b>Customer notes</b>
-                  <p>{enquiry.customerNotes || 'No notes supplied.'}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    </main>
+    <>
+      <AdminPageTitle
+        kicker="Saved customer enquiries"
+        title="Enquiries"
+        copy="Review quote requests. Status updates are internal only and do not create bookings, payments or supplier reservations."
+        action={<button onClick={load} disabled={isLoading}>Refresh</button>}
+      />
+      {error && <div className="error-state">{error}</div>}
+      {isLoading && <div className="loading-state">Loading saved enquiries…</div>}
+      {!isLoading && enquiries.length === 0 && !error && <div className="empty-state">No enquiries found yet.</div>}
+      <div className="admin-list">
+        {enquiries.map((enquiry) => (
+          <article className="admin-enquiry-card" key={enquiry.id}>
+            <div className="admin-card-top">
+              <div>
+                <span className={`status-pill status-${enquiry.status}`}>{enquiry.status}</span>
+                <h2>{enquiry.customerName || 'Name not supplied'}</h2>
+                <p>{friendlyDate(enquiry.createdAt)} · Ref {enquiry.id}</p>
+              </div>
+              <label>
+                <span>Status</span>
+                <select value={enquiry.status || 'new'} onChange={(event) => updateStatus(enquiry, event.target.value)} disabled={updatingId === enquiry.id}>
+                  {enquiryStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                </select>
+              </label>
+            </div>
+            <dl className="admin-fields">
+              <dt>Email</dt><dd>{enquiry.customerEmail || '—'}</dd>
+              <dt>Phone</dt><dd>{enquiry.customerPhone || '—'}</dd>
+              <dt>Destination</dt><dd>{enquiry.destination || '—'}</dd>
+              <dt>Hotel</dt><dd>{enquiry.hotelName || '—'}</dd>
+              <dt>Dates</dt><dd>{enquiry.dateLabel || '—'}</dd>
+              <dt>Group size</dt><dd>{enquiry.groupSizeLabel || '—'}</dd>
+              <dt>Provider</dt><dd>{enquiry.provider || '—'}</dd>
+              <dt>Supplier</dt><dd>{enquiry.supplierName || '—'}</dd>
+            </dl>
+            <div className="admin-notes">
+              <b>Customer notes</b>
+              <p>{enquiry.customerNotes || 'No notes supplied.'}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
 
-const Root = window.location.pathname === '/admin/enquiries' ? AdminEnquiriesApp : App;
+function AdminDashboardPanel({ token }) {
+  const [state, setState] = useState({ enquiries: [], deals: [], health: {}, loadedAt: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [enquiries, deals, health] = await Promise.all([
+        listAdminEnquiries(token),
+        listAdminPromotedDeals(token),
+        getBackendHealth(),
+      ]);
+      setState({
+        enquiries: enquiries.results || [],
+        deals: deals.results || [],
+        health,
+        loadedAt: new Date().toLocaleString('en-GB'),
+      });
+    } catch (dashboardError) {
+      setError(dashboardError.message || 'Could not refresh dashboard.');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const count = (status) => state.enquiries.filter((item) => item.status === status).length;
+  const activeDeals = state.deals.filter((deal) => deal.status === 'active').length;
+  const inactiveDeals = state.deals.filter((deal) => ['draft', 'paused'].includes(deal.status)).length;
+  const cards = [
+    ['Total enquiries', state.enquiries.length],
+    ['New enquiries', count('new')],
+    ['Reviewing', count('reviewing')],
+    ['Contacted/quoted', count('contacted') + count('quoted')],
+    ['Active promoted deals', activeDeals],
+    ['Draft/paused deals', inactiveDeals],
+    ['Storage mode', state.health.enquiryStorageMode || 'json'],
+    ['Database status', state.health.databaseStatus || 'unknown'],
+    ['Provider mode', state.health.providerMode || 'mock'],
+  ];
+
+  return (
+    <>
+      <AdminPageTitle
+        kicker="Admin cockpit"
+        title="Dashboard"
+        copy="Operational snapshot for enquiries, promoted deals and safe provider/storage status."
+        action={<button onClick={load} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>}
+      />
+      {error && <div className="error-state">{error}</div>}
+      <div className="admin-cards">
+        {cards.map(([label, value]) => <article key={label}><span>{label}</span><b>{value}</b></article>)}
+      </div>
+      <p className="admin-muted">Last refreshed: {state.loadedAt || 'Not yet refreshed'}.</p>
+    </>
+  );
+}
+
+function AdminDealsPanel({ token }) {
+  const [deals, setDeals] = useState([]);
+  const [form, setForm] = useState(emptyDeal);
+  const [editingId, setEditingId] = useState('');
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await listAdminPromotedDeals(token);
+      setDeals(response.results || []);
+    } catch (dealError) {
+      setError(dealError.message || 'Could not load promoted deals.');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const update = (name, value) => setForm((current) => ({ ...current, [name]: value }));
+  const field = (name, label, type = 'text') => (
+    <label>
+      <span>{label}</span>
+      <input type={type} value={form[name] ?? ''} onChange={(event) => update(name, event.target.value)} />
+    </label>
+  );
+
+  const edit = (deal) => {
+    setEditingId(deal.id);
+    setForm({ ...emptyDeal, ...deal, tags: (deal.tags || []).join(', ') });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const save = async (event) => {
+    event.preventDefault();
+    setError('');
+    setNotice('');
+    if (form.bookingMode === 'affiliate' && form.partnerUrl && !isSafeUrl(form.partnerUrl)) {
+      setError('Partner URL must be a safe http:// or https:// URL. javascript: and data: URLs are not allowed.');
+      return;
+    }
+
+    const payload = { ...form, priceFrom: Number(form.priceFrom || 0), nights: Number(form.nights || 0), tags: form.tags };
+    try {
+      const response = editingId
+        ? await updateAdminPromotedDeal(editingId, payload, token)
+        : await createAdminPromotedDeal(payload, token);
+      const saved = response.results?.[0];
+      setDeals((current) => (editingId
+        ? current.map((deal) => (deal.id === editingId ? saved : deal))
+        : [saved, ...current]));
+      setForm(emptyDeal);
+      setEditingId('');
+      setNotice('Promoted deal saved. Active deals can appear publicly; inactive deals stay private.');
+    } catch (saveError) {
+      setError(saveError.message || 'Could not save promoted deal.');
+    }
+  };
+
+  const status = async (deal, nextStatus) => {
+    setError('');
+    try {
+      const response = await updateAdminPromotedDealStatus(deal.id, nextStatus, token);
+      const updated = response.results?.[0];
+      setDeals((current) => current.map((item) => (item.id === deal.id ? updated : item)));
+    } catch (statusError) {
+      setError(statusError.message || 'Could not update status.');
+    }
+  };
+
+  return (
+    <>
+      <AdminPageTitle
+        kicker="Admin-managed offers"
+        title="Promoted Deals"
+        copy="Create, edit, pause and archive promoted cards. This never creates a booking, payment or reservation."
+        action={<button onClick={load} disabled={loading}>Refresh list</button>}
+      />
+      {error && <div className="error-state">{error}</div>}
+      {notice && <div className="loading-state">{notice}</div>}
+      <form className="admin-form" onSubmit={save}>
+        <h2>{editingId ? 'Edit promoted deal' : 'Create promoted deal'}</h2>
+        <fieldset>
+          <legend>A. Basic</legend>
+          {field('title', 'Title')}
+          {field('supplierName', 'Supplier name')}
+          {field('destination', 'Destination')}
+          {field('country', 'Country')}
+          {field('hotelName', 'Hotel name')}
+          {field('image', 'Image URL/key')}
+          <label><span>Status</span><select value={form.status} onChange={(event) => update('status', event.target.value)}>{['draft', 'active', 'paused', 'archived'].map((value) => <option key={value}>{value}</option>)}</select></label>
+          <label><span>Deal type</span><select value={form.dealType} onChange={(event) => update('dealType', event.target.value)}>{['package', 'advert', 'manual-quote', 'affiliate'].map((value) => <option key={value}>{value}</option>)}</select></label>
+        </fieldset>
+        <fieldset>
+          <legend>B. Pricing</legend>
+          {field('priceFrom', 'Price from', 'number')}
+          {field('currency', 'Currency')}
+          {field('priceQualifier', 'Price qualifier')}
+          {field('savingLabel', 'Saving label')}
+        </fieldset>
+        <fieldset>
+          <legend>C. Trip details</legend>
+          {field('nights', 'Nights', 'number')}
+          {field('departureAirport', 'Departure airport')}
+          {field('returnAirport', 'Return airport')}
+          {field('dateLabel', 'Date label')}
+          {field('groupSizeLabel', 'Group size label')}
+          {field('boardBasis', 'Board basis')}
+          {field('baggageLabel', 'Baggage label')}
+        </fieldset>
+        <fieldset>
+          <legend>D. Booking/CTA</legend>
+          <label><span>Booking mode</span><select value={form.bookingMode} onChange={(event) => update('bookingMode', event.target.value)}>{['manual-quote', 'affiliate', 'enquiry'].map((value) => <option key={value}>{value}</option>)}</select></label>
+          {field('partnerId', 'Partner ID')}
+          {field('partnerUrl', 'Partner URL')}
+          {field('protectionLabel', 'Protection label')}
+        </fieldset>
+        <fieldset>
+          <legend>E. Tags and notes</legend>
+          {field('tags', 'Tags comma-separated')}
+          <label><span>Internal notes</span><textarea value={form.internalNotes || ''} onChange={(event) => update('internalNotes', event.target.value)} /></label>
+        </fieldset>
+        <div className="admin-actions">
+          <button>{editingId ? 'Save changes' : 'Create deal'}</button>
+          {editingId && <button type="button" onClick={() => { setEditingId(''); setForm(emptyDeal); }}>Cancel edit</button>}
+        </div>
+      </form>
+      <div className="admin-list">
+        {deals.map((deal) => (
+          <article className="admin-enquiry-card" key={deal.id}>
+            <div className="admin-card-top">
+              <div>
+                <span className={`status-pill status-${deal.status}`}>{deal.status}</span>
+                <h2>{deal.title}</h2>
+                <p>{deal.destination} · {deal.supplierName || 'PickyHoliday'} · {friendlyDate(deal.updatedAt)}</p>
+              </div>
+              <button onClick={() => edit(deal)}>Edit</button>
+            </div>
+            <div className="admin-actions">
+              <button onClick={() => status(deal, 'active')}>Activate</button>
+              <button onClick={() => status(deal, 'paused')}>Pause</button>
+              <button onClick={() => status(deal, 'archived')}>Archive</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function AdminContentPanel({ token, featureOnly = false }) {
+  const [config, setConfig] = useState(defaultSiteConfig);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+
+  const load = useCallback(async () => {
+    setError('');
+    try {
+      const response = await getAdminSiteConfig(token);
+      setConfig(response.siteConfig || defaultSiteConfig);
+    } catch (contentError) {
+      setError(contentError.message || 'Could not load site content.');
+    }
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const patch = (section, key, value) => setConfig((current) => ({
+    ...current,
+    [section]: { ...(current[section] || {}), [key]: value },
+  }));
+
+  const save = async () => {
+    setError('');
+    setNotice('');
+    try {
+      const response = await updateAdminSiteConfig(config, token);
+      setConfig(response.siteConfig);
+      setNotice('Site configuration saved.');
+    } catch (saveError) {
+      setError(saveError.message || 'Could not save site configuration.');
+    }
+  };
+
+  const flags = { ...defaultFeatureFlags, ...(config.featureFlags || {}) };
+
+  if (featureOnly) {
+    return (
+      <>
+        <AdminPageTitle
+          kicker="Safe public toggles"
+          title="Feature Flags"
+          copy="Frontend-safe flags only. Secure backend environment settings still win."
+          action={<button onClick={save}>Save flags</button>}
+        />
+        {error && <div className="error-state">{error}</div>}
+        {notice && <div className="loading-state">{notice}</div>}
+        <div className="admin-form feature-list">
+          {Object.keys(defaultFeatureFlags).map((key) => (
+            <label className="admin-check" key={key}>
+              <input type="checkbox" checked={Boolean(flags[key])} onChange={(event) => patch('featureFlags', key, event.target.checked)} />
+              {key}
+            </label>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <AdminPageTitle
+        kicker="Website copy"
+        title="Site Content"
+        copy="Update public homepage copy without editing source code."
+        action={<button onClick={save}>Save content</button>}
+      />
+      {error && <div className="error-state">{error}</div>}
+      {notice && <div className="loading-state">{notice}</div>}
+      <div className="admin-form">
+        <fieldset>
+          <legend>Homepage hero</legend>
+          <label><span>Eyebrow</span><input value={config.hero?.eyebrow || ''} onChange={(event) => patch('hero', 'eyebrow', event.target.value)} /></label>
+          <label><span>Title</span><input value={config.hero?.title || ''} onChange={(event) => patch('hero', 'title', event.target.value)} /></label>
+          <label><span>Subtitle</span><textarea value={config.hero?.subtitle || ''} onChange={(event) => patch('hero', 'subtitle', event.target.value)} /></label>
+          <label><span>Assurance chips</span><input value={(config.hero?.assuranceChips || []).join(', ')} onChange={(event) => patch('hero', 'assuranceChips', event.target.value.split(',').map((item) => item.trim()).filter(Boolean))} /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Newsletter/footer/trust</legend>
+          <label><span>Newsletter title</span><input value={config.newsletter?.title || ''} onChange={(event) => patch('newsletter', 'title', event.target.value)} /></label>
+          <label><span>Newsletter subtitle</span><input value={config.newsletter?.subtitle || ''} onChange={(event) => patch('newsletter', 'subtitle', event.target.value)} /></label>
+          <label><span>Footer short description</span><input value={config.footer?.shortDescription || ''} onChange={(event) => patch('footer', 'shortDescription', event.target.value)} /></label>
+          <label><span>Trust/protection copy</span><input value={config.trust?.protectionCopy || ''} onChange={(event) => patch('trust', 'protectionCopy', event.target.value)} /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Announcement</legend>
+          <label className="admin-check"><input type="checkbox" checked={Boolean(config.announcement?.active)} onChange={(event) => patch('announcement', 'active', event.target.checked)} /> Announcement active</label>
+          <label><span>Banner text</span><input value={config.announcement?.text || ''} onChange={(event) => patch('announcement', 'text', event.target.value)} /></label>
+        </fieldset>
+      </div>
+    </>
+  );
+}
+
+function AdminSettingsPanel() {
+  const [health, setHealth] = useState({});
+
+  useEffect(() => {
+    getBackendHealth().then(setHealth).catch(() => {});
+  }, []);
+
+  const items = [
+    ['Provider mode', health.providerMode],
+    ['Enquiry storage', health.enquiryStorageMode],
+    ['Promoted deal storage', health.promotedDealStorageMode],
+    ['Database status', health.databaseStatus],
+    ['Promoted deal status', health.promotedDealStorageStatus],
+    ['Site config status', health.siteConfigStorageStatus],
+    ['Diagnostics default', showProviderDiagnostics ? 'visible' : 'hidden'],
+    ['App version', import.meta.env.VITE_APP_VERSION || 'not set'],
+    ['Railway database configured', health.databaseConfigured ? 'yes' : 'no'],
+    ['Duffel configured', health.duffelConfigured ? 'yes' : 'no'],
+    ['Amadeus configured', health.amadeusConfigured ? 'yes' : 'no'],
+  ];
+
+  return (
+    <>
+      <AdminPageTitle
+        kicker="Safe environment summary"
+        title="Settings"
+        copy="No secrets, tokens, URLs or passwords are displayed here."
+      />
+      <dl className="admin-fields settings-fields">
+        {items.map(([key, value]) => (
+          <React.Fragment key={key}>
+            <dt>{key}</dt>
+            <dd>{String(value ?? 'unknown')}</dd>
+          </React.Fragment>
+        ))}
+      </dl>
+    </>
+  );
+}
+
+function AdminApp() {
+  const [token, setToken] = useState(readAdminToken);
+
+  useEffect(() => {
+    if (!token) window.location.replace('/admin/login');
+  }, [token]);
+
+  const logout = () => {
+    clearAdminToken();
+    setToken('');
+    window.location.assign('/admin/login');
+  };
+
+  if (!token) return null;
+
+  const path = window.location.pathname;
+  let panel = <AdminDashboardPanel token={token} />;
+  if (path === '/admin/enquiries') panel = <AdminEnquiriesPanel token={token} />;
+  if (path === '/admin/deals') panel = <AdminDealsPanel token={token} />;
+  if (path === '/admin/content') panel = <AdminContentPanel token={token} />;
+  if (path === '/admin/features') panel = <AdminContentPanel token={token} featureOnly />;
+  if (path === '/admin/settings') panel = <AdminSettingsPanel />;
+
+  return <AdminLayout onLogout={logout}>{panel}</AdminLayout>;
+}
+
+const Root = window.location.pathname === '/admin/login' ? AdminLoginApp : (adminPaths.includes(window.location.pathname) ? AdminApp : App);
 
 createRoot(document.getElementById('root')).render(<Root />);

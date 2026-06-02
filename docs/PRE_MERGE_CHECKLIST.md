@@ -78,3 +78,17 @@
 - [x] Ran local HTTP checks for homepage/admin route rendering, enquiry creation, admin listing, and status update to `contacted`.
 - [x] Ran a Postgres-not-configured check to confirm enquiry writes return a controlled `503` when `ENQUIRY_STORAGE_MODE=postgres` is set without `DATABASE_URL`.
 - [x] Confirmed no booking, payment, Duffel order, Amadeus order, supplier reservation, real email sending, or committed secret was added.
+
+
+## Admin dashboard phase checklist
+
+- `/admin/login` stores the runtime admin token in `sessionStorage` only.
+- `/admin` dashboard, `/admin/enquiries`, `/admin/deals`, `/admin/content`, `/admin/features` and `/admin/settings` load inside the admin shell.
+- Active promoted deals appear publicly; draft, paused and archived deals do not.
+- Site config returns safe public copy only.
+- Feature flags do not override secure backend env protections.
+- JSON fallbacks for enquiries, promoted deals and site config still work.
+- Postgres modes require `DATABASE_URL` and return controlled errors when missing.
+- No live booking, payment, supplier reservation, Duffel order, Amadeus order or real email flow is introduced.
+- Run `npm install`, `npm run build` and `npm run test:api`.
+- `/api/travel/search` includes active promoted deals when enabled and excludes paused/inactive deals.

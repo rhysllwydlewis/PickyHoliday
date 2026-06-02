@@ -133,3 +133,24 @@ curl -X POST http://localhost:8787/api/travel/enquiries \
 ```
 
 Admin UI calls are the same as the admin curl checks. The `/admin/enquiries` page asks for `ADMIN_ACCESS_TOKEN` at runtime, stores it in `sessionStorage`, and sends `Authorization: Bearer <token>`. A `401` response should be shown as a friendly unauthorized state. A controlled `503` from Postgres-not-configured storage should be shown as a temporary storage configuration message rather than a stack trace.
+
+
+## Admin dashboard / promoted deals / site config checks
+
+```bash
+curl http://localhost:8787/api/health
+curl http://localhost:8787/api/site-config
+curl http://localhost:8787/api/deals/promoted
+curl -i http://localhost:8787/api/admin/promoted-deals
+curl -H "Authorization: Bearer YOUR_ADMIN_ACCESS_TOKEN" http://localhost:8787/api/admin/promoted-deals
+curl -X POST http://localhost:8787/api/admin/promoted-deals \
+  -H "Authorization: Bearer YOUR_ADMIN_ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Barcelona group feature","destination":"Barcelona","status":"active","bookingMode":"manual-quote","tags":"Holidays,Groups"}'
+curl -X PATCH http://localhost:8787/api/admin/site-config \
+  -H "Authorization: Bearer YOUR_ADMIN_ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"announcement":{"active":true,"text":"New group quote desk is open"}}'
+```
+
+Admin UI login is at `/admin/login`. The token is entered at runtime, stored in `sessionStorage` only and sent as `Authorization: Bearer <token>`. Public `/api/health`, `/api/site-config` and `/api/deals/promoted` must not expose `DATABASE_URL`, `ADMIN_ACCESS_TOKEN` or provider secrets.
