@@ -240,3 +240,27 @@ export async function getAdminSiteConfig(token) {
 export async function updateAdminSiteConfig(payload, token) {
   return apiPatch('/api/admin/site-config', payload, token);
 }
+
+export async function listPublicContentPages(type) {
+  return apiGet(`/api/content/pages${type ? `?type=${encodeURIComponent(type)}` : ''}`);
+}
+
+export async function getPublicContentPage(slug) {
+  return apiGet(`/api/content/pages/${encodeURIComponent(slug)}`);
+}
+
+export async function listAdminContentPages(token) {
+  return apiGet('/api/admin/content-pages', token);
+}
+
+export async function createAdminContentPage(payload, token) {
+  return apiPost('/api/admin/content-pages', payload, token);
+}
+
+export async function updateAdminContentPage(id, payload, token) {
+  return apiPatch(`/api/admin/content-pages/${encodeURIComponent(id)}`, payload, token);
+}
+
+export async function updateAdminContentPageStatus(id, status, token) {
+  return apiPatch(`/api/admin/content-pages/${encodeURIComponent(id)}/status`, { status }, token);
+}

@@ -10,6 +10,7 @@ import { notifyEnquiry } from './enquiries/enquiryNotifier.js';
 import { publicEnquiry } from '../src/services/enquiries/enquiryModel.js';
 import { createPromotedDeal, getPromotedDealStorageStatus, listPromotedDeals, listPublicPromotedDeals, updatePromotedDeal, updatePromotedDealStatus } from './deals/promotedDealStore.js';
 import { getPublicSiteConfig, getSiteConfig, getSiteConfigStorageStatus, updateSiteConfig } from './site/siteConfigStore.js';
+import { createContentPage, getContentPageStorageStatus, getPublicContentPageBySlug, listAdminContentPages, listPublicContentPages, updateContentPage, updateContentPageStatus } from './content/contentPageStore.js';
 
 const port = Number(process.env.PORT || 8787);
 const registry = createTravelProviderRegistry(process.env);
@@ -27,6 +28,7 @@ const publicRateLimitMax = numberFromEnv('API_RATE_LIMIT_MAX', 120);
 const adminRateLimitMax = numberFromEnv('ADMIN_RATE_LIMIT_MAX', 60);
 const enquiryRateLimitMax = numberFromEnv('ENQUIRY_RATE_LIMIT_MAX', 20);
 const rateLimitBuckets = new Map();
+const publicSiteUrl = (process.env.PUBLIC_SITE_URL || 'https://pickyholiday.co.uk').replace(/\/$/, '');
 
 const isPathInside = (parent, child) => {
   const relativePath = path.relative(parent, child);
@@ -209,6 +211,11 @@ const corsOrigin = (request) => {
   return allowedOrigins[0];
 };
 
+const sendText = (response, status, body, contentType) => {
+  writeHead(response, status, { 'Content-Type': contentType });
+  response.end(body);
+};
+
 const sendJson = (request, response, status, payload) => {
   writeHead(response, status, {
     'Content-Type': 'application/json',
@@ -350,16 +357,18 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === 'GET' && url.pathname === '/api/health') {
-    const [enquiryStorageStatus, promotedDealStorageStatus, siteConfigStorageStatus] = await Promise.all([
+    const [enquiryStorageStatus, promotedDealStorageStatus, siteConfigStorageStatus, contentPageStorageStatus] = await Promise.all([
       getEnquiryStorageStatus(),
       getPromotedDealStorageStatus(),
       getSiteConfigStorageStatus(),
+      getContentPageStorageStatus(),
     ]);
     sendJson(request, response, 200, {
       ...registry.status(),
       ...enquiryStorageStatus,
       ...promotedDealStorageStatus,
       ...siteConfigStorageStatus,
+      ...contentPageStorageStatus,
       observability: { requestId: request.requestId, requestLogging: requestLogEnabled },
       security: { hstsEnabled, maxBodyBytes, rateLimitWindowMs, publicRateLimitMax, adminRateLimitMax, enquiryRateLimitMax },
     });
@@ -367,15 +376,17 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === 'GET' && url.pathname === '/api/readiness') {
-    const [enquiryStorageStatus, promotedDealStorageStatus, siteConfigStorageStatus] = await Promise.all([
+    const [enquiryStorageStatus, promotedDealStorageStatus, siteConfigStorageStatus, contentPageStorageStatus] = await Promise.all([
       getEnquiryStorageStatus(),
       getPromotedDealStorageStatus(),
       getSiteConfigStorageStatus(),
+      getContentPageStorageStatus(),
     ]);
     const storageStatuses = [
       enquiryStorageStatus.databaseStatus,
       promotedDealStorageStatus.promotedDealStorageStatus,
       siteConfigStorageStatus.siteConfigStorageStatus,
+      contentPageStorageStatus.contentPageStorageStatus,
     ].filter(Boolean);
     const ready = storageStatuses.every((status) => !`${status}`.includes('error') && !`${status}`.includes('not-configured'));
     sendJson(request, response, ready ? 200 : 503, {
@@ -384,10 +395,50 @@ const server = http.createServer(async (request, response) => {
       results: [],
       providerErrors: ready ? [] : [{ provider: 'storage', method: 'readiness', message: 'One or more configured storage backends are not ready.' }],
       providerStatus: registry.status().providerStatus,
-      storage: { ...enquiryStorageStatus, ...promotedDealStorageStatus, ...siteConfigStorageStatus },
+      storage: { ...enquiryStorageStatus, ...promotedDealStorageStatus, ...siteConfigStorageStatus, ...contentPageStorageStatus },
       observability: { requestId: request.requestId, requestLogging: requestLogEnabled },
       meta: { totalResults: 0, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString(), status: ready ? 200 : 503 },
     });
+    return;
+  }
+
+
+  if (request.method === 'GET' && url.pathname === '/sitemap.xml') {
+    try {
+      const pages = await listPublicContentPages();
+      const urls = ['/', ...pages.map((page) => page.canonicalPath)].map((item) => `${publicSiteUrl}${item.startsWith('/') ? item : `/${item}`}`);
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((loc) => `  <url><loc>${loc.replace(/&/g, '&amp;')}</loc></url>`).join('\n')}\n</urlset>`;
+      sendText(response, 200, xml, 'application/xml');
+    } catch (error) {
+      sendText(response, 503, '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>', 'application/xml');
+    }
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/robots.txt') {
+    sendText(response, 200, `User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: ${publicSiteUrl}/sitemap.xml\n`, 'text/plain');
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/content/pages') {
+    try {
+      const type = url.searchParams.get('type') || undefined;
+      const pages = await listPublicContentPages({ type });
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: pages, providerErrors: [], meta: { totalResults: pages.length, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) {
+      sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Content pages are temporarily unavailable.'));
+    }
+    return;
+  }
+
+  const publicContentMatch = url.pathname.match(/^\/api\/content\/pages\/([^/]+)$/);
+  if (request.method === 'GET' && publicContentMatch) {
+    try {
+      const page = await getPublicContentPageBySlug(decodeURIComponent(publicContentMatch[1] || ''));
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: [page], page, providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) {
+      sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not read content page.'));
+    }
     return;
   }
 
@@ -430,6 +481,46 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+
+
+  if (request.method === 'GET' && url.pathname === '/api/admin/content-pages') {
+    if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
+    try {
+      const pages = await listAdminContentPages({ type: url.searchParams.get('type') || undefined, status: url.searchParams.get('status') || undefined });
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: pages, providerErrors: [], meta: { totalResults: pages.length, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) { sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not read content pages.')); }
+    return;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/admin/content-pages') {
+    if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
+    try {
+      const page = await createContentPage(await readJsonBody(request));
+      sendJson(request, response, 201, { ok: true, providerMode: registry.mode, results: [page], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) { sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not create content page.', { fieldErrors: error.fieldErrors || [] })); }
+    return;
+  }
+
+  const adminContentStatusMatch = url.pathname.match(/^\/api\/admin\/content-pages\/([^/]+)\/status$/);
+  if (request.method === 'PATCH' && adminContentStatusMatch) {
+    if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
+    try {
+      const body = await readJsonBody(request);
+      const page = await updateContentPageStatus(decodeURIComponent(adminContentStatusMatch[1] || ''), body.status);
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: [page], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) { sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not update content page status.', { fieldErrors: error.fieldErrors || [] })); }
+    return;
+  }
+
+  const adminContentMatch = url.pathname.match(/^\/api\/admin\/content-pages\/([^/]+)$/);
+  if (request.method === 'PATCH' && adminContentMatch) {
+    if (!canUseAdminRoutes(request)) { sendJson(request, response, 401, errorEnvelope(401, 'Admin authorisation required.')); return; }
+    try {
+      const page = await updateContentPage(decodeURIComponent(adminContentMatch[1] || ''), await readJsonBody(request));
+      sendJson(request, response, 200, { ok: true, providerMode: registry.mode, results: [page], providerErrors: [], meta: { totalResults: 1, activeProviders: registry.status().activeProviders, timestamp: new Date().toISOString() } });
+    } catch (error) { sendJson(request, response, error.status || 503, errorEnvelope(error.status || 503, error.status ? error.message : 'Could not update content page.', { fieldErrors: error.fieldErrors || [] })); }
+    return;
+  }
 
   if (request.method === 'GET' && url.pathname === '/api/admin/promoted-deals') {
     if (!canUseAdminRoutes(request)) {

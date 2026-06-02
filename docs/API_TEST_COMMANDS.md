@@ -154,3 +154,21 @@ curl -X PATCH http://localhost:8787/api/admin/site-config \
 ```
 
 Admin UI login is at `/admin/login`. The token is entered at runtime, stored in `sessionStorage` only and sent as `Authorization: Bearer <token>`. Public `/api/health`, `/api/site-config` and `/api/deals/promoted` must not expose `DATABASE_URL`, `ADMIN_ACCESS_TOKEN` or provider secrets.
+
+## SEO content page API checks
+
+```bash
+curl -s http://localhost:8787/api/content/pages | jq '.results | length'
+curl -s http://localhost:8787/api/content/pages?type=destination | jq '.results[].slug'
+curl -s http://localhost:8787/api/content/pages/barcelona | jq '.page.slug, .page.internalNotes'
+curl -s http://localhost:8787/sitemap.xml
+curl -s http://localhost:8787/robots.txt
+curl -s http://localhost:8787/api/health | jq '.contentPageStorageMode, .contentPageStorageStatus'
+curl -s http://localhost:8787/api/readiness | jq '.storage.contentPageStorageStatus'
+```
+
+Admin content-page routes require `ADMIN_ACCESS_TOKEN` in normal environments:
+
+```bash
+curl -s -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN" http://localhost:8787/api/admin/content-pages | jq '.results | length'
+```

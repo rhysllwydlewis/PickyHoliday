@@ -24,3 +24,7 @@ Statuses are `draft`, `active`, `paused` and `archived`. Only `active` deals app
 ## URL safety
 
 Affiliate partner URLs must use `http://` or `https://`. `javascript:` and `data:` URLs are rejected. Public cards only show “Continue to partner” when the URL is safe. “Ask for group quote” remains available and remains enquiry-only.
+
+## Relationship to content pages
+
+Published content pages can surface related promoted/search results through their search defaults. Promoted deal storage and status behaviour remain unchanged, and promoted deals still do not create live bookings or payments.
