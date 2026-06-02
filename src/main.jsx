@@ -204,36 +204,51 @@ function Header({ onAction, onSignIn }) {
     <header className="topbar" id="top">
       <div className="navwrap">
         <Logo />
-        <nav aria-label="Primary navigation">
+        <nav className="primary-nav" aria-label="Primary navigation">
           {nav.map((label, index) => (
-            <button key={label} onClick={() => handleNav(label)}>
-              {label}
-              {index !== 3 && <ChevronDown size={14} />}
+            <button className="nav-link" key={label} onClick={() => handleNav(label)}>
+              <span>{label}</span>
+              {index !== 3 && <ChevronDown className="nav-chevron" size={14} />}
             </button>
           ))}
         </nav>
         <button
-          className="signin"
+          className="signin glass-button"
           onClick={handleSignIn}
         >
-          <Users size={19} /> Sign in
+          <span className="button-glow" aria-hidden="true" />
+          <Users size={19} /> <span>Sign in</span>
         </button>
-        <button className="start" onClick={() => scrollToId('search')}>
-          <BriefcaseBusiness size={17} /> Start planning
+        <button className="start glass-button" onClick={() => scrollToId('search')}>
+          <span className="button-glow" aria-hidden="true" />
+          <BriefcaseBusiness size={17} /> <span>Start planning</span>
         </button>
         <button
           className="mobile"
           onClick={() => setMobileOpen((open) => !open)}
+          aria-controls="mobile-navigation"
           aria-expanded={mobileOpen}
-          aria-label="Open navigation"
+          aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
         >
-          <Menu />
+          {mobileOpen ? <X /> : <Menu />}
         </button>
       </div>
       {mobileOpen && (
-        <div className="mobile-menu">
-          {nav.map((label) => <button key={label} onClick={() => handleNav(label)}>{label}</button>)}
-          <button onClick={handleSignIn}>Sign in</button>
+        <div className="mobile-menu" id="mobile-navigation">
+          {nav.map((label) => (
+            <button className="mobile-link" key={label} onClick={() => handleNav(label)}>
+              <span>{label}</span>
+              <ChevronRight size={16} />
+            </button>
+          ))}
+          <button className="mobile-signin" onClick={handleSignIn}>
+            <Users size={17} />
+            <span>Sign in</span>
+          </button>
+          <button className="mobile-start" onClick={() => { setMobileOpen(false); scrollToId('search'); }}>
+            <BriefcaseBusiness size={17} />
+            <span>Start planning</span>
+          </button>
         </div>
       )}
     </header>
