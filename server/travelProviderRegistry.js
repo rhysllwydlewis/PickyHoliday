@@ -4,6 +4,7 @@ import { createDuffelProvider } from '../src/services/providers/duffelProvider.j
 import { createAffiliatePackageProvider } from '../src/services/providers/affiliatePackageProvider.js';
 import { manualDealsProvider } from '../src/services/providers/manualDealsProvider.js';
 import { createPartnerRedirectProvider } from '../src/services/providers/partnerRedirectProvider.js';
+import { createBookingDemandProvider } from '../src/services/providers/bookingDemandProvider.js';
 import { normaliseHolidaySearchCriteria } from '../src/services/search/holidaySearchCriteria.js';
 import { normaliseComposedHolidayResults } from '../src/services/search/composedHolidayResults.js';
 
@@ -13,7 +14,10 @@ const safeMessage = (error) => {
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
     .replace(/client_secret=[^&\s]+/gi, 'client_secret=[redacted]')
     .replace(/client_id=[^&\s]+/gi, 'client_id=[redacted]')
-    .replace(/duffel_(test|live)_[A-Za-z0-9._-]+/gi, 'duffel_[redacted]');
+    .replace(/duffel_(test|live)_[A-Za-z0-9._-]+/gi, 'duffel_[redacted]')
+    .replace(/BOOKING_DEMAND_API_KEY/gi, 'BOOKING_DEMAND_[redacted]')
+    .replace(/X-Affiliate-Id:\s*[^\s,}]+/gi, 'X-Affiliate-Id: [redacted]')
+    .replace(/affiliate[_-]?id[^\s,}]+/gi, 'affiliate_id[redacted]');
 };
 
 const providerLabel = (provider) => provider?.id || provider?.label || 'unknown-provider';
@@ -78,6 +82,8 @@ export function createTravelProviderRegistry(env = process.env) {
     trackingId: env.PARTNER_REDIRECT_TRACKING_ID || env.AFFILIATE_DEFAULT_TRACKING_ID,
   });
 
+  const bookingDemandProvider = createBookingDemandProvider(env);
+
   const providers = {
     mock: mockProvider,
     duffel: duffelProvider,
@@ -85,25 +91,28 @@ export function createTravelProviderRegistry(env = process.env) {
     'affiliate-package': affiliatePackageProvider,
     'manual-deals': manualDealsProvider,
     'partner-redirect': partnerRedirectProvider,
+    'booking-demand': bookingDemandProvider,
   };
 
   const includeIfConfigured = (provider) => (provider.configured ? [provider] : []);
   const packageProviders = affiliateMode === 'disabled' || (!showDemoDeals && mode !== 'mock') ? [] : [affiliatePackageProvider];
   const partnerRedirectProviders = partnerRedirectProvider.configured && mode !== 'mock' ? [partnerRedirectProvider] : [];
+  const bookingDemandProviders = bookingDemandProvider.configured && bookingDemandProvider.enabled && mode !== 'mock' ? [bookingDemandProvider] : [];
   const activeSearchProviders = (() => {
     if (mode === 'mock') return [mockProvider, ...packageProviders];
-    if (mode === 'duffel') return [...includeIfConfigured(duffelProvider), ...partnerRedirectProviders, manualDealsProvider, ...packageProviders];
-    if (mode === 'amadeus') return [...includeIfConfigured(amadeusProvider), ...partnerRedirectProviders, manualDealsProvider, ...packageProviders];
+    if (mode === 'duffel') return [...includeIfConfigured(duffelProvider), ...bookingDemandProviders, ...partnerRedirectProviders, manualDealsProvider, ...packageProviders];
+    if (mode === 'amadeus') return [...includeIfConfigured(amadeusProvider), ...bookingDemandProviders, ...partnerRedirectProviders, manualDealsProvider, ...packageProviders];
     if (mode === 'hybrid') {
       return [
         ...includeIfConfigured(duffelProvider),
+        ...bookingDemandProviders,
         ...partnerRedirectProviders,
         ...packageProviders,
         manualDealsProvider,
         ...(amadeusSecondaryEnabled ? includeIfConfigured(amadeusProvider) : []),
       ];
     }
-    return [...partnerRedirectProviders, manualDealsProvider, ...packageProviders];
+    return [...bookingDemandProviders, ...partnerRedirectProviders, manualDealsProvider, ...packageProviders];
   })();
 
   const statusFor = (provider) => (provider.getStatus ? provider.getStatus() : {
@@ -199,6 +208,9 @@ export function createTravelProviderRegistry(env = process.env) {
           ...envelope({ ...collected, results }).meta,
           criteria: normalisedCriteria,
           resultShape: 'composed-holiday-v1',
+          bookingDemandConfigured: bookingDemandProvider.configured,
+          bookingDemandEnabled: bookingDemandProvider.enabled,
+          hotelProviderCount: bookingDemandProvider.configured ? (collected.providerStatus.find((status) => status.provider === 'booking-demand')?.resultCount || 0) : 0,
           rankingNote: 'Deterministic foundation scoring uses price, destination match, provider confidence, partner redirect availability, promoted/manual signals and rating when available. Richer provider data can improve this later.',
         },
       };
@@ -275,6 +287,9 @@ export function createTravelProviderRegistry(env = process.env) {
         amadeusSecondaryEnabled,
         duffelConfigured: duffelProvider.configured,
         amadeusConfigured: amadeusProvider.configured,
+        bookingDemandConfigured: bookingDemandProvider.configured,
+        bookingDemandEnabled: bookingDemandProvider.enabled,
+        bookingDemandEnvironment: bookingDemandProvider.environment,
         affiliatePackageConfigured: affiliatePackageProvider.configured,
         affiliateProviderMode: affiliateMode,
         showDemoDeals,
