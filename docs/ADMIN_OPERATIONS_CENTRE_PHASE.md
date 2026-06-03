@@ -20,3 +20,7 @@ When `includeWriteTests` is true, it creates a test enquiry with `customerEmail:
 ## Guardrails
 
 No booking, payment, Duffel order, Amadeus order, supplier reservation, customer account or supplier account flow was added. Public and admin responses return booleans/status strings rather than secret values.
+
+## Partner redirect/API mode checks
+
+The operations centre system tests now warn if frontend or backend provider mode is mock, verify `/api/travel/search` responds, confirm `partner-redirect` appears when enabled, validate safe partner URLs, and document mock fallback reporting. Use these checks after deployment to confirm production is API-first and demo fixtures are not the default public experience.

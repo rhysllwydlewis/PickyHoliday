@@ -26,10 +26,10 @@ PickyHoliday should not be locked to one travel API. UK and Europe holidays need
 
 ## Provider modes
 
-- `TRAVEL_PROVIDER_MODE=mock` uses mock results plus the package/affiliate config provider unless `AFFILIATE_PROVIDER_MODE=disabled`.
-- `TRAVEL_PROVIDER_MODE=duffel` uses Duffel if configured plus manual deals and package/affiliate config results.
-- `TRAVEL_PROVIDER_MODE=amadeus` uses Amadeus if configured plus manual deals and package/affiliate config results.
-- `TRAVEL_PROVIDER_MODE=hybrid` uses Duffel plus manual deals and package/affiliate config results. Amadeus is included only when `ENABLE_AMADEUS_SECONDARY=true`.
+- `TRAVEL_PROVIDER_MODE=duffel` is the production-oriented default: Duffel is used if configured, partner live-price redirects are enabled, and manual deals remain available.
+- `TRAVEL_PROVIDER_MODE=amadeus` uses Amadeus if configured plus partner live-price redirects and manual deals.
+- `TRAVEL_PROVIDER_MODE=hybrid` uses Duffel plus partner live-price redirects and manual deals. Amadeus is included only when `ENABLE_AMADEUS_SECONDARY=true`.
+- `TRAVEL_PROVIDER_MODE=mock` uses mock results plus the package/affiliate config provider only when explicitly selected for local/dev/demo testing.
 - `TRAVEL_PRIMARY_FLIGHT_PROVIDER=duffel` records the preferred strategic flight path.
 
 The registry must not call every credentialed provider by default. Credentialed providers are only active when mode/configuration allows them.
@@ -123,3 +123,7 @@ Admin-managed promoted deals are exposed through `GET /api/deals/promoted` and m
 ### Backend search integration
 
 `/api/travel/search` now also attempts to prepend active admin-managed promoted deals (filtered by destination text) to the normal provider results when the safe `enablePromotedDeals` flag is not disabled. This keeps API search consumers aligned with the homepage behaviour while preserving the existing mock/manual/package fallback if promoted-deal storage is temporarily unavailable.
+
+## Partner redirect live-results phase
+
+PickyHoliday now treats partner redirects as the production-safe path away from mock holidays. The frontend calls backend APIs by default, the backend defaults to Duffel-oriented API mode, and partner redirect cards are enabled without requiring live external partner APIs. The cards never claim live availability; they invite the customer to check live price with a partner, while PickyHoliday remains enquiry-first with no payments, no bookings, no Duffel/Amadeus orders and no supplier reservations. Mock mode remains available only when explicitly configured for local/dev/demo testing.

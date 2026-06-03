@@ -138,7 +138,7 @@ export const mockHolidayResults = [
     groupSizeLabel: '8 people, 2+ rooms',
     boardBasis: 'Half board',
     baggageLabel: 'Partner dependent',
-    protectionLabel: 'ATOL/partner terms to be confirmed',
+    protectionLabel: 'Partner protection terms to be confirmed',
     bookingMode: 'enquiry',
     partnerUrl: '',
     tags: ['Holidays', 'Families', 'Beach breaks'],

@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
+import { createTravelProviderRegistry } from '../server/travelProviderRegistry.js';
+import { validatePartnerUrl } from '../src/services/partners/partnerDeepLinks.js';
 
 const shouldStartLocalServer = !process.env.API_BASE_URL;
 const baseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
@@ -7,17 +9,33 @@ const fallbackTestAdminAccessToken = process.env.TEST_ADMIN_ACCESS_TOKEN || 'pic
 const adminAccessToken = process.env.ADMIN_ACCESS_TOKEN || (shouldStartLocalServer ? fallbackTestAdminAccessToken : '');
 const unprotectedAdminAllowed = `${process.env.ALLOW_UNPROTECTED_ADMIN || ''}`.toLowerCase() === 'true';
 let localServer;
-let contentPageJsonBackup;
-const contentPageJsonPath = new URL('../data/content-pages.json', import.meta.url);
+const jsonStorePaths = [
+  '../data/content-pages.json',
+  '../data/analytics-events.json',
+  '../data/enquiries.json',
+  '../data/promoted-deals.json',
+  '../data/site-config.json',
+].map((item) => new URL(item, import.meta.url));
+const jsonStoreBackups = new Map();
 
-const backupContentPageJson = async () => {
+const backupJsonStores = async () => {
   if (!shouldStartLocalServer) return;
-  contentPageJsonBackup = await readFile(contentPageJsonPath, 'utf8').catch(() => null);
+  await Promise.all(jsonStorePaths.map(async (storePath) => {
+    const contents = await readFile(storePath, 'utf8').catch(() => null);
+    jsonStoreBackups.set(storePath.href, contents);
+  }));
 };
 
-const restoreContentPageJson = async () => {
-  if (!shouldStartLocalServer || contentPageJsonBackup === undefined) return;
-  if (contentPageJsonBackup !== null) await writeFile(contentPageJsonPath, contentPageJsonBackup);
+const restoreJsonStores = async () => {
+  if (!shouldStartLocalServer || jsonStoreBackups.size === 0) return;
+  await Promise.all(jsonStorePaths.map(async (storePath) => {
+    const contents = jsonStoreBackups.get(storePath.href);
+    if (contents === null) {
+      await rm(storePath, { force: true });
+      return;
+    }
+    if (contents !== undefined) await writeFile(storePath, contents);
+  }));
 };
 
 const waitForLocalServer = async () => {
@@ -33,6 +51,11 @@ const waitForLocalServer = async () => {
     PUBLIC_ANALYTICS_ENABLED: 'true',
     REQUEST_LOGGING: 'false',
     ENQUIRY_RATE_LIMIT_MAX: '3',
+    TRAVEL_PROVIDER_MODE: process.env.SMOKE_TRAVEL_PROVIDER_MODE || 'duffel',
+    VITE_TRAVEL_PROVIDER_MODE: process.env.SMOKE_VITE_TRAVEL_PROVIDER_MODE || 'api',
+    VITE_SHOW_DEMO_DEALS: process.env.VITE_SHOW_DEMO_DEALS || 'false',
+    ENABLE_PARTNER_REDIRECTS: process.env.ENABLE_PARTNER_REDIRECTS || 'true',
+    PARTNER_REDIRECT_PROVIDER_MODE: process.env.PARTNER_REDIRECT_PROVIDER_MODE || 'enabled',
   };
   if (process.env.ADMIN_ACCESS_TOKEN) serverEnv.ADMIN_ACCESS_TOKEN = adminAccessToken;
   else {
@@ -104,6 +127,9 @@ const assertHealth = (data) => {
   const providerNames = (data.providerStatus || data.providers || []).map((provider) => provider.provider);
   if (!providerNames.includes('duffel')) throw new Error('/api/health did not include Duffel in providerStatus.');
   if (!providerNames.includes('affiliate-package')) throw new Error('/api/health did not include affiliate-package in providerStatus.');
+  if (!providerNames.includes('partner-redirect')) throw new Error('/api/health did not include partner-redirect in providerStatus.');
+  if (data.providerMode === 'mock') throw new Error('/api/health defaulted to mock provider mode.');
+  if (typeof data.partnerRedirectConfigured !== 'boolean') throw new Error('/api/health did not expose partnerRedirectConfigured true/false.');
   if (data.primaryFlightProvider !== 'duffel') throw new Error('/api/health did not report Duffel as the primary flight provider.');
   if (typeof data.duffelConfigured !== 'boolean') throw new Error('/api/health did not expose Duffel configured true/false.');
   if (typeof data.amadeusConfigured !== 'boolean') throw new Error('/api/health did not expose Amadeus configured true/false.');
@@ -146,13 +172,13 @@ const assertSiteConfig = (data) => {
 };
 
 const assertFlightResults = (data) => {
-  if (!data.results.some((result) => ['flight-only', 'flight-hotel'].includes(result.resultType))) {
+  if (data.providerMode === 'mock' && !data.results.some((result) => ['flight-only', 'flight-hotel'].includes(result.resultType))) {
     throw new Error('/api/travel/flights did not return flight-capable mock results.');
   }
 };
 
 const assertPackageResults = (data) => {
-  if (!data.results.some((result) => result.resultType === 'package')) {
+  if (!data.results.some((result) => result.resultType === 'package' || result.provider === 'partner-redirect')) {
     throw new Error('/api/travel/packages did not return package results.');
   }
   if (!data.results.every((result) => ['affiliate', 'manual-quote', 'enquiry'].includes(result.bookingMode))) {
@@ -166,6 +192,14 @@ const assertPackageResults = (data) => {
 const assertSearchResults = (data, label) => {
   if (!Array.isArray(data.results)) throw new Error(`${label} did not include a results array.`);
   if (data.providerMode === 'mock' && data.results.length === 0) throw new Error(`${label} returned no mock results.`);
+  if (label.includes('/api/travel/search') && !data.results.some((result) => result.provider === 'partner-redirect')) throw new Error(`${label} did not return partner redirect results.`);
+  for (const result of data.results.filter((item) => item.partnerUrl)) {
+    if (!validatePartnerUrl(result.partnerUrl, result.partnerId || undefined)) throw new Error(`${label} returned an unsafe partnerUrl: ${result.partnerUrl}`);
+  }
+  const body = JSON.stringify(data).toLowerCase();
+  for (const blocked of ['booking confirmed', 'book now', 'atol protected', 'supplier reservation']) {
+    if (body.includes(blocked)) throw new Error(`${label} contained forbidden wording: ${blocked}.`);
+  }
 };
 
 const assertEnquiry = (data) => {
@@ -250,6 +284,9 @@ const assertAnalyticsAndOps = async () => {
   const ops = await fetch(`${baseUrl}/api/admin/ops/run-tests`, { method: 'POST', headers, body: JSON.stringify({ includeWriteTests: false }) });
   const opsData = await parseJson(ops, 'POST /api/admin/ops/run-tests');
   if (!ops.ok || !Array.isArray(opsData.checks) || opsData.checks.length === 0) throw new Error('Ops run-tests did not return checks.');
+  for (const checkName of ['frontend provider mode production default', 'backend provider mode production default', 'partner-redirect provider enabled', 'partner URL safety validation']) {
+    if (!opsData.checks.some((check) => check.name === checkName)) throw new Error(`Ops run-tests did not include ${checkName}.`);
+  }
   const invalidWebhook = await fetch(`${baseUrl}/api/admin/ops/test-webhook`, { method: 'POST', headers, body: JSON.stringify({ url: 'not-a-url', eventType: 'test', payload: {} }) });
   if (invalidWebhook.status !== 400) throw new Error(`Invalid webhook URL returned ${invalidWebhook.status}, expected 400.`);
   for (const badUrl of ['javascript:alert(1)', 'data:text/plain,hello']) {
@@ -266,7 +303,7 @@ const assertAdminPromotedDeals = async () => {
     return;
   }
   const unique = `Smoke promoted ${Date.now()}`;
-  const createResponse = await fetch(`${baseUrl}/api/admin/promoted-deals`, { method: 'POST', headers, body: JSON.stringify({ title: unique, destination: 'Barcelona', status: 'active', dealType: 'affiliate', bookingMode: 'affiliate', partnerUrl: 'https://example.com/pickyholiday-smoke', tags: 'Holidays, Smoke' }) });
+  const createResponse = await fetch(`${baseUrl}/api/admin/promoted-deals`, { method: 'POST', headers, body: JSON.stringify({ title: unique, destination: 'Barcelona', status: 'active', dealType: 'affiliate', bookingMode: 'affiliate', partnerId: 'tui', partnerUrl: 'https://www.tui.co.uk/holidays/search?searchTerm=Barcelona', tags: 'Holidays, Smoke' }) });
   const createdData = await parseJson(createResponse, 'POST /api/admin/promoted-deals');
   if (!createResponse.ok) throw new Error(`POST /api/admin/promoted-deals failed: ${JSON.stringify(createdData)}`);
   const created = createdData.results?.[0];
@@ -284,6 +321,10 @@ const assertAdminPromotedDeals = async () => {
   if (searchPaused.results.some((deal) => deal.hotelName === unique || deal.title === unique)) throw new Error('Paused promoted deal appeared in public search results.');
   const badUrl = await fetch(`${baseUrl}/api/admin/promoted-deals`, { method: 'POST', headers, body: JSON.stringify({ title: `${unique} bad`, destination: 'Barcelona', bookingMode: 'affiliate', partnerUrl: 'javascript:alert(1)' }) });
   if (badUrl.status !== 400) throw new Error(`Invalid partner URL returned ${badUrl.status}, expected 400.`);
+  const badDataUrl = await fetch(`${baseUrl}/api/admin/promoted-deals`, { method: 'POST', headers, body: JSON.stringify({ title: `${unique} data bad`, destination: 'Barcelona', bookingMode: 'affiliate', partnerUrl: 'data:text/html,bad' }) });
+  if (badDataUrl.status !== 400) throw new Error(`Invalid data partner URL returned ${badDataUrl.status}, expected 400.`);
+  const badPartnerDomain = await fetch(`${baseUrl}/api/admin/promoted-deals`, { method: 'POST', headers, body: JSON.stringify({ title: `${unique} domain bad`, destination: 'Barcelona', bookingMode: 'affiliate', partnerId: 'tui', partnerUrl: 'https://example.com/not-tui' }) });
+  if (badPartnerDomain.status !== 400) throw new Error(`Invalid partner domain returned ${badPartnerDomain.status}, expected 400.`);
   const sitePatch = await fetch(`${baseUrl}/api/admin/site-config`, { method: 'PATCH', headers, body: JSON.stringify({ announcement: { active: false, text: 'Smoke checked' } }) });
   const siteData = await parseJson(sitePatch, 'PATCH /api/admin/site-config');
   if (!sitePatch.ok || siteData.siteConfig?.announcement?.text !== 'Smoke checked') throw new Error('Admin site config patch failed.');
@@ -408,8 +449,19 @@ const assertBadJson = async () => {
   }
 };
 
+const assertProviderModeDefaults = () => {
+  const defaultRegistry = createTravelProviderRegistry({});
+  if (defaultRegistry.mode !== 'duffel') throw new Error('Backend registry did not default to duffel.');
+  if (!defaultRegistry.status().activeProviders.includes('partner-redirect')) throw new Error('Default backend registry did not include partner-redirect.');
+  const mockRegistry = createTravelProviderRegistry({ TRAVEL_PROVIDER_MODE: 'mock' });
+  if (mockRegistry.mode !== 'mock' || !mockRegistry.status().activeProviders.includes('mock')) throw new Error('Explicit TRAVEL_PROVIDER_MODE=mock did not keep mock mode working.');
+  if (!validatePartnerUrl('https://www.tui.co.uk/holidays/', 'tui') || validatePartnerUrl('javascript:alert(1)', 'tui') || validatePartnerUrl('data:text/html,bad', 'tui') || validatePartnerUrl('http://www.tui.co.uk/holidays/', 'tui')) throw new Error('Partner URL validation default checks failed.');
+  console.log('✓ Provider mode defaults and partner URL validation helpers passed');
+};
+
 try {
-  await backupContentPageJson();
+  assertProviderModeDefaults();
+  await backupJsonStores();
   await waitForLocalServer();
   console.log(`Running PickyHoliday API smoke tests against ${baseUrl}`);
   for (const endpoint of endpoints) {
@@ -436,5 +488,5 @@ try {
   console.log('✓ POST /api/travel/enquiries rate limit returned controlled 429 envelope');
 } finally {
   stopLocalServer();
-  await restoreContentPageJson();
+  await restoreJsonStores();
 }

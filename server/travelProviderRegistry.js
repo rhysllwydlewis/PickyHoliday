@@ -3,6 +3,7 @@ import { createAmadeusProvider } from '../src/services/providers/amadeusProvider
 import { createDuffelProvider } from '../src/services/providers/duffelProvider.js';
 import { createAffiliatePackageProvider } from '../src/services/providers/affiliatePackageProvider.js';
 import { manualDealsProvider } from '../src/services/providers/manualDealsProvider.js';
+import { createPartnerRedirectProvider } from '../src/services/providers/partnerRedirectProvider.js';
 
 const safeMessage = (error) => {
   const message = error?.message || 'Provider request failed';
@@ -16,8 +17,11 @@ const safeMessage = (error) => {
 const providerLabel = (provider) => provider?.id || provider?.label || 'unknown-provider';
 
 export function createTravelProviderRegistry(env = process.env) {
-  const mode = env.TRAVEL_PROVIDER_MODE || 'mock';
+  const mode = env.TRAVEL_PROVIDER_MODE || 'duffel';
   const affiliateMode = env.AFFILIATE_PROVIDER_MODE || 'mock';
+  const showDemoDeals = `${env.SHOW_DEMO_DEALS || env.VITE_SHOW_DEMO_DEALS || 'false'}`.toLowerCase() === 'true';
+  const partnerRedirectMode = env.PARTNER_REDIRECT_PROVIDER_MODE || 'enabled';
+  const partnerRedirectEnabled = `${env.ENABLE_PARTNER_REDIRECTS || 'true'}`.toLowerCase() !== 'false' && partnerRedirectMode !== 'disabled';
   const primaryFlightProvider = env.TRAVEL_PRIMARY_FLIGHT_PROVIDER || 'duffel';
   const amadeusSecondaryEnabled = `${env.ENABLE_AMADEUS_SECONDARY || 'false'}`.toLowerCase() === 'true';
   const amadeusProvider = createAmadeusProvider({
@@ -51,29 +55,38 @@ export function createTravelProviderRegistry(env = process.env) {
     partners: ['tui', 'jet2holidays', 'easyjet-holidays', 'loveholidays', 'onthebeach', 'expedia'],
   });
 
+  const partnerRedirectProvider = createPartnerRedirectProvider({
+    enabled: partnerRedirectEnabled ? 'true' : 'false',
+    mode: partnerRedirectMode,
+    trackingId: env.PARTNER_REDIRECT_TRACKING_ID || env.AFFILIATE_DEFAULT_TRACKING_ID,
+  });
+
   const providers = {
     mock: mockProvider,
     duffel: duffelProvider,
     amadeus: amadeusProvider,
     'affiliate-package': affiliatePackageProvider,
     'manual-deals': manualDealsProvider,
+    'partner-redirect': partnerRedirectProvider,
   };
 
   const includeIfConfigured = (provider) => (provider.configured ? [provider] : []);
-  const packageProviders = affiliateMode === 'disabled' ? [] : [affiliatePackageProvider];
+  const packageProviders = affiliateMode === 'disabled' || (!showDemoDeals && mode !== 'mock') ? [] : [affiliatePackageProvider];
+  const partnerRedirectProviders = partnerRedirectProvider.configured && mode !== 'mock' ? [partnerRedirectProvider] : [];
   const activeSearchProviders = (() => {
     if (mode === 'mock') return [mockProvider, ...packageProviders];
-    if (mode === 'duffel') return [...includeIfConfigured(duffelProvider), manualDealsProvider, ...packageProviders];
-    if (mode === 'amadeus') return [...includeIfConfigured(amadeusProvider), manualDealsProvider, ...packageProviders];
+    if (mode === 'duffel') return [...includeIfConfigured(duffelProvider), ...partnerRedirectProviders, manualDealsProvider, ...packageProviders];
+    if (mode === 'amadeus') return [...includeIfConfigured(amadeusProvider), ...partnerRedirectProviders, manualDealsProvider, ...packageProviders];
     if (mode === 'hybrid') {
       return [
         ...includeIfConfigured(duffelProvider),
+        ...partnerRedirectProviders,
         ...packageProviders,
         manualDealsProvider,
         ...(amadeusSecondaryEnabled ? includeIfConfigured(amadeusProvider) : []),
       ];
     }
-    return [mockProvider, ...packageProviders];
+    return [...partnerRedirectProviders, manualDealsProvider, ...packageProviders];
   })();
 
   const statusFor = (provider) => (provider.getStatus ? provider.getStatus() : {
@@ -161,7 +174,7 @@ export function createTravelProviderRegistry(env = process.env) {
         : [
           ...(duffelProvider.configured ? [duffelProvider] : []),
           ...(amadeusProvider.configured && (mode === 'amadeus' || amadeusSecondaryEnabled) ? [amadeusProvider] : []),
-          mockProvider,
+          ...(partnerRedirectProvider.configured ? [partnerRedirectProvider] : []),
         ];
       const settled = await Promise.all(providerSet.map(async (provider) => {
         if (!provider.locations) return { provider, results: [], skipped: true };
@@ -229,6 +242,10 @@ export function createTravelProviderRegistry(env = process.env) {
         amadeusConfigured: amadeusProvider.configured,
         affiliatePackageConfigured: affiliatePackageProvider.configured,
         affiliateProviderMode: affiliateMode,
+        showDemoDeals,
+        partnerRedirectConfigured: partnerRedirectProvider.configured,
+        partnerRedirectProviderMode: partnerRedirectMode,
+        partnerRedirectsEnabled: partnerRedirectEnabled,
         providers: providerStatuses,
         providerStatus: providerStatuses,
         providerErrors: [],

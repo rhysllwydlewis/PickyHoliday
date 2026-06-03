@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import './styles.css';
 import { imageUrls, getaways, guides, reviews } from './data/mockDeals.js';
+import { buildPartnerSearchUrl, partnerDefinitions, validatePartnerUrl } from './services/partners/partnerDeepLinks.js';
 import {
   captureAnalyticsEvent,
   createAdminContentPage,
@@ -58,9 +59,10 @@ import {
 const img = (id) => imageUrls[id] || id;
 const hasPricedAmount = (deal) => Number(deal?.priceFrom || 0) > 0;
 const formatPrice = (deal) => `${deal.currency === 'GBP' ? '£' : deal.currency}${deal.priceFrom}`;
-const priceCopy = (deal) => (hasPricedAmount(deal) ? formatPrice(deal) : 'Price to confirm');
+const priceCopy = (deal) => (hasPricedAmount(deal) ? formatPrice(deal) : 'Check live price');
 const dealPlace = (deal) => `${deal.destination}, ${deal.country}`;
 const showProviderDiagnostics = import.meta.env.VITE_SHOW_PROVIDER_DIAGNOSTICS === 'true';
+const showDemoDeals = import.meta.env.VITE_SHOW_DEMO_DEALS === 'true';
 const defaultFeatureFlags = {
   showProviderDiagnostics: false,
   enablePromotedDeals: true,
@@ -79,7 +81,7 @@ const defaultSiteConfig = {
   announcement: {},
   featureFlags: defaultFeatureFlags,
 };
-const isSafeUrl = (value) => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol); } catch { return false; } };
+const isSafePartnerRedirectUrl = (deal = {}) => validatePartnerUrl(deal.partnerUrl, deal.partnerId || undefined);
 const adminPaths = ['/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/pages', '/admin/content', '/admin/features', '/admin/settings', '/admin/ops'];
 const adminTokenStorageKey = 'pickyholiday-admin-token';
 const enquiryStatuses = ['new', 'reviewing', 'contacted', 'quoted', 'closed'];
@@ -363,7 +365,7 @@ function DealCard({ deal, onView }) {
         <p className="provider-chip">{deal.supplierName} · {deal.resultType}</p>
         <div className="price">
           <p>{hasPricedAmount(deal) ? 'From ' : ''}<b>{priceCopy(deal)}</b> {deal.priceQualifier}</p>
-          <button onClick={handleView}>View trip</button>
+          <button onClick={handleView}>{deal.provider === 'partner-redirect' ? 'Check live price' : 'View trip'}</button>
         </div>
       </div>
     </article>
@@ -408,7 +410,7 @@ function validateEnquiryForm(form) {
 function dealModalContent(selected, { onOpenEnquiry, onSubmitted } = {}) {
   return {
     title: selected.hotelName,
-    body: `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or continue to a partner where available; PickyHoliday does not create a booking, payment or supplier reservation automatically.`,
+    body: selected.provider === 'partner-redirect' ? `${selected.flightSummary}. ${selected.hotelSummary}. This sends you to the partner to check live price and availability. PickyHoliday has not created a booking.` : `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or continue to a partner where available; PickyHoliday does not create a booking, payment or supplier reservation automatically.`,
     kicker: selected.savingLabel,
     deal: selected,
     onEnquiry: (deal) => {
@@ -628,7 +630,7 @@ function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
                 <li><b>Airlines:</b> {content.deal.airlineNames?.length ? content.deal.airlineNames.join(', ') : 'Quoted separately'}</li>
                 <li><b>Destination:</b> {dealPlace(content.deal)}</li>
                 <li><b>Hotel:</b> {content.deal.hotelName}</li>
-                <li><b>Lead price:</b> {priceCopy(content.deal)} {content.deal.priceQualifier}</li>
+                <li><b>{content.deal.provider === 'partner-redirect' ? 'Partner price:' : 'Lead price:'}</b> {priceCopy(content.deal)} {content.deal.priceQualifier}</li>
                 {content.deal.sourceBreakdown && <li><b>Pricing confidence:</b> {content.deal.sourceBreakdown.pricingConfidence} · flight {content.deal.sourceBreakdown.flightPrice || 'n/a'} · hotel {content.deal.sourceBreakdown.hotelPrice || 'n/a'}</li>}
                 <li><b>Nights/date:</b> {content.deal.nights} nights · {content.deal.dateLabel}</li>
                 <li><b>Group size:</b> {content.deal.groupSizeLabel}</li>
@@ -641,7 +643,7 @@ function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
               {content.actions?.map((action) => (
                 <button key={action.label} onClick={() => { onClose(); action.onClick?.(); }}>{action.label}</button>
               ))}
-              {featureFlags.enableAffiliateRedirects !== false && content.deal?.partnerUrl && isSafeUrl(content.deal.partnerUrl) && <button onClick={() => { trackEvent({ type: 'partner_redirect_clicked', category: 'partner', label: content.deal.supplierName || content.deal.provider, metadata: { destination: content.deal.destination, provider: content.deal.provider, supplierName: content.deal.supplierName } }); window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer'); }}>Continue to partner</button>}
+              {featureFlags.enableAffiliateRedirects !== false && content.deal?.partnerUrl && isSafePartnerRedirectUrl(content.deal) && <button onClick={() => { trackEvent({ type: 'partner_redirect_clicked', category: 'partner', label: content.deal.supplierName || content.deal.provider, metadata: { destination: content.deal.destination, provider: content.deal.provider, supplierName: content.deal.supplierName } }); window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer'); }}>{content.deal.provider === 'partner-redirect' ? 'Check live price' : 'Continue to partner'}</button>}
               {content.deal && <button onClick={() => content.onEnquiry?.(content.deal)}>Ask for group quote</button>}
               <button onClick={onClose}>{content.closeLabel || (content.deal ? 'Close trip details' : 'Close')}</button>
               {content.deal && <button onClick={() => { onClose(); scrollToId('search'); }}>Edit search</button>}
@@ -710,7 +712,7 @@ function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onVi
         {!isLoading && dealsToShow.length ? (
           dealsToShow.map((deal) => <DealCard key={deal.id} deal={deal} onView={onViewDeal} />)
         ) : !isLoading ? (
-          <div className="empty-state">No provider results yet. Try another destination, holiday type or group size.</div>
+          <div className="empty-state">No live partner results found yet. Try another destination or send a group quote enquiry.</div>
         ) : null}
       </div>
       <button className="arrow right" onClick={() => onRotateDeals('next')} aria-label="Next deal"><ChevronRight /></button>
@@ -937,7 +939,7 @@ function PublicContentPageApp() {
         return undefined;
       }
       setPage(nextPage); setStatus('ready'); updateSeoMeta(nextPage); replaceJsonLd(pageSchema(nextPage)); trackEvent({ type: 'content_page_view', category: 'content', label: nextPage.title, metadata: { slug: nextPage.slug, type: nextPage.type } });
-      return searchHolidays(nextPage.searchDefaults || {}).then((results) => { if (!cancelled) setDeals((results.results || []).slice(0, 3)); }).catch(() => {});
+      return searchHolidays(nextPage.searchDefaults || {}).then((results) => { if (!cancelled) setDeals((results.results || []).filter((result) => showDemoDeals || !result.isDemo).slice(0, 3)); }).catch(() => {});
     }).catch(() => { if (!cancelled) { setStatus('missing'); updateSeoMeta({ title: 'Page not found | PickyHoliday', metaTitle: 'Page not found | PickyHoliday', metaDescription: 'This PickyHoliday content page is unavailable.' }); } });
     return () => { cancelled = true; };
   }, [slug]);
@@ -1028,9 +1030,10 @@ function App() {
     const destination = search.destination.trim().toLowerCase();
 
     return dealList.filter((deal) => {
-      const dealContent = `${deal.destination} ${deal.country} ${deal.hotelName} ${deal.supplierName} ${deal.tags.join(' ')}`.toLowerCase();
+      const tags = deal.tags || [];
+      const dealContent = `${deal.destination} ${deal.country} ${deal.hotelName} ${deal.supplierName} ${tags.join(' ')}`.toLowerCase();
       const isPromotedDeal = deal.provider === 'promoted-deals';
-      return (deal.tags.includes(activeTab) || isPromotedDeal) && (!destination || dealContent.includes(destination));
+      return (tags.includes(activeTab) || isPromotedDeal || deal.provider === 'partner-redirect') && (!destination || dealContent.includes(destination));
     });
   }, [activeTab, dealList, search.destination]);
 
@@ -1084,7 +1087,7 @@ function App() {
     setSearchError('');
     try {
       const response = await searchHolidays(criteria);
-      let results = response.results || [];
+      let results = (response.results || []).filter((result) => showDemoDeals || !result.isDemo);
       if (featureFlags.enablePromotedDeals !== false) {
         try {
           const promoted = await getPublicPromotedDeals();
@@ -1093,6 +1096,8 @@ function App() {
           response.providerErrors = [...(response.providerErrors || []), { provider: 'promoted-deals', method: 'search', message: 'Promoted deals unavailable; showing standard results.' }];
         }
       }
+      if (response.meta?.fallbackUsed) trackEvent({ type: 'mock_fallback_used', category: 'provider', label: response.providerMode, metadata: response.meta?.diagnostics || {} });
+      if (!results.length) trackEvent({ type: 'no_live_results_found', category: 'search', label: criteria.destination || criteria.intent, metadata: { providerMode: response.providerMode } });
       setDealList(results);
       setDiagnostics((current) => ({
         ...current,
@@ -1775,6 +1780,23 @@ function AdminDealsPanel({ token }) {
     </label>
   );
 
+  const generatePartnerUrl = () => {
+    const partnerId = form.partnerId || partnerDefinitions[0]?.partnerId || '';
+    const generated = buildPartnerSearchUrl(partnerId, {
+      destination: form.destination,
+      origin: form.departureAirport,
+      date: form.dateLabel,
+      nights: form.nights,
+      groupSize: form.groupSizeLabel,
+    });
+    if (!generated) {
+      setError('Could not generate a safe partner URL for the selected partner.');
+      return;
+    }
+    setForm((current) => ({ ...current, partnerId, partnerUrl: generated, bookingMode: 'affiliate', priceQualifier: 'Check live price with partner' }));
+    setNotice('Generated a safe partner search URL. Leave price blank or £0 if the partner will show the live price.');
+  };
+
   const edit = (deal) => {
     setEditingId(deal.id);
     setForm({ ...emptyDeal, ...deal, tags: (deal.tags || []).join(', ') });
@@ -1785,8 +1807,8 @@ function AdminDealsPanel({ token }) {
     event.preventDefault();
     setError('');
     setNotice('');
-    if (form.bookingMode === 'affiliate' && form.partnerUrl && !isSafeUrl(form.partnerUrl)) {
-      setError('Partner URL must be a safe http:// or https:// URL. javascript: and data: URLs are not allowed.');
+    if (form.bookingMode === 'affiliate' && form.partnerUrl && !validatePartnerUrl(form.partnerUrl, form.partnerId || undefined)) {
+      setError('Partner URL must be an https:// URL on an approved partner domain. javascript:, data:, http: and unapproved domains are not allowed.');
       return;
     }
 
@@ -1844,6 +1866,7 @@ function AdminDealsPanel({ token }) {
         <fieldset>
           <legend>B. Pricing</legend>
           {field('priceFrom', 'Price from', 'number')}
+          <p className="admin-muted">Leave price blank or £0 if the partner will show the live price.</p>
           {field('currency', 'Currency')}
           {field('priceQualifier', 'Price qualifier')}
           {field('savingLabel', 'Saving label')}
@@ -1861,8 +1884,10 @@ function AdminDealsPanel({ token }) {
         <fieldset>
           <legend>D. Booking/CTA</legend>
           <label><span>Booking mode</span><select value={form.bookingMode} onChange={(event) => update('bookingMode', event.target.value)}>{['manual-quote', 'affiliate', 'enquiry'].map((value) => <option key={value}>{value}</option>)}</select></label>
-          {field('partnerId', 'Partner ID')}
+          <label><span>Partner</span><select value={form.partnerId} onChange={(event) => update('partnerId', event.target.value)}><option value="">Select partner</option>{partnerDefinitions.map((partner) => <option key={partner.partnerId} value={partner.partnerId}>{partner.label}</option>)}</select></label>
           {field('partnerUrl', 'Partner URL')}
+          <button type="button" onClick={generatePartnerUrl}>Generate partner search URL</button>
+          <p className="admin-muted">Partner redirects open safe partner domains only. The partner shows live price, availability, booking and protection terms.</p>
           {field('protectionLabel', 'Protection label')}
         </fieldset>
         <fieldset>

@@ -11,6 +11,7 @@ import { publicEnquiry } from '../src/services/enquiries/enquiryModel.js';
 import { createPromotedDeal, getPromotedDealStorageStatus, listPromotedDeals, listPublicPromotedDeals, updatePromotedDeal, updatePromotedDealStatus } from './deals/promotedDealStore.js';
 import { getPublicSiteConfig, getSiteConfig, getSiteConfigStorageStatus, updateSiteConfig } from './site/siteConfigStore.js';
 import { createContentPage, getContentPageStorageStatus, getPublicContentPageBySlug, listAdminContentPages, listPublicContentPages, updateContentPage, updateContentPageStatus } from './content/contentPageStore.js';
+import { validatePartnerUrl } from '../src/services/partners/partnerDeepLinks.js';
 import { PUBLIC_ANALYTICS_EVENT_TYPES, anonymiseIp, getAnalyticsStorageStatus, getAnalyticsSummary, listAnalyticsEvents, recordAnalyticsEvent, sanitiseMetadata, summariseUserAgent } from './analytics/analyticsStore.js';
 
 const port = Number(process.env.PORT || 8787);
@@ -324,7 +325,14 @@ const buildHealthPayload = async (request) => {
       webhookTestTimeoutMs,
       publicAnalyticsEnabled,
       testAdminLoginEnabled: testAdminLoginEnabled(),
+      frontendProviderModeExpected: process.env.VITE_TRAVEL_PROVIDER_MODE || 'api',
+      backendProviderModeExpected: process.env.TRAVEL_PROVIDER_MODE || 'duffel',
     },
+    productionWarnings: [
+      ...(registry.mode === 'mock' ? ['TRAVEL_PROVIDER_MODE=mock is for local/dev only and should not be used for production launch.'] : []),
+      ...(`${process.env.VITE_TRAVEL_PROVIDER_MODE || 'api'}` === 'mock' ? ['VITE_TRAVEL_PROVIDER_MODE=mock is for local/dev only and should not be used for production launch.'] : []),
+      ...(testAdminLoginEnabled() && process.env.NODE_ENV === 'production' ? ['Temporary test admin login must be disabled in production.'] : []),
+    ],
   };
 };
 
@@ -373,6 +381,12 @@ const runOpsTests = async (request, includeWriteTests = false) => {
   await add('public content pages list', async () => ({ message: `${(await listPublicContentPages()).length} public pages listed.` }));
   await add('public promoted deals list', async () => ({ message: `${(await listPublicPromotedDeals()).length} public deals listed.` }));
   await add('provider registry status', async () => ({ message: `${registry.status().activeProviders.length} active providers reported.` }));
+  await add('frontend provider mode production default', async () => ({ status: `${process.env.VITE_TRAVEL_PROVIDER_MODE || 'api'}` === 'mock' ? 'warn' : 'pass', message: `Frontend provider mode is ${process.env.VITE_TRAVEL_PROVIDER_MODE || 'api'}; production should be api.` }));
+  await add('backend provider mode production default', async () => ({ status: registry.mode === 'mock' ? 'warn' : 'pass', message: `Backend provider mode is ${registry.mode}; production should not be mock.` }));
+  await add('/api/travel/search responds', async () => { const result = await searchWithPromotedDeals({ destination: 'Barcelona', intent: 'Holidays', origin: 'London (All Airports)', date: 'Flexible dates', groupSize: '8 people, 2+ rooms' }); return { message: `${result.results?.length || 0} search results returned from ${result.providerMode}.` }; });
+  await add('partner-redirect provider enabled', async () => { const status = registry.status(); const provider = (status.providerStatus || []).find((item) => item.provider === 'partner-redirect'); return { status: provider?.configured ? 'pass' : 'warn', message: provider ? `partner-redirect is ${provider.mode}.` : 'partner-redirect provider was not reported.' }; });
+  await add('partner URL safety validation', async () => ({ message: validatePartnerUrl('https://www.tui.co.uk/holidays/search?searchTerm=Barcelona', 'tui') && !validatePartnerUrl('javascript:alert(1)', 'tui') && !validatePartnerUrl('data:text/html,test', 'tui') && !validatePartnerUrl('http://www.tui.co.uk/holidays/', 'tui') ? 'Partner URL validation rejects unsafe protocols and accepts approved domains.' : 'Partner URL validation did not behave as expected.', status: validatePartnerUrl('https://www.tui.co.uk/holidays/search?searchTerm=Barcelona', 'tui') && !validatePartnerUrl('javascript:alert(1)', 'tui') && !validatePartnerUrl('http://www.tui.co.uk/holidays/', 'tui') ? 'pass' : 'fail' }));
+  await add('mock fallback reporting', async () => ({ status: registry.mode === 'mock' ? 'warn' : 'pass', message: registry.mode === 'mock' ? 'Backend is explicitly in mock mode; production should switch to duffel/hybrid with partner redirects.' : 'Mock fallback will be reported via providerErrors/meta.fallbackUsed if frontend API mode cannot reach the backend.' }));
   await add('Duffel configured flag safe', async () => ({ message: `Duffel configured: ${Boolean(registry.status().duffelConfigured)}.` }));
   await add('database configured flag safe', async () => ({ message: `Database configured: ${Boolean(process.env.DATABASE_URL)}.` }));
   await add('sitemap generation', async () => ({ message: (await generateSitemapXml()).includes('<urlset') ? 'Sitemap generated.' : 'Sitemap output missing urlset.' }));
@@ -447,8 +461,8 @@ const filterPromotedDealsForCriteria = (deals, criteria = {}) => {
   return deals.filter((deal) => `${deal.destination || ''} ${deal.country || ''} ${deal.hotelName || ''} ${deal.supplierName || ''} ${(deal.tags || []).join(' ')}`.toLowerCase().includes(destination));
 };
 
-const searchWithPromotedDeals = async (body) => {
-  const envelope = await registry.search(body);
+const searchWithPromotedDeals = async (body, method = 'search') => {
+  const envelope = await registry[method](body);
   let siteConfig;
   try {
     siteConfig = await getPublicSiteConfig();
@@ -466,7 +480,7 @@ const searchWithPromotedDeals = async (body) => {
       results,
       providerStatus: [
         ...(envelope.providerStatus || []),
-        { provider: 'promoted-deals', configured: true, mode: 'admin-managed', ok: true, resultCount: promotedDeals.length, lastMethod: 'search' },
+        { provider: 'promoted-deals', configured: true, mode: 'admin-managed', ok: true, resultCount: promotedDeals.length, lastMethod: method },
       ],
       meta: {
         ...(envelope.meta || {}),
@@ -479,17 +493,17 @@ const searchWithPromotedDeals = async (body) => {
       ...envelope,
       providerErrors: [
         ...(envelope.providerErrors || []),
-        { provider: 'promoted-deals', method: 'search', message: 'Promoted deals are temporarily unavailable.' },
+        { provider: 'promoted-deals', method, message: 'Promoted deals are temporarily unavailable.' },
       ],
     };
   }
 };
 
 const postRoutes = {
-  '/api/travel/search': (body) => searchWithPromotedDeals(body),
+  '/api/travel/search': (body) => searchWithPromotedDeals(body, 'search'),
   '/api/travel/flights': (body) => registry.flights(body),
   '/api/travel/hotels': (body) => registry.hotels(body),
-  '/api/travel/packages': (body) => registry.packages(body),
+  '/api/travel/packages': (body) => searchWithPromotedDeals(body, 'packages'),
   '/api/travel/holiday-composer': (body) => registry.composeHoliday(body),
   '/api/travel/locations': (body) => registry.locations(body),
 };

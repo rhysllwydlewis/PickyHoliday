@@ -1,7 +1,8 @@
 import { mockProvider } from './providers/mockProvider.js';
 import { createAffiliatePackageProvider } from './providers/affiliatePackageProvider.js';
 
-const travelProviderMode = import.meta.env.VITE_TRAVEL_PROVIDER_MODE || 'mock';
+const travelProviderMode = import.meta.env.VITE_TRAVEL_PROVIDER_MODE || 'api';
+const showDemoDeals = import.meta.env.VITE_SHOW_DEMO_DEALS === 'true';
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 const localAffiliatePackageProvider = createAffiliatePackageProvider();
 
@@ -77,7 +78,8 @@ const mockEnvelope = async (method, criteria) => {
     const results = await provider[method](criteria);
     return { provider, results: Array.isArray(results) ? results : [] };
   }));
-  const results = providerResults.flatMap((item) => item.results);
+  const rawResults = providerResults.flatMap((item) => item.results);
+  const results = showDemoDeals || travelProviderMode === 'mock' ? rawResults : rawResults.filter((result) => !result.isDemo);
   return {
     providerMode: 'mock',
     results,
@@ -161,8 +163,9 @@ export async function searchHolidays(criteria) {
     return {
       ...fallback,
       providerMode: 'mock-fallback',
-      providerErrors: [{ provider: 'frontend', method: 'search', message: error.message }],
-      meta: { ...fallback.meta, fallbackUsed: true },
+      providerErrors: [{ provider: 'frontend', method: 'search', message: error.message }, { provider: 'mock-fallback', method: 'search', message: 'Local mock fallback was used because the backend API failed.' }],
+      providerStatus: [...(fallback.providerStatus || []), { provider: 'mock-fallback', configured: true, mode: 'frontend-api-fallback', ok: true, resultCount: fallback.results?.length || 0, lastMethod: 'search' }],
+      meta: { ...fallback.meta, fallbackUsed: true, diagnostics: { mockFallbackUsed: true, failedBackendStatus: error.status || null } },
     };
   }
 }
