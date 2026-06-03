@@ -93,7 +93,7 @@ const endpoints = [
   { method: 'POST', path: '/api/travel/flights', body: { destination: 'Barcelona', origin: 'London (All Airports)' } },
   { method: 'POST', path: '/api/travel/hotels', body: { destination: 'Barcelona', intent: 'Group hotel stays' } },
   { method: 'POST', path: '/api/travel/packages', body: { destination: 'Barcelona', intent: 'Holidays' } },
-  { method: 'POST', path: '/api/travel/holiday-composer', body: { destination: 'Barcelona', intent: 'Holidays' } },
+  { method: 'POST', path: '/api/travel/holiday-composer', body: { destination: 'Barcelona', originAirport: 'Manchester', departureDate: '2026-08-10', returnDate: '2026-08-17', dateFlexibilityDays: 2, flexibleDates: true, partySize: 8, adults: 8, children: 0, rooms: 3, roomMix: '3 rooms, mixed doubles and twins', budgetPerPerson: 450, intent: 'Holidays', sort: 'recommended' } },
   { method: 'POST', path: '/api/travel/enquiries', body: { destination: 'Barcelona', customerName: 'Smoke Test', customerEmail: 'smoke@example.com', consentToContact: true } },
   { method: 'POST', path: '/api/travel/enquiries', body: {
     destination: 'Barcelona',
@@ -202,6 +202,29 @@ const assertPackageResults = (data) => {
   }
 };
 
+const assertComposedHolidayResults = (data, label) => {
+  if (!Array.isArray(data.results)) throw new Error(`${label} did not include a results array.`);
+  for (const key of ['providerMode', 'providerErrors', 'meta']) {
+    if (!(key in data)) throw new Error(`${label} did not include ${key}.`);
+  }
+  if (!Array.isArray(data.providerErrors)) throw new Error(`${label} providerErrors was not an array.`);
+  if (data.meta?.resultShape !== 'composed-holiday-v1') throw new Error(`${label} did not expose composed-holiday-v1 resultShape.`);
+  if (!data.meta?.criteria || data.meta.criteria.dateFlexibilityDays !== 2 || data.meta.criteria.partySize !== 8 || data.meta.criteria.rooms !== 3) throw new Error(`${label} did not normalise richer search criteria.`);
+  const requiredFields = ['id', 'resultType', 'provider', 'supplierName', 'destination', 'hotelName', 'hotelSummary', 'flightSummary', 'departureAirport', 'dateLabel', 'nights', 'groupSizeLabel', 'rooms', 'roomMix', 'priceFrom', 'currency', 'priceQualifier', 'score', 'scoreReasons', 'dealReasonLabel', 'bookingMode', 'protectionLabel', 'sourceBreakdown'];
+  for (const result of data.results) {
+    if (result.resultType !== 'composed-holiday') throw new Error(`${label} returned a non-composed resultType: ${result.resultType}`);
+    for (const field of requiredFields) {
+      if (!(field in result)) throw new Error(`${label} result ${result.id} missed normalised field ${field}.`);
+    }
+    if (!Array.isArray(result.scoreReasons)) throw new Error(`${label} result ${result.id} missed scoreReasons array.`);
+    if (result.partnerUrl && !validatePartnerUrl(result.partnerUrl, result.partnerId || undefined)) throw new Error(`${label} returned an unsafe partnerUrl: ${result.partnerUrl}`);
+  }
+  const body = JSON.stringify(data).toLowerCase();
+  for (const blocked of ['book now', 'booking confirmed', 'reserved', 'payment successful', 'guaranteed price', 'atol protected']) {
+    if (body.includes(blocked)) throw new Error(`${label} contained forbidden wording: ${blocked}.`);
+  }
+};
+
 const assertSearchResults = (data, label) => {
   if (!Array.isArray(data.results)) throw new Error(`${label} did not include a results array.`);
   if (data.providerMode === 'mock' && data.results.length === 0) throw new Error(`${label} returned no mock results.`);
@@ -258,7 +281,8 @@ const request = async ({ method, path, body }) => {
   }
   if (path === '/api/travel/flights') assertFlightResults(data);
   if (path === '/api/travel/packages') assertPackageResults(data);
-  if (['/api/travel/search', '/api/travel/holiday-composer'].includes(path)) assertSearchResults(data, label);
+  if (path === '/api/travel/search') assertSearchResults(data, label);
+  if (path === '/api/travel/holiday-composer') assertComposedHolidayResults(data, label);
   if (path === '/api/travel/enquiries') assertEnquiry(data);
   return data;
 };
@@ -376,6 +400,14 @@ const assertContentPages = async () => {
   const duplicate = await fetch(`${baseUrl}/api/admin/content-pages`, { method: 'POST', headers, body: JSON.stringify({ title: 'Duplicate slug', slug: 'barcelona', type: 'destination', status: 'draft' }) });
   if (duplicate.status !== 409) throw new Error(`Duplicate content slug returned ${duplicate.status}, expected 409.`);
   console.log('✓ Admin content-page create/update/status checks passed');
+};
+
+const assertSearchRoute = async () => {
+  const response = await fetch(`${baseUrl}/search?destination=Barcelona&originAirport=Manchester&partySize=8&rooms=3`);
+  assertResponseHardening(response, 'GET /search');
+  const text = await response.text();
+  if (!response.ok || !text.includes('PickyHoliday')) throw new Error('/search route did not return the built app shell. Run npm run build before npm run test:api.');
+  console.log('✓ /search route returned the built app shell');
 };
 
 const assertSitemapAndRobots = async () => {
@@ -496,6 +528,7 @@ try {
   await assertAdminPromotedDeals();
   await assertContentPages();
   await assertSitemapAndRobots();
+  await assertSearchRoute();
   if (adminAccessToken) console.log('✓ GET /api/admin/enquiries returned enquiries for configured admin token');
   await assertInvalidEnquiryEmail();
   console.log('✓ POST /api/travel/enquiries invalid email returned controlled 400 envelope');

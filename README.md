@@ -209,3 +209,11 @@ This phase adds an enquiry-first group planning flow for richer conversion:
 - The Group quote builder submits a saved enquiry to `/api/travel/enquiries` with budget, room mix, board, baggage, transfer, occasion and flexibility notes plus safe shortlisted deal summaries.
 - The flow creates saved enquiries only: no booking has been created, no payment has been taken and no supplier reservation has been made.
 - Admin enquiry review now shows Group requirements and Shortlisted deals when those fields are supplied.
+
+## Holiday composer foundation
+
+PickyHoliday now includes a first-pass holiday composer foundation for enquiry-first group holiday ideas. The homepage search captures destination, departure airport, departure/return date or nights, exact/± date flexibility, party size, rooms, a simple room mix and optional per-person budget. Submitting the homepage form opens `/search` with those criteria in the query string.
+
+The `/api/travel/holiday-composer` endpoint accepts the normalised criteria and returns a `composed-holiday-v1` envelope. Results use a stable internal card shape for future flight + hotel composition, including provider, supplier, destination, hotel and flight summaries, dates/nights, rooms, price guidance or live-price check labels, score reasons, booking mode and safe partner redirect URLs only when validated. These are holiday ideas, partner redirects, quote requests or live-price checks only; no booking, payment or supplier reservation is created.
+
+The homepage also shows **Spotlighted deals** generated from available provider, partner and promoted deal data. Prices and availability are not held by PickyHoliday. Until more live hotel and flight APIs are added, composed results are normalised from current mock, affiliate-package, partner-redirect and promoted/manual deal sources.

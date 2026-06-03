@@ -1,5 +1,7 @@
 import { mockProvider } from './providers/mockProvider.js';
 import { createAffiliatePackageProvider } from './providers/affiliatePackageProvider.js';
+import { normaliseHolidaySearchCriteria } from './search/holidaySearchCriteria.js';
+import { normaliseComposedHolidayResults } from './search/composedHolidayResults.js';
 
 const travelProviderMode = import.meta.env.VITE_TRAVEL_PROVIDER_MODE || 'api';
 const showDemoDeals = import.meta.env.VITE_SHOW_DEMO_DEALS === 'true';
@@ -148,6 +150,39 @@ export async function searchLocations(keyword) {
   }
 
   return apiGet(`/api/travel/locations?keyword=${encodeURIComponent(keyword)}`);
+}
+
+export async function composeHoliday(criteria = {}) {
+  const normalisedCriteria = normaliseHolidaySearchCriteria(criteria);
+  if (travelProviderMode === 'mock') {
+    const fallback = await mockEnvelope('composeHoliday', normalisedCriteria);
+    const results = normaliseComposedHolidayResults(fallback.results || [], normalisedCriteria, { limit: normalisedCriteria.filters?.spotlight ? 6 : 24 });
+    return { ...fallback, results, meta: { ...fallback.meta, totalResults: results.length, criteria: normalisedCriteria, resultShape: 'composed-holiday-v1' } };
+  }
+
+  try {
+    return await apiPost('/api/travel/holiday-composer', normalisedCriteria);
+  } catch (error) {
+    console.warn('Falling back to mock composer because the travel API is unavailable.', error);
+    const fallback = await mockEnvelope('composeHoliday', normalisedCriteria);
+    const results = normaliseComposedHolidayResults(fallback.results || [], normalisedCriteria, { limit: normalisedCriteria.filters?.spotlight ? 6 : 24 });
+    return {
+      ...fallback,
+      results,
+      providerMode: 'mock-fallback',
+      providerErrors: [{ provider: 'frontend', method: 'holiday-composer', message: error.message }, { provider: 'mock-fallback', method: 'composeHoliday', message: 'Local mock composer fallback was used because the backend API failed.' }],
+      providerStatus: [...(fallback.providerStatus || []), { provider: 'mock-fallback', configured: true, mode: 'frontend-composer-fallback', ok: true, resultCount: results.length, lastMethod: 'composeHoliday' }],
+      meta: { ...fallback.meta, totalResults: results.length, criteria: normalisedCriteria, resultShape: 'composed-holiday-v1', fallbackUsed: true, diagnostics: { mockFallbackUsed: true, failedBackendStatus: error.status || null } },
+    };
+  }
+}
+
+export async function searchComposedHolidays(criteria = {}) {
+  return composeHoliday(criteria);
+}
+
+export async function getSpotlightedDeals(criteria = {}) {
+  return composeHoliday({ ...criteria, filters: { ...(criteria.filters || {}), spotlight: true }, sort: criteria.sort || 'recommended' });
 }
 
 export async function searchHolidays(criteria) {

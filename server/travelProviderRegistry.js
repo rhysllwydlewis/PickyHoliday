@@ -4,6 +4,8 @@ import { createDuffelProvider } from '../src/services/providers/duffelProvider.j
 import { createAffiliatePackageProvider } from '../src/services/providers/affiliatePackageProvider.js';
 import { manualDealsProvider } from '../src/services/providers/manualDealsProvider.js';
 import { createPartnerRedirectProvider } from '../src/services/providers/partnerRedirectProvider.js';
+import { normaliseHolidaySearchCriteria } from '../src/services/search/holidaySearchCriteria.js';
+import { normaliseComposedHolidayResults } from '../src/services/search/composedHolidayResults.js';
 
 const safeMessage = (error) => {
   const message = error?.message || 'Provider request failed';
@@ -15,6 +17,21 @@ const safeMessage = (error) => {
 };
 
 const providerLabel = (provider) => provider?.id || provider?.label || 'unknown-provider';
+
+const summariseProviderStatus = (statuses = [], method = 'composeHoliday') => {
+  const byProvider = new Map();
+  statuses.forEach((status = {}) => {
+    const provider = status.provider || 'unknown-provider';
+    const current = byProvider.get(provider) || { ...status, provider, resultCount: 0, methods: [], ok: true, skipped: true };
+    current.resultCount += Number(status.resultCount || 0);
+    current.ok = current.ok && status.ok !== false;
+    current.skipped = current.skipped && Boolean(status.skipped);
+    if (status.lastMethod && !current.methods.includes(status.lastMethod)) current.methods.push(status.lastMethod);
+    current.lastMethod = method;
+    byProvider.set(provider, { ...current, ...status, resultCount: current.resultCount, ok: current.ok, skipped: current.skipped, methods: current.methods, lastMethod: method });
+  });
+  return [...byProvider.values()];
+};
 
 export function createTravelProviderRegistry(env = process.env) {
   const mode = env.TRAVEL_PROVIDER_MODE || 'duffel';
@@ -166,7 +183,25 @@ export function createTravelProviderRegistry(env = process.env) {
       return envelope(await collect('packages', criteria));
     },
     async composeHoliday(criteria) {
-      return envelope(await collect('composeHoliday', criteria));
+      const normalisedCriteria = normaliseHolidaySearchCriteria(criteria);
+      const methods = ['composeHoliday', 'packages', 'flights', 'hotels', 'search'];
+      const collectedSets = await Promise.all(methods.map((method) => collect(method, normalisedCriteria)));
+      const collected = {
+        results: collectedSets.flatMap((item) => item.results || []),
+        providerErrors: collectedSets.flatMap((item) => item.providerErrors || []),
+        providerStatus: summariseProviderStatus(collectedSets.flatMap((item) => item.providerStatus || []), 'composeHoliday'),
+      };
+      const results = normaliseComposedHolidayResults(collected.results, normalisedCriteria, { limit: normalisedCriteria.filters?.spotlight ? 6 : 24 });
+      return {
+        ...envelope({ ...collected, results }),
+        results,
+        meta: {
+          ...envelope({ ...collected, results }).meta,
+          criteria: normalisedCriteria,
+          resultShape: 'composed-holiday-v1',
+          rankingNote: 'Deterministic foundation scoring uses price, destination match, provider confidence, partner redirect availability, promoted/manual signals and rating when available. Richer provider data can improve this later.',
+        },
+      };
     },
     async locations(criteria) {
       const providerSet = mode === 'mock'

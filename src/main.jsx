@@ -39,6 +39,8 @@ import {
   getFrontendProviderMode,
   getProviderStatus,
   getPublicPromotedDeals,
+  getSpotlightedDeals,
+  searchComposedHolidays,
   getSiteConfig,
   getPublicContentPage,
   listAdminAnalyticsEvents,
@@ -57,6 +59,7 @@ import {
   updateAdminPromotedDealStatus,
   updateAdminSiteConfig,
 } from './services/travelApi.js';
+import { criteriaFromSearchParams, criteriaToSearchParams, holidaySearchSummary, normaliseHolidaySearchCriteria } from './services/search/holidaySearchCriteria.js';
 
 const img = (id) => imageUrls[id] || id;
 const hasPricedAmount = (deal) => Number(deal?.priceFrom || 0) > 0;
@@ -138,8 +141,13 @@ const searchTabs = [
 
 const fieldOptions = {
   origin: ['London (All Airports)', 'Manchester', 'Birmingham', 'Bristol', 'Edinburgh'],
-  date: ['Fri 11 Jul – 7+ nights', 'Mon 4 Aug – 4 nights', 'Sat 23 Aug – 10 nights', 'Flexible dates'],
-  groupSize: ['8 people, 2+ rooms', '4 people, 1 room', '12 people, 4 rooms', '20+ people, group quote'],
+  flexibility: [
+    { label: 'Exact dates', value: 0 },
+    { label: '±1 day', value: 1 },
+    { label: '±2 days', value: 2 },
+    { label: '±3 days', value: 3 },
+    { label: '±7 days', value: 7 },
+  ],
 };
 
 const getawaySearchConfig = {
@@ -280,33 +288,35 @@ function Hero({ config }) {
   );
 }
 
-function SearchSelect({ icon: Icon, label, name, value, options, onChange }) {
+function SearchInput({ icon: Icon, label, name, value, onChange, type = 'text', placeholder = '', min, options }) {
+  const input = options ? (
+    <select name={name} value={value} onChange={(event) => onChange(name, event.target.value)}>
+      {options.map((option) => <option key={option.value ?? option} value={option.value ?? option}>{option.label ?? option}</option>)}
+    </select>
+  ) : (
+    <input name={name} type={type} min={min} value={value ?? ''} onChange={(event) => onChange(name, event.target.value)} placeholder={placeholder} />
+  );
   return (
-    <label className="field select-field">
+    <label className="field compact-field">
       <span>{label}</span>
-      <p>
-        <select name={name} value={value} onChange={(event) => onChange(name, event.target.value)}>
-          {options.map((option) => <option key={option} value={option}>{option}</option>)}
-        </select>
-        <Icon size={17} />
-      </p>
+      <p>{input}<Icon size={17} /></p>
     </label>
   );
 }
 
 function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, locationSuggestions, onLookupLocations }) {
   const updateSearchField = (name, value) => {
-    setSearch((currentSearch) => ({ ...currentSearch, [name]: value }));
+    setSearch((currentSearch) => normaliseHolidaySearchCriteria({ ...currentSearch, [name]: value }));
   };
 
   return (
-    <section className="search-panel" id="search">
+    <section className="search-panel composer-search-panel" id="search">
       <div className="tabs" role="tablist" aria-label="Holiday type">
         {searchTabs.map(([tab, Icon, flag]) => (
           <button
             key={tab}
             className={activeTab === tab ? 'active' : ''}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => { setActiveTab(tab); updateSearchField('intent', tab); }}
             role="tab"
             aria-selected={activeTab === tab}
           >
@@ -316,16 +326,16 @@ function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, loc
           </button>
         ))}
       </div>
-      <form className="fields" onSubmit={(event) => { event.preventDefault(); onSearch(); }}>
-        <label className="field big">
-          <span>Where to?</span>
+      <form className="fields composer-fields" onSubmit={(event) => { event.preventDefault(); onSearch(); }}>
+        <label className="field big destination-field">
+          <span>Destination</span>
           <p>
             <MapPin size={18} />
             <input
               value={search.destination}
               onChange={(event) => updateSearchField('destination', event.target.value)}
               onBlur={() => onLookupLocations(search.destination)}
-              placeholder="Search destinations, resort or hotel"
+              placeholder="Destination, resort or hotel"
             />
           </p>
           {locationSuggestions.length > 0 && (
@@ -338,10 +348,16 @@ function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, loc
             </div>
           )}
         </label>
-        <SearchSelect icon={Plane} label="From" name="origin" value={search.origin} options={fieldOptions.origin} onChange={updateSearchField} />
-        <SearchSelect icon={CalendarDays} label="When" name="date" value={search.date} options={fieldOptions.date} onChange={updateSearchField} />
-        <SearchSelect icon={Users} label="Group size" name="groupSize" value={search.groupSize} options={fieldOptions.groupSize} onChange={updateSearchField} />
-        <button className="searchbtn">Search deals <ChevronRight size={20} /></button>
+        <SearchInput icon={Plane} label="From" name="originAirport" value={search.originAirport} options={fieldOptions.origin} onChange={updateSearchField} />
+        <SearchInput icon={CalendarDays} label="Depart" name="departureDate" type="date" value={search.departureDate} onChange={updateSearchField} />
+        <SearchInput icon={CalendarDays} label="Return date" name="returnDate" type="date" value={search.returnDate} onChange={updateSearchField} />
+        <SearchInput icon={Clock3} label="Nights" name="nights" type="number" min="1" value={search.nights} onChange={updateSearchField} />
+        <SearchInput icon={CalendarDays} label="Flexibility" name="dateFlexibilityDays" value={search.dateFlexibilityDays} options={fieldOptions.flexibility} onChange={updateSearchField} />
+        <SearchInput icon={Users} label="Party size" name="partySize" type="number" min="1" value={search.partySize} onChange={updateSearchField} />
+        <SearchInput icon={Hotel} label="Rooms" name="rooms" type="number" min="1" value={search.rooms} onChange={updateSearchField} />
+        <SearchInput icon={Users} label="Room mix" name="roomMix" value={search.roomMix} placeholder="e.g. twins + doubles" onChange={updateSearchField} />
+        <SearchInput icon={WalletCards} label="Budget pp" name="budgetPerPerson" type="number" min="0" value={search.budgetPerPerson || ''} placeholder="Optional" onChange={updateSearchField} />
+        <button className="searchbtn composer-searchbtn">Search ideas <ChevronRight size={20} /></button>
       </form>
       <div className="popular">
         <span>Popular:</span>
@@ -714,6 +730,37 @@ function ProviderDiagnostics({ diagnostics, onRefresh }) {
   );
 }
 
+function SpotlightedDealsSection({ deals, onViewDeal, isShortlisted, onToggleShortlist, onQuote, isLoading }) {
+  return (
+    <section className="content block spotlighted-deals" id="spotlighted-deals">
+      <SectionTitle title="Spotlighted deals" link="Ask for group quote" onLink={() => onQuote?.(deals?.[0] ? [deals[0]] : [])} />
+      <p className="spotlight-note">Spotlighted deals are generated from available provider, partner and promoted deal data. Prices and availability are not held by PickyHoliday.</p>
+      <div className="spotlight-grid">
+        {isLoading && <div className="loading-state">Loading spotlighted holiday ideas…</div>}
+        {!isLoading && (!deals || deals.length === 0) && <div className="empty-state">No spotlighted ideas are available yet. Try a search or ask for a group quote.</div>}
+        {(deals || []).slice(0, 4).map((deal) => (
+          <article className="spotlight-card" key={deal.id || deal.resultId}>
+            <div className="spotlight-card-top">
+              <span className="reason-badge">{deal.dealReasonLabel || (deal.partnerUrl ? 'Live price check' : 'Best group pick')}</span>
+              <b>{deal.destination}{deal.country ? `, ${deal.country}` : ''}</b>
+              <h3>{deal.hotelName}</h3>
+            </div>
+            <p><Plane size={15} /> {deal.flightSummary || 'Flight options to be checked'}</p>
+            <p><Hotel size={15} /> {deal.hotelSummary || 'Hotel details to confirm'}</p>
+            <div className="spotlight-meta"><span>{deal.supplierName || deal.provider}</span><span>{deal.dateLabel || `${deal.nights || 7} nights`}</span></div>
+            <div className="spotlight-price"><strong>{hasPricedAmount(deal) ? `From ${priceCopy(deal)}` : 'Check live price'}</strong><small>{deal.priceQualifier}</small></div>
+            <div className="spotlight-actions">
+              <button onClick={() => onViewDeal(deal)}>{deal.partnerUrl ? 'Check live price' : 'View deal'}</button>
+              <button className="ghost-action" onClick={() => onQuote?.([deal])}>Ask for group quote</button>
+              <button className={`icon-action ${isShortlisted?.(deal) ? 'added' : ''}`} onClick={() => onToggleShortlist?.(deal)} aria-pressed={isShortlisted?.(deal)}><Heart size={15} fill={isShortlisted?.(deal) ? 'currentColor' : 'none'} /></button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onViewDeal, isShortlisted, onToggleShortlist, isLoading, error, diagnostics, onRefreshDiagnostics }) {
   return (
     <section className="content block overlap" id="deals">
@@ -986,17 +1033,128 @@ function PublicContentPageApp() {
   );
 }
 
+function SearchResultsPage({ onOpenDeal, isShortlisted, onToggleShortlist, onQuote, diagnostics, setDiagnostics, locationSuggestions, onLookupLocations }) {
+  const [criteria, setCriteria] = useState(() => criteriaFromSearchParams(window.location.search));
+  const [activeTab, setActiveTab] = useState(criteria.intent || 'Holidays');
+  const [results, setResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  const runSearch = useCallback(async (nextCriteria = criteria) => {
+    const normalised = normaliseHolidaySearchCriteria(nextCriteria);
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await searchComposedHolidays(normalised);
+      setResults(response.results || []);
+      setDiagnostics((current) => ({
+        ...current,
+        backendMode: response.providerMode || current.backendMode,
+        activeProviders: response.meta?.activeProviders || current.activeProviders,
+        latestSource: (response.providerStatus || []).filter((status) => status.resultCount > 0).map((status) => status.provider).join(', ') || response.providerMode,
+        providerErrors: response.providerErrors || [],
+        providerStatus: response.providerStatus || current.providerStatus,
+      }));
+      trackEvent({ type: 'composed_search_results_viewed', category: 'search', label: normalised.destination || normalised.intent, metadata: { destination: normalised.destination, providerMode: response.providerMode, resultCount: response.results?.length || 0, sort: normalised.sort } });
+    } catch (searchError) {
+      setError('Sorry, composed holiday ideas are temporarily unavailable. You can still ask for a group quote.');
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [criteria, setDiagnostics]);
+
+  useEffect(() => {
+    updateSeoMeta({ metaTitle: 'Search holiday ideas | PickyHoliday', metaDescription: 'Search enquiry-first group holiday ideas with destination, dates, flexibility, party size and rooms.', canonicalPath: '/search' });
+    runSearch(criteria);
+  }, []);
+
+  const updateCriteria = (nextCriteria, { push = true, eventType = '' } = {}) => {
+    const normalised = normaliseHolidaySearchCriteria(nextCriteria);
+    setCriteria(normalised);
+    setActiveTab(normalised.intent);
+    if (push) window.history.replaceState({}, '', `/search?${criteriaToSearchParams(normalised).toString()}`);
+    if (eventType) trackEvent({ type: eventType, category: 'search', label: normalised.destination || normalised.intent, metadata: { sort: normalised.sort, destination: normalised.destination } });
+    return normalised;
+  };
+
+  const submitSearch = () => {
+    const normalised = updateCriteria({ ...criteria, intent: activeTab }, { eventType: 'composed_search_submitted' });
+    runSearch(normalised);
+  };
+
+  const updateSort = (event) => {
+    const normalised = updateCriteria({ ...criteria, sort: event.target.value }, { eventType: 'composed_search_sort_changed' });
+    runSearch(normalised);
+  };
+
+  const applyFilterChip = (name, value) => {
+    const normalised = updateCriteria({ ...criteria, filters: { ...(criteria.filters || {}), [name]: value } }, { eventType: 'composed_search_filter_changed' });
+    runSearch(normalised);
+  };
+
+  return (
+    <main className="search-results-page">
+      <section className="search-hero content">
+        <span>Composed holiday search</span>
+        <h1>Group holiday ideas matched to your trip</h1>
+        <p>These are enquiry-first ideas, partner redirects, quote requests or live-price checks only. No booking has been created, no payment has been taken and no supplier reservation has been made.</p>
+      </section>
+      <SearchPanel activeTab={activeTab} setActiveTab={setActiveTab} search={criteria} setSearch={setCriteria} onSearch={submitSearch} locationSuggestions={locationSuggestions} onLookupLocations={onLookupLocations} />
+      <section className="content block search-results-shell">
+        <div className="search-summary-bar">
+          <div><span>Search summary</span><b>{holidaySearchSummary(criteria)}</b></div>
+          <label>Sort
+            <select value={criteria.sort} onChange={updateSort}>
+              <option value="recommended">Recommended</option>
+              <option value="price-asc">Price low to high</option>
+              <option value="price-desc">Price high to low</option>
+              <option value="best-rated">Best rated</option>
+              <option value="easiest-travel">Shortest flight / easiest travel</option>
+              <option value="closest-match">Closest match</option>
+            </select>
+          </label>
+        </div>
+        <div className="filter-chips" aria-label="Search filters">
+          {['Flight + hotel', 'Partner live price', 'Advisor quote pick'].map((chip) => <button key={chip} onClick={() => applyFilterChip('quick', chip)}>{chip}</button>)}
+          <span>More provider-backed filters will follow as live data expands.</span>
+        </div>
+        {showProviderDiagnostics && (
+          <div className="diagnostic-toggle"><button onClick={() => setShowDiagnostics((value) => !value)}>{showDiagnostics ? 'Hide' : 'Show'} provider diagnostics</button></div>
+        )}
+        {showProviderDiagnostics && showDiagnostics && <ProviderDiagnostics diagnostics={diagnostics} onRefresh={() => {}} />}
+        {isLoading && <div className="loading-state">Searching composed holiday ideas…</div>}
+        {error && <div className="error-state">{error}</div>}
+        {!isLoading && !error && results.length === 0 && <div className="empty-state">No composed holiday ideas matched this search yet. Try flexible dates, a different airport or ask for a group quote.</div>}
+        <div className="deal-grid search-result-grid">
+          {results.map((deal) => <DealCard key={deal.id || deal.resultId} deal={deal} onView={onOpenDeal} isShortlisted={isShortlisted(deal)} onToggleShortlist={onToggleShortlist} />)}
+        </div>
+        {results.length > 0 && <div className="search-quote-strip"><p>Need multi-room allocation or a bespoke group check?</p><button onClick={() => onQuote(results.slice(0, 3))}>Ask for group quote</button></div>}
+      </section>
+    </main>
+  );
+}
+
 function App() {
+  const isSearchRoute = window.location.pathname === '/search';
   const [activeTab, setActiveTab] = useState('Holidays');
-  const [search, setSearch] = useState({
+  const [search, setSearch] = useState(() => normaliseHolidaySearchCriteria({
     destination: '',
-    origin: fieldOptions.origin[0],
-    date: fieldOptions.date[0],
-    groupSize: fieldOptions.groupSize[0],
-  });
+    originAirport: fieldOptions.origin[0],
+    departureDate: '',
+    returnDate: '',
+    nights: 7,
+    dateFlexibilityDays: 0,
+    partySize: 8,
+    rooms: 2,
+    intent: 'Holidays',
+  }));
   const [searchSummary, setSearchSummary] = useState('Showing popular group holiday ideas. Ask for group quote saves an enquiry only; it is not a booking.');
   const [dealList, setDealList] = useState([]);
+  const [spotlightedDeals, setSpotlightedDeals] = useState([]);
   const [isSearching, setIsSearching] = useState(true);
+  const [isLoadingSpotlights, setIsLoadingSpotlights] = useState(true);
   const [searchError, setSearchError] = useState('');
   const [getawayList, setGetawayList] = useState(getaways);
   const [guideList, setGuideList] = useState(guides);
@@ -1031,9 +1189,10 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (isSearchRoute) return;
     updateSeoMeta({ metaTitle: 'PickyHoliday | Group holidays made easy', metaDescription: 'Plan enquiry-first group holidays with PickyHoliday destination ideas, group travel guides and advisor follow-up.', canonicalPath: '/' });
     replaceJsonLd([{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'PickyHoliday', url: window.location.origin }, { '@context': 'https://schema.org', '@type': 'TravelAgency', name: 'PickyHoliday', url: window.location.origin, description: 'Enquiry-first group holiday planning support.' }]);
-  }, []);
+  }, [isSearchRoute]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -1153,7 +1312,7 @@ function App() {
         providerErrors: response.providerErrors || [],
         providerStatus: response.providerStatus || current.providerStatus,
       }));
-      setSearchSummary(`Showing ${criteria.intent.toLowerCase()} from ${criteria.origin} for ${criteria.date.toLowerCase()} (${criteria.groupSize}) · ${response.providerMode} mode.`);
+      setSearchSummary(`Showing ${holidaySearchSummary(criteria)} · ${response.providerMode} mode.`);
       if (shouldScroll) scrollToId('deals');
     } catch (error) {
       setSearchError('Sorry, the travel search service could not return results. Mock mode should still work without live credentials.');
@@ -1163,15 +1322,33 @@ function App() {
     }
   };
 
+  const loadSpotlightedDeals = async (criteria = search) => {
+    setIsLoadingSpotlights(true);
+    try {
+      const response = await getSpotlightedDeals({ ...criteria, intent: activeTab });
+      const results = (response.results || []).filter((result) => showDemoDeals || !result.isDemo).slice(0, 4);
+      setSpotlightedDeals(results);
+      results.forEach((deal) => trackEvent({ type: 'spotlight_deal_viewed', category: 'spotlight', label: deal.destination || deal.hotelName, metadata: { destination: deal.destination, provider: deal.provider, resultId: deal.id || deal.resultId } }));
+    } catch (error) {
+      setSpotlightedDeals([]);
+    } finally {
+      setIsLoadingSpotlights(false);
+    }
+  };
+
   useEffect(() => {
     getSiteConfig().then((response) => { if (response.siteConfig) setSiteConfig(response.siteConfig); }).catch(() => {});
     refreshDiagnostics();
-    runHolidaySearch({ ...search, intent: activeTab }, false);
-  }, []);
+    if (!isSearchRoute) {
+      runHolidaySearch({ ...search, intent: activeTab }, false);
+      loadSpotlightedDeals(search);
+    }
+  }, [isSearchRoute]);
 
   const handleSearch = () => {
-    trackEvent({ type: 'search_submitted', category: 'search', label: search.destination || activeTab, metadata: { destination: search.destination, intent: activeTab } });
-    runHolidaySearch({ ...search, intent: activeTab });
+    const criteria = normaliseHolidaySearchCriteria({ ...search, intent: activeTab });
+    trackEvent({ type: 'composed_search_submitted', category: 'search', label: criteria.destination || activeTab, metadata: { destination: criteria.destination, intent: activeTab, dateFlexibilityDays: criteria.dateFlexibilityDays, partySize: criteria.partySize, rooms: criteria.rooms } });
+    window.location.href = `/search?${criteriaToSearchParams(criteria).toString()}`;
   };
 
   const handleNewsletter = (event) => {
@@ -1200,6 +1377,7 @@ function App() {
   };
 
   const handleViewDeal = (selected) => {
+    if (selected?.dealReasonLabel) trackEvent({ type: 'spotlight_deal_clicked', category: 'spotlight', label: selected.destination || selected.hotelName, metadata: { destination: selected.destination, provider: selected.provider, resultId: selected.id || selected.resultId, bookingMode: selected.bookingMode } });
     setModal(dealModalContent(selected, {
       onOpenEnquiry: setModal,
       onSubmitted: (enquiry) => {
@@ -1211,6 +1389,19 @@ function App() {
     }));
   };
 
+  if (isSearchRoute) {
+    return (
+      <>
+        <Header onAction={openMessage} onSignIn={openSignIn} />
+        <SearchResultsPage onOpenDeal={handleViewDeal} isShortlisted={isDealShortlisted} onToggleShortlist={(deal) => toggleShortlist(deal, 'search-results')} onQuote={(deals) => openQuoteBuilder(deals, 'search-results')} diagnostics={diagnostics} setDiagnostics={setDiagnostics} locationSuggestions={locationSuggestions} onLookupLocations={lookupLocations} />
+        <Footer onAction={openMessage} onSignIn={openSignIn} siteConfig={siteConfig} />
+        <ShortlistBar shortlist={shortlist} onRemove={(deal) => removeFromShortlist(deal, 'shortlist-drawer')} onCompare={() => setModal({ type: 'compare-shortlist', deals: shortlist })} onQuote={() => openQuoteBuilder(shortlist, 'shortlist-drawer')} onTrack={trackEvent} />
+        <Dialog content={modal} onClose={() => setModal(null)} siteConfig={siteConfig} />
+        {notice && <div className="toast">{notice}</div>}
+      </>
+    );
+  }
+
   return (
     <>
       <Header onAction={openMessage} onSignIn={openSignIn} />
@@ -1218,6 +1409,7 @@ function App() {
         {siteConfig.announcement?.active && siteConfig.featureFlags?.enableAnnouncementBanner !== false && siteConfig.announcement?.text && <div className="announcement">{siteConfig.announcement.text}</div>}
         <Hero config={siteConfig} />
         <SearchPanel activeTab={activeTab} setActiveTab={setActiveTab} search={search} setSearch={setSearch} onSearch={handleSearch} locationSuggestions={locationSuggestions} onLookupLocations={lookupLocations} />
+        <SpotlightedDealsSection deals={spotlightedDeals} onViewDeal={handleViewDeal} isShortlisted={isDealShortlisted} onToggleShortlist={(deal) => toggleShortlist(deal, 'spotlight-card')} onQuote={(deals) => openQuoteBuilder(deals, 'spotlighted-deals')} isLoading={isLoadingSpotlights} />
         <DealsSection
           dealsToShow={filteredDeals}
           searchSummary={searchSummary}
