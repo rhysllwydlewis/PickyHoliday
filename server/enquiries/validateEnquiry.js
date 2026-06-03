@@ -18,9 +18,19 @@ export function validateEnquiryPayload(payload = {}) {
   const customerName = clean(payload.customerName || payload.name);
   const customerEmail = clean(payload.customerEmail || payload.email).toLowerCase();
   const destination = clean(payload.destination);
-  const hasContactFields = Boolean(customerName || customerEmail || payload.consentToContact === true);
+  const hasPhone = Boolean(clean(payload.customerPhone || payload.phone));
+  const hasContactFields = Boolean(customerName || customerEmail || hasPhone || payload.consentToContact === true);
 
   if (!destination) fieldErrors.push({ field: 'destination', message: 'Destination is required.' });
+
+  if (payload.shortlistedDeals !== undefined) {
+    if (!Array.isArray(payload.shortlistedDeals)) fieldErrors.push({ field: 'shortlistedDeals', message: 'Shortlisted deals must be an array.' });
+    else if (payload.shortlistedDeals.length > 6) fieldErrors.push({ field: 'shortlistedDeals', message: 'Shortlist can include up to 6 deals.' });
+  }
+
+  if (payload.budgetPerPerson !== undefined && payload.budgetPerPerson !== '' && !Number.isFinite(Number(payload.budgetPerPerson))) {
+    fieldErrors.push({ field: 'budgetPerPerson', message: 'Budget per person must be a number.' });
+  }
 
   if (hasContactFields) {
     if (!customerName) fieldErrors.push({ field: 'customerName', message: 'Name is required.' });

@@ -199,3 +199,13 @@ No live booking, payment, Duffel order, Amadeus order, supplier reservation or r
 Production search is now API-first: `VITE_TRAVEL_PROVIDER_MODE` defaults to `api` and the backend defaults to `TRAVEL_PROVIDER_MODE=duffel` with partner live-price redirects enabled. This is the fastest safe route away from dummy cards while PickyHoliday remains enquiry-first: partners handle live price, availability, booking and protection terms, and PickyHoliday captures group enquiries only. Do not use `TRAVEL_PROVIDER_MODE=mock`, `VITE_TRAVEL_PROVIDER_MODE=mock` or `VITE_SHOW_DEMO_DEALS=true` for production launch. Set Railway to `VITE_TRAVEL_PROVIDER_MODE=api`, `VITE_SHOW_DEMO_DEALS=false`, `ENABLE_PARTNER_REDIRECTS=true`, `PARTNER_REDIRECT_PROVIDER_MODE=enabled`, and keep `ENABLE_TEST_ADMIN_LOGIN=false` unless a non-production smoke test explicitly needs it.
 
 See `docs/PARTNER_REDIRECT_LIVE_RESULTS_PHASE.md` for verification steps in `/admin/ops` and manual checks for “Check live price” partner redirects.
+
+## Group shortlist and quote-builder phase
+
+This phase adds an enquiry-first group planning flow for richer conversion:
+
+- Visitors can shortlist up to six holiday ideas in the browser using `pickyholiday-shortlist-v1` localStorage. The shortlist survives refresh on the same browser only and does not create customer accounts.
+- The shortlist drawer lets visitors compare ideas and launch the Group quote builder for one selected deal or multiple shortlisted deals.
+- The Group quote builder submits a saved enquiry to `/api/travel/enquiries` with budget, room mix, board, baggage, transfer, occasion and flexibility notes plus safe shortlisted deal summaries.
+- The flow creates saved enquiries only: no booking has been created, no payment has been taken and no supplier reservation has been made.
+- Admin enquiry review now shows Group requirements and Shortlisted deals when those fields are supplied.

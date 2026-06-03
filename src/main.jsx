@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   Clock3,
   HandCoins,
+  Heart,
   HeartHandshake,
   Hotel,
   LockKeyhole,
@@ -25,6 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import './styles.css';
+import { CompareShortlist, QuoteBuilder, ShortlistBar, dealKey, readShortlist, saveShortlist, shortlistLimit, shortlistSummary } from './components/groupQuoteFlow.jsx';
 import { imageUrls, getaways, guides, reviews } from './data/mockDeals.js';
 import { buildPartnerSearchUrl, partnerDefinitions, validatePartnerUrl } from './services/partners/partnerDeepLinks.js';
 import {
@@ -88,7 +90,6 @@ const enquiryStatuses = ['new', 'reviewing', 'contacted', 'quoted', 'closed'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const friendlyDate = (value) => (value ? new Date(value).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Not recorded');
 const trackEvent = (payload) => { captureAnalyticsEvent({ path: window.location.pathname, ...payload }).catch(() => {}); };
-
 const readAdminToken = () => {
   try {
     return window.sessionStorage.getItem(adminTokenStorageKey) || '';
@@ -352,7 +353,7 @@ function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, loc
   );
 }
 
-function DealCard({ deal, onView }) {
+function DealCard({ deal, onView, isShortlisted = false, onToggleShortlist }) {
   const handleView = () => onView(deal);
 
   return (
@@ -367,6 +368,9 @@ function DealCard({ deal, onView }) {
           <p>{hasPricedAmount(deal) ? 'From ' : ''}<b>{priceCopy(deal)}</b> {deal.priceQualifier}</p>
           <button onClick={handleView}>{deal.provider === 'partner-redirect' ? 'Check live price' : 'View trip'}</button>
         </div>
+        <button className={`shortlist-card-action ${isShortlisted ? 'added' : ''}`} onClick={() => onToggleShortlist?.(deal)} aria-pressed={isShortlisted}>
+          <Heart size={15} fill={isShortlisted ? 'currentColor' : 'none'} /> {isShortlisted ? 'Added' : 'Shortlist'}
+        </button>
       </div>
     </article>
   );
@@ -395,6 +399,12 @@ function dealPayload(deal = {}) {
     groupSizeLabel: deal.groupSizeLabel || '',
     priceFrom: deal.priceFrom || null,
     currency: deal.currency || 'GBP',
+    priceQualifier: deal.priceQualifier || '',
+    partnerId: deal.partnerId || '',
+    boardBasis: deal.boardBasis || '',
+    baggageLabel: deal.baggageLabel || '',
+    bookingMode: deal.bookingMode || 'enquiry-only',
+    protectionLabel: deal.protectionLabel || '',
   };
 }
 
@@ -407,20 +417,19 @@ function validateEnquiryForm(form) {
   return errors;
 }
 
-function dealModalContent(selected, { onOpenEnquiry, onSubmitted } = {}) {
+function dealModalContent(selected, { onOpenEnquiry, onSubmitted, onShortlist, isShortlisted, onQuote } = {}) {
   return {
     title: selected.hotelName,
-    body: selected.provider === 'partner-redirect' ? `${selected.flightSummary}. ${selected.hotelSummary}. This sends you to the partner to check live price and availability. PickyHoliday has not created a booking.` : `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or continue to a partner where available; PickyHoliday does not create a booking, payment or supplier reservation automatically.`,
+    body: selected.provider === 'partner-redirect' ? `${selected.flightSummary}. ${selected.hotelSummary}. This sends you to the partner to check live price and availability. No booking has been created.` : `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or continue to a partner where available. No booking has been created. No payment has been taken. No supplier reservation has been made.`,
     kicker: selected.savingLabel,
     deal: selected,
     onEnquiry: (deal) => {
       trackEvent({ type: 'enquiry_form_opened', category: 'enquiry', label: deal.destination || deal.hotelName, metadata: { destination: deal.destination, resultId: deal.id || deal.resultId } });
-      onOpenEnquiry?.({
-        type: 'enquiry',
-        deal,
-        onSubmitted,
-      });
+      onOpenEnquiry?.({ type: 'enquiry', deal, onSubmitted });
     },
+    onShortlist,
+    isShortlisted,
+    onQuote,
   };
 }
 
@@ -484,7 +493,7 @@ function EnquiryForm({ deal, onClose, onSubmitted }) {
       <div className="enquiry-success" role="status">
         <span>Enquiry saved</span>
         <h2 id="modal-title">Thanks, your enquiry has been saved.</h2>
-        <p>This is not a booking confirmation. No payment, supplier reservation or travel booking has been created automatically.</p>
+        <p>This is not a booking confirmation. No booking has been created. No payment has been taken. No supplier reservation has been made.</p>
         {success.id && <p className="enquiry-ref">Enquiry ref: {success.id}</p>}
         <div className="modal-actions">
           <button onClick={onClose}>Close</button>
@@ -497,7 +506,7 @@ function EnquiryForm({ deal, onClose, onSubmitted }) {
     <form className="enquiry-form" onSubmit={handleSubmit} noValidate>
       <span>Saved enquiry only</span>
       <h2 id="modal-title">Ask for a group quote</h2>
-      <p>Share your contact details and notes. PickyHoliday will save this enquiry for review; this is not a booking and no supplier reservation is created automatically.</p>
+      <p>Share your contact details and notes. PickyHoliday will save this enquiry for review; this is not a booking confirmation. No supplier reservation has been made.</p>
       <div className="enquiry-trip-summary">
         <b>{deal.hotelName}</b>
         <small>{dealPlace(deal)} · {deal.supplierName} · {priceCopy(deal)} {deal.priceQualifier}</small>
@@ -612,6 +621,10 @@ function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
         <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
         {content.type === 'enquiry' ? (
           <EnquiryForm deal={content.deal} onClose={onClose} onSubmitted={content.onSubmitted} />
+        ) : content.type === 'quote-builder' ? (
+          <QuoteBuilder deals={content.deals || []} onClose={onClose} onSubmitted={content.onSubmitted} source={content.source || 'quote-builder'} onTrack={trackEvent} />
+        ) : content.type === 'compare-shortlist' ? (
+          <CompareShortlist deals={content.deals || []} />
         ) : content.type === 'admin-login' ? (
           <AdminSignInForm onClose={onClose} />
         ) : (
@@ -644,7 +657,9 @@ function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
                 <button key={action.label} onClick={() => { onClose(); action.onClick?.(); }}>{action.label}</button>
               ))}
               {featureFlags.enableAffiliateRedirects !== false && content.deal?.partnerUrl && isSafePartnerRedirectUrl(content.deal) && <button onClick={() => { trackEvent({ type: 'partner_redirect_clicked', category: 'partner', label: content.deal.supplierName || content.deal.provider, metadata: { destination: content.deal.destination, provider: content.deal.provider, supplierName: content.deal.supplierName } }); window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer'); }}>{content.deal.provider === 'partner-redirect' ? 'Check live price' : 'Continue to partner'}</button>}
-              {content.deal && <button onClick={() => content.onEnquiry?.(content.deal)}>Ask for group quote</button>}
+              {content.deal && <button onClick={() => content.onShortlist?.(content.deal)}>{content.isShortlisted?.(content.deal) ? 'Added' : 'Shortlist'}</button>}
+              {content.deal && <button onClick={() => content.onQuote?.(content.deal)}>Ask for group quote</button>}
+              {content.deal && <button onClick={() => content.onEnquiry?.(content.deal)}>Quick saved enquiry</button>}
               <button onClick={onClose}>{content.closeLabel || (content.deal ? 'Close trip details' : 'Close')}</button>
               {content.deal && <button onClick={() => { onClose(); scrollToId('search'); }}>Edit search</button>}
             </div>
@@ -699,7 +714,7 @@ function ProviderDiagnostics({ diagnostics, onRefresh }) {
   );
 }
 
-function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onViewDeal, isLoading, error, diagnostics, onRefreshDiagnostics }) {
+function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onViewDeal, isShortlisted, onToggleShortlist, isLoading, error, diagnostics, onRefreshDiagnostics }) {
   return (
     <section className="content block overlap" id="deals">
       <SectionTitle title="Popular group holiday deals" link="View all deals" onLink={onReset} />
@@ -710,7 +725,7 @@ function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onVi
       <button className="arrow left" onClick={() => onRotateDeals('prev')} aria-label="Previous deal"><ChevronLeft /></button>
       <div className="deals grid-six">
         {!isLoading && dealsToShow.length ? (
-          dealsToShow.map((deal) => <DealCard key={deal.id} deal={deal} onView={onViewDeal} />)
+          dealsToShow.map((deal) => <DealCard key={deal.id} deal={deal} onView={onViewDeal} isShortlisted={isShortlisted?.(deal)} onToggleShortlist={onToggleShortlist} />)
         ) : !isLoading ? (
           <div className="empty-state">No live partner results found yet. Try another destination or send a group quote enquiry.</div>
         ) : null}
@@ -772,7 +787,7 @@ const guideWidgetCopy = {
     kicker: 'Hen do guide',
     title: 'Top 10 hen do ideas you’ll all love',
     body: 'Open stag and hen planning advice for celebration-friendly destinations, group hotels and timing tips.',
-    bullets: ['Focused on party groups, changing numbers and shared planning.', 'Advisor follow-up can help check suitability before booking decisions.', 'No activities or travel are reserved from this preview.'],
+    bullets: ['Focused on party groups, changing numbers and shared planning.', 'Advisor follow-up can help check suitability before booking decisions.', 'No activities or travel are held from this preview.'],
     guideSlug: 'how-to-plan-a-stag-or-hen-trip',
     guideActionLabel: 'Open hen do guide',
     search: { intent: 'Stag & Hen', destination: 'Stag & Hen' },
@@ -990,6 +1005,7 @@ function App() {
   const [modal, setModal] = useState(null);
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [siteConfig, setSiteConfig] = useState(defaultSiteConfig);
+  const [shortlist, setShortlist] = useState(() => readShortlist());
   const [diagnostics, setDiagnostics] = useState({
     frontendMode: getFrontendProviderMode(),
     backendMode: 'mock',
@@ -1040,6 +1056,36 @@ function App() {
   const openMessage = (title, body, kicker) => setModal(typeof title === 'object' ? title : { title, body, kicker });
   const openSignIn = () => setModal({ type: 'admin-login' });
   const showNotice = (message) => setNotice(message);
+  const isDealShortlisted = (deal) => {
+    const resultId = deal.id || deal.resultId;
+    return shortlist.some((item) => item.id === dealKey(deal) || (resultId && item.resultId === resultId));
+  };
+  const addToShortlist = (deal, source = 'deal-card') => {
+    const summary = shortlistSummary(deal);
+    setShortlist((current) => {
+      if (current.some((item) => item.id === summary.id || (summary.resultId && item.resultId === summary.resultId))) return current;
+      if (current.length >= shortlistLimit) { showNotice('You can shortlist up to 6 holiday ideas for one group quote.'); return current; }
+      const next = [...current, summary];
+      saveShortlist(next);
+      trackEvent({ type: 'shortlist_added', category: 'shortlist', label: summary.destination || summary.hotelName, metadata: { destination: summary.destination, resultId: summary.resultId, provider: summary.provider, shortlistCount: next.length, source } });
+      showNotice('Added to your browser-local shortlist.');
+      return next;
+    });
+  };
+  const removeFromShortlist = (deal, source = 'shortlist-bar') => {
+    setShortlist((current) => {
+      const next = current.filter((item) => item.id !== deal.id && (!deal.resultId || item.resultId !== deal.resultId));
+      saveShortlist(next);
+      trackEvent({ type: 'shortlist_removed', category: 'shortlist', label: deal.destination || deal.hotelName, metadata: { destination: deal.destination, resultId: deal.resultId, provider: deal.provider, shortlistCount: next.length, source } });
+      return next;
+    });
+  };
+  const toggleShortlist = (deal, source = 'deal-card') => (isDealShortlisted(deal) ? removeFromShortlist(shortlistSummary(deal), source) : addToShortlist(deal, source));
+  const openQuoteBuilder = (deals, source = 'quote-builder') => {
+    const selectedDeals = (Array.isArray(deals) ? deals : [deals]).filter(Boolean);
+    trackEvent({ type: 'quote_builder_started', category: 'enquiry', label: selectedDeals[0]?.destination || search.destination || 'group quote', metadata: { destination: selectedDeals[0]?.destination || search.destination, resultId: selectedDeals[0]?.resultId || selectedDeals[0]?.id, provider: selectedDeals[0]?.provider, shortlistCount: selectedDeals.length, source } });
+    setModal({ type: 'quote-builder', deals: selectedDeals.length ? selectedDeals : shortlist, source, onSubmitted: (enquiry) => showNotice(enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.') });
+  };
 
   const refreshDiagnostics = async () => {
     try {
@@ -1159,6 +1205,9 @@ function App() {
       onSubmitted: (enquiry) => {
         showNotice(enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.');
       },
+      onShortlist: (deal) => toggleShortlist(deal, 'deal-modal'),
+      isShortlisted: isDealShortlisted,
+      onQuote: (deal) => openQuoteBuilder([deal], 'deal-modal'),
     }));
   };
 
@@ -1175,6 +1224,8 @@ function App() {
           onReset={handleResetDeals}
           onRotateDeals={(direction) => setDealList((list) => rotateList(list, direction))}
           onViewDeal={handleViewDeal}
+          isShortlisted={isDealShortlisted}
+          onToggleShortlist={(deal) => toggleShortlist(deal, 'deal-card')}
           isLoading={isSearching}
           error={searchError}
           diagnostics={diagnostics}
@@ -1200,7 +1251,7 @@ function App() {
           <div>
             <span>BETTER TOGETHER</span>
             <h2>Save more when<br />you go <b>together</b></h2>
-            <p>Big group? Save an enquiry and tell us what you need.<br />No payment or booking is created automatically.</p>
+            <p>Big group? Save an enquiry and tell us what you need.<br />No booking has been created. No payment has been taken.</p>
             <button onClick={() => { setSearch((currentSearch) => ({ ...currentSearch, groupSize: '20+ people, group quote' })); scrollToId('search'); }}>
               Explore group deals <ChevronRight size={18} />
             </button>
@@ -1232,6 +1283,7 @@ function App() {
       </main>
       <Footer onAction={openMessage} onSignIn={openSignIn} siteConfig={siteConfig} />
       {notice && <div className="toast" role="status">{notice}</div>}
+      <ShortlistBar shortlist={shortlist} onRemove={(deal) => removeFromShortlist(deal, 'shortlist-drawer')} onCompare={() => setModal({ type: 'compare-shortlist', deals: shortlist })} onQuote={() => openQuoteBuilder(shortlist, 'shortlist-drawer')} onTrack={trackEvent} />
       <Dialog content={modal} onClose={() => setModal(null)} siteConfig={siteConfig} />
     </>
   );
@@ -1340,7 +1392,7 @@ const footerWidgetCopy = {
   Facebook: {
     kicker: 'Social',
     title: 'Facebook community',
-    body: 'The Facebook button is reserved for a future community page with group travel polls, destination ideas and customer stories.',
+    body: 'The Facebook button is planned for a future community page with group travel polls, destination ideas and customer stories.',
     bullets: ['No external social page is opened until the live channel is connected.', 'Use guides and destination pages for inspiration today.', 'Future updates can link straight to the community once approved.'],
     guideSlug: 'best-group-holiday-destinations',
     guideActionLabel: 'Open destination inspiration',
@@ -1504,7 +1556,7 @@ function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
         </div>
       </div>
       <div className="copy content">
-        <p>© {currentYear} PickyHoliday.co.uk. All rights reserved.</p>
+        <p>© {currentYear} PickyHoliday.co.uk. All rights retained.</p>
         <span><ShieldCheck /> Enquiry-first planning</span>
         <span><ShieldCheck /> Secure enquiries</span>
         <span><Clock3 /> 24/7 support</span>
@@ -1670,6 +1722,32 @@ function AdminEnquiriesPanel({ token }) {
               <dt>Provider</dt><dd>{enquiry.provider || '—'}</dd>
               <dt>Supplier</dt><dd>{enquiry.supplierName || '—'}</dd>
             </dl>
+            {(enquiry.budgetPerPerson || enquiry.roomMix || enquiry.boardPreference || enquiry.baggagePreference || enquiry.transferPreference || enquiry.occasionType || enquiry.flexibilityNotes) && (
+              <div className="admin-notes">
+                <b>Group requirements</b>
+                <dl className="admin-fields group-fields">
+                  <dt>Budget pp</dt><dd>{enquiry.budgetPerPerson ? `£${enquiry.budgetPerPerson}` : '—'}</dd>
+                  <dt>Room mix</dt><dd>{enquiry.roomMix || '—'}</dd>
+                  <dt>Board</dt><dd>{enquiry.boardPreference || '—'}</dd>
+                  <dt>Bags/transfers</dt><dd>{[enquiry.baggagePreference, enquiry.transferPreference].filter(Boolean).join(' · ') || '—'}</dd>
+                  <dt>Occasion</dt><dd>{enquiry.occasionType || '—'}</dd>
+                  <dt>Flexibility</dt><dd>{enquiry.flexibilityNotes || '—'}</dd>
+                </dl>
+              </div>
+            )}
+            {Array.isArray(enquiry.shortlistedDeals) && enquiry.shortlistedDeals.length > 0 && (
+              <div className="admin-notes">
+                <b>Shortlisted deals</b>
+                <div className="admin-shortlisted-deals">
+                  {enquiry.shortlistedDeals.map((deal, index) => (
+                    <article key={deal.resultId || `${deal.hotelName}-${index}`}>
+                      <strong>{deal.hotelName || 'Holiday idea'}</strong>
+                      <span>{deal.destination}{deal.country ? `, ${deal.country}` : ''} · {deal.supplierName || deal.provider || 'Supplier to confirm'} · {deal.priceFrom ? `${deal.currency === 'GBP' ? '£' : deal.currency}${deal.priceFrom}` : 'Check live price'}</span>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="admin-notes">
               <b>Customer notes</b>
               <p>{enquiry.customerNotes || 'No notes supplied.'}</p>

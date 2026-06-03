@@ -41,8 +41,27 @@ const tableSql = `
     customer_phone text,
     customer_notes text,
     consent_to_contact boolean NOT NULL DEFAULT false,
-    internal_notes text
+    internal_notes text,
+    budget_per_person numeric,
+    room_mix text,
+    board_preference text,
+    baggage_preference text,
+    transfer_preference text,
+    occasion_type text,
+    flexibility_notes text,
+    quote_builder_version text,
+    shortlisted_deals jsonb NOT NULL DEFAULT '[]'::jsonb
   );
+
+  ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS budget_per_person numeric;
+  ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS room_mix text;
+  ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS board_preference text;
+  ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS baggage_preference text;
+  ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS transfer_preference text;
+  ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS occasion_type text;
+  ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS flexibility_notes text;
+  ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS quote_builder_version text;
+  ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS shortlisted_deals jsonb NOT NULL DEFAULT '[]'::jsonb;
 
   CREATE INDEX IF NOT EXISTS enquiries_created_at_desc_idx ON enquiries (created_at DESC);
   CREATE INDEX IF NOT EXISTS enquiries_status_idx ON enquiries (status);
@@ -102,6 +121,15 @@ const mapRowToEnquiry = (row) => ({
   customerNotes: row.customer_notes || '',
   consentToContact: row.consent_to_contact === true,
   internalNotes: row.internal_notes || '',
+  budgetPerPerson: toNumberOrNull(row.budget_per_person),
+  roomMix: row.room_mix || '',
+  boardPreference: row.board_preference || '',
+  baggagePreference: row.baggage_preference || '',
+  transferPreference: row.transfer_preference || '',
+  occasionType: row.occasion_type || '',
+  flexibilityNotes: row.flexibility_notes || '',
+  quoteBuilderVersion: row.quote_builder_version || '',
+  shortlistedDeals: Array.isArray(row.shortlisted_deals) ? row.shortlisted_deals : [],
 });
 
 const insertSql = `
@@ -128,10 +156,20 @@ const insertSql = `
     customer_phone,
     customer_notes,
     consent_to_contact,
-    internal_notes
+    internal_notes,
+    budget_per_person,
+    room_mix,
+    board_preference,
+    baggage_preference,
+    transfer_preference,
+    occasion_type,
+    flexibility_notes,
+    quote_builder_version,
+    shortlisted_deals
   ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-    $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+    $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23,
+    $24, $25, $26, $27, $28, $29, $30, $31, $32
   )
   RETURNING *;
 `;
@@ -160,6 +198,15 @@ const enquiryValues = (record) => [
   record.customerNotes,
   record.consentToContact,
   record.internalNotes,
+  record.budgetPerPerson,
+  record.roomMix,
+  record.boardPreference,
+  record.baggagePreference,
+  record.transferPreference,
+  record.occasionType,
+  record.flexibilityNotes,
+  record.quoteBuilderVersion,
+  JSON.stringify(record.shortlistedDeals || []),
 ];
 
 const withStorageError = async (operation) => {
