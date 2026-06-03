@@ -16,9 +16,14 @@ export const ANALYTICS_EVENT_TYPES = [
   'api_provider_error',
   'webhook_test_sent',
   'system_test_run',
+  'shortlist_added',
+  'shortlist_removed',
+  'shortlist_opened',
+  'quote_builder_started',
+  'quote_builder_submitted',
 ];
 
-export const PUBLIC_ANALYTICS_EVENT_TYPES = ['search_submitted', 'partner_redirect_clicked', 'content_page_view', 'enquiry_form_opened'];
+export const PUBLIC_ANALYTICS_EVENT_TYPES = ['search_submitted', 'partner_redirect_clicked', 'content_page_view', 'enquiry_form_opened', 'shortlist_added', 'shortlist_removed', 'shortlist_opened', 'quote_builder_started', 'quote_builder_submitted'];
 
 const secretKeyPattern = /(token|secret|password|database|authorization|access[_-]?key|api[_-]?key|client[_-]?secret|url)$/i;
 const secretValuePattern = /(postgres(?:ql)?:\/\/|bearer\s+|duffel_|amadeus|admin_access_token|database_url)/i;

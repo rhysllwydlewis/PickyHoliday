@@ -49,3 +49,12 @@ Use this checklist before merging changes to PickyHoliday.
 - Run `npm run build` and `npm run test:api`.
 - Confirm search cards say “Check live price” / “Ask for group quote” for partner redirects and do not say “Book now”, “Booking confirmed”, fake ATOL protection or supplier reservation wording.
 - Confirm `/admin/ops` includes frontend/backend provider mode, partner provider, partner URL safety and mock-mode warning checks.
+
+## Group shortlist and quote-builder verification
+
+- Search for a destination, add multiple deal cards to the shortlist, refresh the browser and confirm the browser-local shortlist reappears without login.
+- Open the shortlist drawer, remove an item, compare the remaining items and confirm the comparison says availability is not held and prices are not locked in.
+- Launch Ask for group quote from both a deal modal and the shortlist drawer; submit budget, room mix, occasion and notes.
+- Confirm the success state says saved enquiry only: no booking has been created, no payment has been taken and no supplier reservation has been made.
+- Confirm Admin > Enquiries shows Group requirements and Shortlisted deals, without raw unsafe partner URLs.
+- Run `npm run build` and `npm run test:api` before merging.

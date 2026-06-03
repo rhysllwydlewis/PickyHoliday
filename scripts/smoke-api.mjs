@@ -95,6 +95,19 @@ const endpoints = [
   { method: 'POST', path: '/api/travel/packages', body: { destination: 'Barcelona', intent: 'Holidays' } },
   { method: 'POST', path: '/api/travel/holiday-composer', body: { destination: 'Barcelona', intent: 'Holidays' } },
   { method: 'POST', path: '/api/travel/enquiries', body: { destination: 'Barcelona', customerName: 'Smoke Test', customerEmail: 'smoke@example.com', consentToContact: true } },
+  { method: 'POST', path: '/api/travel/enquiries', body: {
+    destination: 'Barcelona',
+    customerName: 'Smoke Quote Builder',
+    customerEmail: 'quote-builder@example.com',
+    consentToContact: true,
+    budgetPerPerson: 650,
+    roomMix: '3 twin rooms and 1 double room',
+    occasionType: 'Birthday group trip',
+    quoteBuilderVersion: 'group-shortlist-v1',
+    shortlistedDeals: [
+      { resultId: 'smoke-result-1', destination: 'Barcelona', country: 'Spain', hotelName: 'Smoke Group Hotel', supplierName: 'Smoke Supplier', provider: 'partner-redirect', partnerId: 'loveholidays', priceFrom: 499, currency: 'GBP', boardBasis: 'Half board', baggageLabel: 'Bags checked separately', bookingMode: 'affiliate', protectionLabel: 'Enquiry only — no automatic booking or payment.', hasPartnerRedirect: true },
+    ],
+  } },
   { method: 'GET', path: '/api/travel/locations?keyword=barcelona' },
   { method: 'GET', path: '/api/site-config' },
   { method: 'GET', path: '/api/deals/promoted' },
@@ -209,6 +222,10 @@ const assertEnquiry = (data) => {
   if (!data.enquiry?.message?.toLowerCase().includes('not a booking confirmation')) {
     throw new Error('/api/travel/enquiries did not return the expected mock enquiry-only message.');
   }
+  const body = JSON.stringify(data).toLowerCase();
+  for (const blocked of ['booking confirmed', 'book now', 'atol protected', 'guaranteed price', 'payment successful']) {
+    if (body.includes(blocked)) throw new Error(`/api/travel/enquiries contained forbidden wording: ${blocked}.`);
+  }
 };
 
 const request = async ({ method, path, body }) => {
@@ -265,9 +282,9 @@ const assertAdminUnauthorized = async () => {
 
 
 const assertAnalyticsAndOps = async () => {
-  const publicEvent = await fetch(`${baseUrl}/api/analytics/events`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'search_submitted', label: 'Barcelona', metadata: { destination: 'Barcelona', ADMIN_ACCESS_TOKEN: 'should-not-store' } }) });
+  const publicEvent = await fetch(`${baseUrl}/api/analytics/events`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'shortlist_added', label: 'Barcelona', metadata: { destination: 'Barcelona', resultId: 'smoke-result-1', provider: 'partner-redirect', shortlistCount: 1, source: 'smoke', ADMIN_ACCESS_TOKEN: 'should-not-store' } }) });
   const publicData = await parseJson(publicEvent, 'POST /api/analytics/events');
-  if (publicEvent.status !== 201 || publicData.event?.type !== 'search_submitted') throw new Error('Public analytics event was not accepted.');
+  if (publicEvent.status !== 201 || publicData.event?.type !== 'shortlist_added') throw new Error('Public analytics event was not accepted.');
   const unsafeEvent = await fetch(`${baseUrl}/api/analytics/events`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'admin_login_success' }) });
   if (unsafeEvent.status !== 400) throw new Error(`Unsafe analytics event returned ${unsafeEvent.status}, expected 400.`);
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${adminAccessToken}` };

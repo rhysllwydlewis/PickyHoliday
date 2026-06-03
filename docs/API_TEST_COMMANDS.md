@@ -188,3 +188,35 @@ Webhook tests should use HTTPS targets or localhost in development/test only, an
 ## Partner redirect/API-first smoke coverage
 
 `npm run test:api` starts a credential-free local API with `TRAVEL_PROVIDER_MODE=duffel`, `VITE_TRAVEL_PROVIDER_MODE=api`, `VITE_SHOW_DEMO_DEALS=false`, `ENABLE_PARTNER_REDIRECTS=true` and `PARTNER_REDIRECT_PROVIDER_MODE=enabled`. The smoke suite verifies that default backend mode is not mock, explicit mock mode still works through the registry, `/api/travel/search` returns partner redirect cards, partner URLs reject `javascript:` and `data:` URLs, forbidden booking-confirmation wording is absent, secrets are not exposed, and `/admin/ops` includes API-mode and partner URL checks.
+
+## Group shortlist and quote-builder API check
+
+Use this payload to verify the richer saved-enquiry model. It should return an enquiry id and wording that confirms it is not a booking confirmation.
+
+```bash
+curl -X POST http://localhost:8787/api/travel/enquiries \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "destination":"Barcelona",
+    "customerName":"Quote Builder Test",
+    "customerEmail":"quote-builder@example.com",
+    "consentToContact":true,
+    "budgetPerPerson":650,
+    "roomMix":"3 twin rooms and 1 double room",
+    "boardPreference":"Half board preferred",
+    "baggagePreference":"Hold bags for half the group",
+    "transferPreference":"Private return transfer if available",
+    "occasionType":"Birthday group trip",
+    "flexibilityNotes":"Flexible by one weekend either side",
+    "quoteBuilderVersion":"group-shortlist-v1",
+    "shortlistedDeals":[{"resultId":"manual-1","destination":"Barcelona","country":"Spain","hotelName":"Example Group Hotel","supplierName":"Example Supplier","provider":"partner-redirect","partnerId":"loveholidays","priceFrom":499,"currency":"GBP","bookingMode":"affiliate","hasPartnerRedirect":true}]
+  }'
+```
+
+Also verify public analytics accepts the shortlist/quote-builder event types without personal data:
+
+```bash
+curl -X POST http://localhost:8787/api/analytics/events \
+  -H 'Content-Type: application/json' \
+  -d '{"type":"shortlist_added","metadata":{"destination":"Barcelona","resultId":"manual-1","provider":"partner-redirect","shortlistCount":1,"source":"manual-curl"}}'
+```
