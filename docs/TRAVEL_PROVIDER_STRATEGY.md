@@ -127,3 +127,17 @@ Admin-managed promoted deals are exposed through `GET /api/deals/promoted` and m
 ## Partner redirect live-results phase
 
 PickyHoliday now treats partner redirects as the production-safe path away from mock holidays. The frontend calls backend APIs by default, the backend defaults to Duffel-oriented API mode, and partner redirect cards are enabled without requiring live external partner APIs. The cards never claim live availability; they invite the customer to check live price with a partner, while PickyHoliday remains enquiry-first with no payments, no bookings, no Duffel/Amadeus orders and no supplier reservations. Mock mode remains available only when explicitly configured for local/dev/demo testing.
+
+## Composer-oriented provider categories
+
+The holiday composer foundation keeps UI cards independent from individual supplier payloads. Providers can be grouped by category:
+
+- **Flight provider**: returns flight-led options through `flights(criteria)` and can later contribute fare, airport, duration and baggage data.
+- **Hotel provider**: returns hotel-led options through `hotels(criteria)` and can later contribute rooms, board basis, cancellation and rating signals.
+- **Package provider**: returns package-like options through `packages(criteria)` where a supplier already combines flight and hotel style data.
+- **Partner redirect provider**: returns safe live-price check links through `packages(criteria)` or `composeHoliday(criteria)` after URL validation.
+- **Promoted/manual provider**: returns advisor-managed or admin-promoted ideas that can be normalised into composer cards.
+
+Future adapters should prefer these optional methods: `flights(criteria)`, `hotels(criteria)`, `packages(criteria)`, `composeHoliday(criteria)` and `locations(criteria)`. The current composer collects available methods and normalises them into `composed-holiday-v1` results with deterministic scoring based on price, destination match, provider confidence, partner redirect availability, promoted/manual signals and rating where available. Richer live hotel and flight APIs can improve scoring without rewriting the homepage Spotlighted deals or `/search` UI.
+
+Criteria currently supports destination, origin/originAirport, departureDate, returnDate or nights, `dateFlexibilityDays` values of 0/1/2/3/7, `flexibleDates`, adults, children, partySize, rooms, a simple roomMix string, budgetPerPerson, intent/holidayType, sort and filters. Proper per-room passenger allocation is intentionally deferred.

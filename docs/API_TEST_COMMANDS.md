@@ -220,3 +220,13 @@ curl -X POST http://localhost:8787/api/analytics/events \
   -H 'Content-Type: application/json' \
   -d '{"type":"shortlist_added","metadata":{"destination":"Barcelona","resultId":"manual-1","provider":"partner-redirect","shortlistCount":1,"source":"manual-curl"}}'
 ```
+
+## Holiday composer smoke command
+
+```bash
+curl -s -X POST http://localhost:8787/api/travel/holiday-composer \
+  -H 'Content-Type: application/json' \
+  -d '{"destination":"Barcelona","originAirport":"Manchester","departureDate":"2026-08-10","returnDate":"2026-08-17","dateFlexibilityDays":2,"flexibleDates":true,"partySize":8,"adults":8,"children":0,"rooms":3,"roomMix":"3 rooms, mixed doubles and twins","budgetPerPerson":450,"intent":"Holidays","sort":"recommended"}' | jq .
+```
+
+Expected envelope fields include `results`, `providerMode`, `providerErrors`, `providerStatus` and `meta.resultShape="composed-holiday-v1"`. Result cards are normalised holiday ideas and must not contain booking, payment or supplier-reservation claims.

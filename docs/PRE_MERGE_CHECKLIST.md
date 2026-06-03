@@ -58,3 +58,12 @@ Use this checklist before merging changes to PickyHoliday.
 - Confirm the success state says saved enquiry only: no booking has been created, no payment has been taken and no supplier reservation has been made.
 - Confirm Admin > Enquiries shows Group requirements and Shortlisted deals, without raw unsafe partner URLs.
 - Run `npm run build` and `npm run test:api` before merging.
+
+## Holiday composer foundation checks
+
+- [ ] Homepage search supports destination, departure airport, dates/nights, date flexibility, party size, rooms and optional per-person budget.
+- [ ] Homepage Spotlighted deals render with the safe explanation that prices and availability are not held by PickyHoliday.
+- [ ] `/search?...` reads URL criteria, calls `/api/travel/holiday-composer`, supports sort fallback options and keeps provider diagnostics behind the existing flag.
+- [ ] Composed cards still allow shortlist and quote-builder actions where applicable.
+- [ ] API responses expose only normalised composed result fields and safe partner URLs; no raw provider payloads, tokens, bookings, payments or reservations are exposed.
+- [ ] `npm run build` and `npm run test:api` pass after building the app shell used by the `/search` route smoke check.

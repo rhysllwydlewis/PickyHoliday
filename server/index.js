@@ -12,6 +12,8 @@ import { createPromotedDeal, getPromotedDealStorageStatus, listPromotedDeals, li
 import { getPublicSiteConfig, getSiteConfig, getSiteConfigStorageStatus, updateSiteConfig } from './site/siteConfigStore.js';
 import { createContentPage, getContentPageStorageStatus, getPublicContentPageBySlug, listAdminContentPages, listPublicContentPages, updateContentPage, updateContentPageStatus } from './content/contentPageStore.js';
 import { validatePartnerUrl } from '../src/services/partners/partnerDeepLinks.js';
+import { normaliseHolidaySearchCriteria } from '../src/services/search/holidaySearchCriteria.js';
+import { normaliseComposedHolidayResults } from '../src/services/search/composedHolidayResults.js';
 import { PUBLIC_ANALYTICS_EVENT_TYPES, anonymiseIp, getAnalyticsStorageStatus, getAnalyticsSummary, listAnalyticsEvents, recordAnalyticsEvent, sanitiseMetadata, summariseUserAgent } from './analytics/analyticsStore.js';
 
 const port = Number(process.env.PORT || 8787);
@@ -462,7 +464,8 @@ const filterPromotedDealsForCriteria = (deals, criteria = {}) => {
 };
 
 const searchWithPromotedDeals = async (body, method = 'search') => {
-  const envelope = await registry[method](body);
+  const criteria = method === 'composeHoliday' ? normaliseHolidaySearchCriteria(body) : body;
+  const envelope = await registry[method](criteria);
   let siteConfig;
   try {
     siteConfig = await getPublicSiteConfig();
@@ -473,8 +476,9 @@ const searchWithPromotedDeals = async (body, method = 'search') => {
   if (siteConfig.featureFlags?.enablePromotedDeals === false) return envelope;
 
   try {
-    const promotedDeals = filterPromotedDealsForCriteria(await listPublicPromotedDeals(), body);
-    const results = mergeResultsById(promotedDeals, envelope.results || []);
+    const promotedDeals = filterPromotedDealsForCriteria(await listPublicPromotedDeals(), criteria);
+    const mergedResults = mergeResultsById(promotedDeals, envelope.results || []);
+    const results = method === 'composeHoliday' ? normaliseComposedHolidayResults(mergedResults, criteria, { limit: criteria.filters?.spotlight ? 6 : 24 }) : mergedResults;
     return {
       ...envelope,
       results,
@@ -504,7 +508,7 @@ const postRoutes = {
   '/api/travel/flights': (body) => registry.flights(body),
   '/api/travel/hotels': (body) => registry.hotels(body),
   '/api/travel/packages': (body) => searchWithPromotedDeals(body, 'packages'),
-  '/api/travel/holiday-composer': (body) => registry.composeHoliday(body),
+  '/api/travel/holiday-composer': (body) => searchWithPromotedDeals(body, 'composeHoliday'),
   '/api/travel/locations': (body) => registry.locations(body),
 };
 
