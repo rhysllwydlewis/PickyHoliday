@@ -119,9 +119,10 @@ export function createBookingDemandProvider(env = process.env, fetchImpl = globa
   const apiKey = clean(env.BOOKING_DEMAND_API_KEY || '', 600);
   const affiliateId = clean(env.BOOKING_DEMAND_AFFILIATE_ID || '', 120);
   const explicitEnabled = env.BOOKING_DEMAND_ENABLED;
-  const enabled = asBool(explicitEnabled, Boolean(apiKey && affiliateId));
-  const configured = enabled && Boolean(apiKey && affiliateId);
   const testMockEnabled = asBool(env.BOOKING_DEMAND_TEST_MOCK, false);
+  const enabled = asBool(explicitEnabled, Boolean(apiKey && affiliateId) || testMockEnabled);
+  const liveCredentialsConfigured = enabled && Boolean(apiKey && affiliateId);
+  const configured = enabled && (liveCredentialsConfigured || testMockEnabled);
   const timeoutMs = Math.max(500, asInt(env.BOOKING_DEMAND_TIMEOUT_MS, 7000));
   const currency = clean(env.BOOKING_DEMAND_CURRENCY || env.AMADEUS_CURRENCY || 'GBP', 8) || 'GBP';
   const bookerCountry = clean(env.BOOKING_DEMAND_BOOKER_COUNTRY || 'gb', 4).toLowerCase() || 'gb';
@@ -236,7 +237,7 @@ export function createBookingDemandProvider(env = process.env, fetchImpl = globa
     const search = normaliseHolidaySearchCriteria(criteria);
     if (!enabled) return [];
     if (testMockEnabled) return createMockBookingDemandOffers(search, { currency });
-    if (!configured) {
+    if (!liveCredentialsConfigured) {
       const error = new Error('Booking.com Demand provider is enabled but BOOKING_DEMAND_API_KEY and BOOKING_DEMAND_AFFILIATE_ID are not configured.');
       error.status = 503;
       throw error;
@@ -265,9 +266,6 @@ export function createBookingDemandProvider(env = process.env, fetchImpl = globa
     async hotels(criteria) {
       return hotels(criteria);
     },
-    async composeHoliday(criteria) {
-      return hotels(criteria);
-    },
     getStatus() {
       return {
         provider: 'booking-demand',
@@ -277,6 +275,7 @@ export function createBookingDemandProvider(env = process.env, fetchImpl = globa
         environment,
         baseUrlMode: environment,
         requiresServerCredentials: true,
+        liveCredentialsConfigured,
         testMockEnabled,
       };
     },
