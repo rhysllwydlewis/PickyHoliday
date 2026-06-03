@@ -351,6 +351,8 @@ function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, loc
 }
 
 function DealCard({ deal, onView }) {
+  const handleView = () => onView(deal);
+
   return (
     <article className="deal-card">
       <div className="pic"><img src={img(deal.image)} alt={dealPlace(deal)} /><strong>{deal.savingLabel}</strong></div>
@@ -361,7 +363,7 @@ function DealCard({ deal, onView }) {
         <p className="provider-chip">{deal.supplierName} · {deal.resultType}</p>
         <div className="price">
           <p>{hasPricedAmount(deal) ? 'From ' : ''}<b>{priceCopy(deal)}</b> {deal.priceQualifier}</p>
-          <button onClick={() => onView(deal)}>View trip</button>
+          <button onClick={handleView}>View trip</button>
         </div>
       </div>
     </article>
@@ -401,6 +403,23 @@ function validateEnquiryForm(form) {
   if (!form.destination.trim()) errors.destination = 'Please choose a destination.';
   if (!form.consentToContact) errors.consentToContact = 'Please confirm we can contact you about this enquiry.';
   return errors;
+}
+
+function dealModalContent(selected, { onOpenEnquiry, onSubmitted } = {}) {
+  return {
+    title: selected.hotelName,
+    body: `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or continue to a partner where available; PickyHoliday does not create a booking, payment or supplier reservation automatically.`,
+    kicker: selected.savingLabel,
+    deal: selected,
+    onEnquiry: (deal) => {
+      trackEvent({ type: 'enquiry_form_opened', category: 'enquiry', label: deal.destination || deal.hotelName, metadata: { destination: deal.destination, resultId: deal.id || deal.resultId } });
+      onOpenEnquiry?.({
+        type: 'enquiry',
+        deal,
+        onSubmitted,
+      });
+    },
+  };
 }
 
 function EnquiryForm({ deal, onClose, onSubmitted }) {
@@ -624,7 +643,7 @@ function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
               ))}
               {featureFlags.enableAffiliateRedirects !== false && content.deal?.partnerUrl && isSafeUrl(content.deal.partnerUrl) && <button onClick={() => { trackEvent({ type: 'partner_redirect_clicked', category: 'partner', label: content.deal.supplierName || content.deal.provider, metadata: { destination: content.deal.destination, provider: content.deal.provider, supplierName: content.deal.supplierName } }); window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer'); }}>Continue to partner</button>}
               {content.deal && <button onClick={() => content.onEnquiry?.(content.deal)}>Ask for group quote</button>}
-              <button onClick={onClose}>{content.deal ? 'Shortlist this trip' : 'Close'}</button>
+              <button onClick={onClose}>{content.closeLabel || (content.deal ? 'Close trip details' : 'Close')}</button>
               {content.deal && <button onClick={() => { onClose(); scrollToId('search'); }}>Edit search</button>}
             </div>
           </>
@@ -716,17 +735,98 @@ function GetawaysSection({ items, onSelectGetaway, onRotate }) {
   );
 }
 
+const guideWidgetCopy = {
+  '6 epic cities perfect for a mates trip': {
+    kicker: 'City guide',
+    title: '6 epic cities perfect for a mates trip',
+    body: 'Open the city-break guide for group-friendly destinations with nightlife, easy flight access and flexible hotel ideas for mates trips.',
+    bullets: ['Best for groups comparing Barcelona, Prague, Malaga and similar city breaks.', 'Use the guide to choose a shortlist before searching live ideas.', 'No booking is made from the guide preview.'],
+    guideSlug: 'best-group-holiday-destinations',
+    guideActionLabel: 'Open city-break guide',
+    search: { intent: 'Holidays', destination: 'City breaks' },
+    searchActionLabel: 'Search city breaks',
+  },
+  'Best party beaches in Europe for groups': {
+    kicker: 'Beach guide',
+    title: 'Best party beaches in Europe for groups',
+    body: 'Open beach inspiration for groups comparing Ibiza, Ayia Napa, Zante, Benidorm and other party-friendly coastal ideas.',
+    bullets: ['Useful when the group wants sun, nightlife and simple airport access.', 'Search beach ideas before asking for an advisor quote.', 'Supplier availability is checked only after enquiry follow-up.'],
+    guideSlug: 'best-group-holiday-destinations',
+    guideActionLabel: 'Open party beach guide',
+    search: { intent: 'Holidays', destination: 'Party beaches' },
+    searchActionLabel: 'Search party beaches',
+  },
+  'How to plan the ultimate group holiday': {
+    kicker: 'Planning guide',
+    title: 'How to plan the ultimate group holiday',
+    body: 'Open the planning guide for group size, dates, budgets, deposits and enquiry-first next steps before anyone commits to booking.',
+    bullets: ['Helps group leaders gather dates, room splits and budget ranges.', 'Explains why saved enquiries are quote requests, not bookings.', 'Use it before starting a tailored search.'],
+    guideSlug: 'how-group-holiday-enquiries-work',
+    guideActionLabel: 'Open planning guide',
+    search: { intent: 'Holidays' },
+    searchActionLabel: 'Start planning search',
+  },
+  'Top 10 hen do ideas you’ll all love': {
+    kicker: 'Hen do guide',
+    title: 'Top 10 hen do ideas you’ll all love',
+    body: 'Open stag and hen planning advice for celebration-friendly destinations, group hotels and timing tips.',
+    bullets: ['Focused on party groups, changing numbers and shared planning.', 'Advisor follow-up can help check suitability before booking decisions.', 'No activities or travel are reserved from this preview.'],
+    guideSlug: 'how-to-plan-a-stag-or-hen-trip',
+    guideActionLabel: 'Open hen do guide',
+    search: { intent: 'Stag & Hen', destination: 'Stag & Hen' },
+    searchActionLabel: 'Search stag and hen trips',
+  },
+  'Food & nightlife hotspots for large groups': {
+    kicker: 'Nightlife guide',
+    title: 'Food and nightlife hotspots for large groups',
+    body: 'Open destination inspiration for groups prioritising restaurants, bars, walkable hotels and easy evening plans.',
+    bullets: ['Useful for large groups that need simple dining and nightlife logistics.', 'Compare destinations first, then ask for a quote from a matching trip.', 'The advisor can help check hotel location and group terms.'],
+    guideSlug: 'best-group-holiday-destinations',
+    guideActionLabel: 'Open nightlife guide',
+    search: { intent: 'Holidays', destination: 'Nightlife' },
+    searchActionLabel: 'Search nightlife trips',
+  },
+};
+
+function guideWidgetFor(title) {
+  const content = guideWidgetCopy[title] || {
+    kicker: 'Guide preview',
+    title,
+    body: `Open planning help for ${title.toLowerCase()} and use it to choose a safer enquiry-first group holiday next step.`,
+    bullets: ['Preview the topic before searching.', 'Use the search action for matching ideas.', 'No booking is created from this guide widget.'],
+    search: { intent: 'Holidays' },
+    searchActionLabel: 'Search matching trips',
+  };
+  const actions = [];
+  if (content.guideSlug) {
+    actions.push({ label: content.guideActionLabel || 'Open matching guide', onClick: () => window.location.assign(contentPathForSlug(content.guideSlug)) });
+  }
+  if (content.search) {
+    actions.push({ label: content.searchActionLabel, onClick: () => window.location.assign(footerSearchUrl(content.search)) });
+  }
+  return { ...content, actions };
+}
+
 function GuidesSection({ items, onAction, onRotate }) {
   return (
     <section className="content block" id="guides">
       <SectionTitle
         title="Travel inspiration for groups"
         link="View all guides"
-        onLink={() => onAction('Travel guides', 'Choose a guide card to preview planning tips, destination ideas and group-friendly itineraries.', 'Inspiration')}
+        onLink={() => onAction({
+          kicker: 'Guide hub',
+          title: 'Travel inspiration for groups',
+          body: 'Choose the guide type that matches the group decision you need to make: destination shortlist, celebration planning, family trips or enquiry next steps.',
+          bullets: ['City and beach guides help narrow destinations.', 'Planning guides explain enquiry-first quote requests.', 'Each guide action opens a matching public content page or search.'],
+          actions: [
+            { label: 'Open destination guide', onClick: () => window.location.assign('/guides/best-group-holiday-destinations') },
+            { label: 'Open quote process guide', onClick: () => window.location.assign('/guides/how-group-holiday-enquiries-work') },
+          ],
+        })}
       />
       <div className="guides">
         {items.map(([image, title]) => (
-          <button key={title} onClick={() => onAction(title, 'Here you can preview this guide, save it for later, or use it to start planning a matching group holiday.', 'Guide preview')}>
+          <button key={title} onClick={() => onAction(guideWidgetFor(title))}>
             <img src={img(image)} alt="" />
             <h3>{title}</h3>
           </button>
@@ -843,6 +943,7 @@ function PublicContentPageApp() {
   }, [slug]);
   const openMessage = (title, body, kicker) => setModal(typeof title === 'object' ? title : { title, body, kicker });
   const openSignIn = () => setModal({ type: 'admin-login' });
+  const openRelatedDeal = (deal) => setModal(dealModalContent(deal, { onOpenEnquiry: setModal }));
   if (status === 'loading') return <><Header onAction={() => {}} onSignIn={openSignIn} /><main className="content-page"><div className="loading-state">Loading content page…</div></main><Footer onAction={() => {}} onSignIn={openSignIn} /><Dialog content={modal} onClose={() => setModal(null)} /></>;
   if (!page || status === 'missing') return <><Header onAction={() => {}} onSignIn={openSignIn} /><main className="content-page"><h1>Page not found</h1><p>This page is not published or is temporarily unavailable.</p><a className="primary-link" href="/">Return home</a></main><Footer onAction={() => {}} onSignIn={openSignIn} /><Dialog content={modal} onClose={() => setModal(null)} /></>;
   const related = (page.relatedSlugs || []).slice(0, 6);
@@ -854,12 +955,12 @@ function PublicContentPageApp() {
           <span>{page.heroEyebrow || (page.type === 'guide' ? 'Travel guide' : 'Group holiday page')}</span>
           <h1>{page.heroTitle || page.title}</h1>
           <p>{page.heroSubtitle || page.intro}</p>
-          <div className="content-hero-actions"><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}&intent=${encodeURIComponent(page.searchDefaults?.intent || '')}#search`}>Search ideas</a><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}#enquiry`}>Ask for group quote</a></div>
+          <div className="content-hero-actions"><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}&intent=${encodeURIComponent(page.searchDefaults?.intent || '')}#search`}>Search ideas</a><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}#deals`}>Ask for group quote</a></div>
         </section>
         <section className="content-body"><p className="intro-copy">{page.intro}</p>{(page.sections || []).map((section) => <article key={section.id}><h2>{section.heading}</h2><p>{section.body}</p></article>)}</section>
-        {deals.length > 0 && <section className="content-related"><h2>Related holiday ideas</h2><div className="deal-grid compact">{deals.map((deal) => <DealCard key={deal.id || deal.resultId} deal={deal} onAction={openMessage} />)}</div></section>}
+        {deals.length > 0 && <section className="content-related"><h2>Related holiday ideas</h2><div className="deal-grid compact">{deals.map((deal) => <DealCard key={deal.id || deal.resultId} deal={deal} onView={openRelatedDeal} />)}</div></section>}
         {(page.faqs || []).length > 0 && <section className="content-faq"><h2>FAQs</h2>{page.faqs.map((faq) => <details key={faq.id}><summary>{faq.question}</summary><p>{faq.answer}</p></details>)}</section>}
-        <section className="content-cta"><h2>Ready to plan this group trip?</h2><p>Send an enquiry for advisor follow-up. This is not a booking confirmation and no payment is taken.</p><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || page.title)}#enquiry`}>Ask for group quote</a></section>
+        <section className="content-cta"><h2>Ready to plan this group trip?</h2><p>Send an enquiry for advisor follow-up. This is not a booking confirmation and no payment is taken.</p><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || page.title)}&intent=${encodeURIComponent(page.searchDefaults?.intent || 'Holidays')}#deals`}>Ask for group quote</a></section>
         {related.length > 0 && <section className="content-links"><h2>Related links</h2>{related.map((item) => <a key={item} href={contentPathForSlug(item)}>{labelFromSlug(item)}</a>)}</section>}
       </main>
       <Footer onAction={openMessage} onSignIn={openSignIn} />
@@ -1048,22 +1149,12 @@ function App() {
   };
 
   const handleViewDeal = (selected) => {
-    setModal({
-      title: selected.hotelName,
-      body: `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or continue to a partner where available; PickyHoliday does not create a booking, payment or supplier reservation automatically.`,
-      kicker: selected.savingLabel,
-      deal: selected,
-      onEnquiry: (deal) => {
-        trackEvent({ type: 'enquiry_form_opened', category: 'enquiry', label: deal.destination || deal.hotelName, metadata: { destination: deal.destination, resultId: deal.id || deal.resultId } });
-        setModal({
-          type: 'enquiry',
-          deal,
-          onSubmitted: (enquiry) => {
-            showNotice(enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.');
-          },
-        });
+    setModal(dealModalContent(selected, {
+      onOpenEnquiry: setModal,
+      onSubmitted: (enquiry) => {
+        showNotice(enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.');
       },
-    });
+    }));
   };
 
   return (
@@ -1149,6 +1240,7 @@ const footerWidgetCopy = {
     body: 'Search flexible flight-and-hotel ideas for friends, families and larger groups, then save an enquiry so an advisor can help with rooms, deposits and availability.',
     bullets: ['Compare package-style ideas without creating a booking automatically.', 'Use group size, airport and date filters before asking for a quote.', 'Advisor follow-up can help with room splits and special requests.'],
     search: { intent: 'Holidays' },
+    searchActionLabel: 'Search package holidays',
   },
   Villas: {
     kicker: 'Book villas',
@@ -1156,6 +1248,7 @@ const footerWidgetCopy = {
     body: 'Find villa-style stays where the whole group can share a base, then ask PickyHoliday to follow up on sleeping arrangements, deposits and local extras.',
     bullets: ['Good for families, celebrations and friends who want shared space.', 'Use the search panel with Villas selected to narrow destination ideas.', 'Enquiries remain saved quote requests, not confirmed reservations.'],
     search: { intent: 'Villas', destination: 'Villas' },
+    searchActionLabel: 'Search villas',
   },
   'Group hotel stays': {
     kicker: 'Group hotels',
@@ -1163,6 +1256,7 @@ const footerWidgetCopy = {
     body: 'Shortlist hotels that suit multi-room groups and ask for a tailored quote covering room types, lead passenger details and group-friendly terms.',
     bullets: ['Built for 2+ rooms, larger parties and mixed room requirements.', 'Advisor follow-up can clarify board basis, baggage and transfer needs.', 'No payment is taken when you submit an enquiry.'],
     search: { intent: 'Group hotel stays', destination: 'Group hotel stays' },
+    searchActionLabel: 'Search group hotels',
   },
   'Stag & Hen': {
     kicker: 'Stag & hen',
@@ -1171,6 +1265,8 @@ const footerWidgetCopy = {
     bullets: ['Useful for Ibiza, Prague, Benidorm, Albufeira and other celebration spots.', 'Group quote support helps when numbers are still moving.', 'PickyHoliday will not auto-book flights, hotels or activities from this widget.'],
     search: { intent: 'Stag & Hen', destination: 'Stag & Hen' },
     guideSlug: 'how-to-plan-a-stag-or-hen-trip',
+    searchActionLabel: 'Search stag and hen ideas',
+    guideActionLabel: 'Open stag and hen guide',
   },
   Families: {
     kicker: 'Family holidays',
@@ -1179,6 +1275,8 @@ const footerWidgetCopy = {
     bullets: ['Start a Families search for resorts, villas and hotel ideas.', 'Ask for an advisor follow-up when you need cots, rooms nearby or flexible deposits.', 'Saved enquiries keep the planning conversation in one place.'],
     search: { intent: 'Families', destination: 'Families' },
     guideSlug: 'best-family-group-holidays',
+    searchActionLabel: 'Search family trips',
+    guideActionLabel: 'Open family group guide',
   },
   'Help Centre': {
     kicker: 'Help centre',
@@ -1200,6 +1298,7 @@ const footerWidgetCopy = {
     body: 'PickyHoliday keeps the first step enquiry-first: you can share what the group needs, then the team checks options before any booking commitment.',
     bullets: ['Submit or shortlist an idea without paying today.', 'An advisor checks availability, room splits and supplier conditions.', 'You decide next steps only after the quote has been reviewed.'],
     guideSlug: 'how-group-holiday-enquiries-work',
+    guideActionLabel: 'Open quote process guide',
   },
   FAQs: {
     kicker: 'FAQs',
@@ -1207,6 +1306,7 @@ const footerWidgetCopy = {
     body: 'Quick answers for common group holiday questions, including deposits, supplier redirects, saved enquiries and how PickyHoliday avoids accidental bookings.',
     bullets: ['Results may include live, affiliate, promoted or mock fallback providers.', 'Partner redirects open separately when available and enabled.', 'Submitting an enquiry does not reserve seats, rooms or prices.'],
     guideSlug: 'how-group-holiday-enquiries-work',
+    guideActionLabel: 'Open enquiry FAQs',
   },
   'About us': {
     kicker: 'About PickyHoliday',
@@ -1238,6 +1338,7 @@ const footerWidgetCopy = {
     body: 'The Facebook button is reserved for a future community page with group travel polls, destination ideas and customer stories.',
     bullets: ['No external social page is opened until the live channel is connected.', 'Use guides and destination pages for inspiration today.', 'Future updates can link straight to the community once approved.'],
     guideSlug: 'best-group-holiday-destinations',
+    guideActionLabel: 'Open destination inspiration',
   },
   Instagram: {
     kicker: 'Social',
@@ -1245,6 +1346,7 @@ const footerWidgetCopy = {
     body: 'The Instagram button is intended for visual destination inspiration, hotel walk-throughs and short group travel tips.',
     bullets: ['The live profile link can be connected when marketing channels are ready.', 'Today you can use the guides area for curated inspiration.', 'Destination ideas remain enquiry-first and do not auto-book.'],
     guideSlug: 'best-group-holiday-destinations',
+    guideActionLabel: 'Open visual inspiration guide',
   },
   'Travel wheel': {
     kicker: 'Inspiration',
@@ -1252,6 +1354,7 @@ const footerWidgetCopy = {
     body: 'This widget explains the travel wheel: a playful way to rotate through featured destinations when the group cannot decide where to go.',
     bullets: ['Use it for quick inspiration rather than a confirmed recommendation.', 'Start a search after choosing a destination idea.', 'Advisor follow-up can help narrow the shortlist.'],
     search: { intent: 'Holidays' },
+    searchActionLabel: 'Spin into holiday search',
   },
   'Video guides': {
     kicker: 'Video guides',
@@ -1259,18 +1362,23 @@ const footerWidgetCopy = {
     body: 'Video guides are planned for short destination explainers, hotel previews and practical group travel tips.',
     bullets: ['The button no longer opens a generic message.', 'Future videos can be linked from this specific widget.', 'Use written guides while video content is being connected.'],
     guideSlug: 'best-group-holiday-destinations',
+    guideActionLabel: 'Open destination video ideas',
   },
   'App Store': {
     kicker: 'Mobile app',
     title: 'PickyHoliday for iPhone',
     body: 'The iOS app button is a placeholder for a future app store listing focused on saved enquiries, shortlists and advisor updates.',
     bullets: ['No app store redirect happens until a live listing is ready.', 'The group travel hub concept is explained here instead of using generic copy.', 'For now, continue planning on the website.'],
+    search: { intent: 'Holidays' },
+    searchActionLabel: 'Continue planning online',
   },
   'Google Play': {
     kicker: 'Mobile app',
     title: 'PickyHoliday for Android',
     body: 'The Android app button is a placeholder for a future Google Play listing for saved enquiries and group planning updates.',
     bullets: ['No Google Play redirect happens until a live listing is ready.', 'This keeps expectations clear while the app experience is planned.', 'Use the website search and enquiry flow today.'],
+    search: { intent: 'Holidays' },
+    searchActionLabel: 'Continue planning online',
   },
   'Ask for a group quote': {
     kicker: 'Group quote',
@@ -1278,6 +1386,7 @@ const footerWidgetCopy = {
     body: 'Tell PickyHoliday the group size, rough dates and destination ideas so an advisor can review options and come back with next steps.',
     bullets: ['Best for 8+ travellers, multi-room stays or special requirements.', 'Submitting details saves an enquiry only; it is not a booking.', 'You can start from the search panel and choose any suitable trip idea.'],
     search: { intent: 'Holidays' },
+    searchActionLabel: 'Start quote from search',
   },
   'Footer promise': {
     kicker: 'How it works',
@@ -1285,6 +1394,7 @@ const footerWidgetCopy = {
     body: 'PickyHoliday keeps planning safe for groups by separating inspiration, partner redirects and saved enquiries from confirmed bookings.',
     bullets: ['Browse ideas from configured providers and curated promoted deals.', 'Save an enquiry when the group needs advisor help.', 'Only continue to suppliers or payments after you choose the next step.'],
     guideSlug: 'how-group-holiday-enquiries-work',
+    guideActionLabel: 'Open how it works guide',
   },
 };
 
@@ -1301,14 +1411,14 @@ function footerWidgetFor(label, onSignIn) {
 
   if (content.search) {
     actions.push({
-      label: 'Start matching search',
+      label: content.searchActionLabel || 'Start matching search',
       onClick: () => window.location.assign(footerSearchUrl(content.search)),
     });
   }
 
   if (content.guideSlug) {
     actions.push({
-      label: 'Open related guide',
+      label: content.guideActionLabel || 'Open related guide',
       onClick: () => window.location.assign(contentPathForSlug(content.guideSlug)),
     });
   }
@@ -1325,7 +1435,8 @@ function footerWidgetFor(label, onSignIn) {
     title: content.title,
     body: content.body,
     bullets: content.bullets,
-    actions: actions.length ? actions : [{ label: 'Browse inspiration', onClick: () => window.location.assign('/guides/best-group-holiday-destinations') }],
+    actions: actions.length ? actions : undefined,
+    closeLabel: content.closeLabel || `Close ${label} widget`,
   };
 }
 
