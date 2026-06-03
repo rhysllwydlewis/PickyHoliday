@@ -16,7 +16,7 @@ Use this checklist before merging changes to PickyHoliday.
 ## Storage and environment
 
 - Keep JSON fallbacks available for enquiry, promoted deal, site config and content page storage.
-- Do not expose `DATABASE_URL`, `ADMIN_ACCESS_TOKEN`, `DUFFEL_ACCESS_TOKEN`, `AMADEUS_CLIENT_SECRET` or other secrets to browser code.
+- Do not expose `DATABASE_URL`, `ADMIN_ACCESS_TOKEN`, `DUFFEL_ACCESS_TOKEN`, `AMADEUS_CLIENT_SECRET`, `BOOKING_DEMAND_API_KEY`, `BOOKING_DEMAND_AFFILIATE_ID` or other secrets to browser code.
 - If a Postgres storage mode is selected without `DATABASE_URL`, readiness should report not configured with a controlled 503 instead of crashing.
 
 ## Product guardrails
@@ -25,6 +25,7 @@ Use this checklist before merging changes to PickyHoliday.
 - Do not add payments.
 - Do not create Duffel orders.
 - Do not create Amadeus orders.
+- Do not create Booking.com reservations, cancellations or order flows.
 - Do not create supplier reservations.
 - Do not claim an enquiry is a booking confirmation.
 - Do not make fake protection, ATOL or package booking claims.
@@ -67,3 +68,15 @@ Use this checklist before merging changes to PickyHoliday.
 - [ ] Composed cards still allow shortlist and quote-builder actions where applicable.
 - [ ] API responses expose only normalised composed result fields and safe partner URLs; no raw provider payloads, tokens, bookings, payments or reservations are exposed.
 - [ ] `npm run build` and `npm run test:api` pass after building the app shell used by the `/search` route smoke check.
+
+## Booking.com Demand provider checks
+
+- [ ] `.env.example` documents only server-side `BOOKING_DEMAND_*` variables and does not add any `VITE_BOOKING_*` secrets.
+- [ ] `npm run test:booking-demand` passes, including disabled-provider, mapping, mock-provider and composer checks.
+- [ ] `npm run build` and `npm run test:api` pass.
+- [ ] With no Booking.com credentials, `/api/health` reports `booking-demand` safely as disabled/not configured and the composer still returns other provider results.
+- [ ] With Booking.com credentials, `/api/health` reports `bookingDemandConfigured=true` without exposing API key, bearer token or affiliate id.
+- [ ] Amsterdam or a search using `filters.bookingDemandCityId` can return Booking.com-sourced hotel offers into `/api/travel/holiday-composer`.
+- [ ] Unsupported destination mappings degrade with a controlled provider error while other providers continue working.
+- [ ] Search/result cards still use safe CTA wording only: “Check live price”, “View deal” or “Ask for group quote”.
+- [ ] No Booking.com booking, reservation, cancellation, payment, order or customer confirmation flow has been added.
