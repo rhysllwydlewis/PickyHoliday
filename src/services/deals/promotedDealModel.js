@@ -1,18 +1,8 @@
+import { validatePartnerUrl } from '../partners/partnerDeepLinks.js';
+
 export const promotedDealStatuses = ['draft', 'active', 'paused', 'archived'];
 export const promotedDealTypes = ['package', 'advert', 'manual-quote', 'affiliate'];
 export const promotedDealBookingModes = ['enquiry', 'affiliate', 'manual-quote'];
-const safeUrlProtocols = ['https:', 'http:'];
-
-export function isSafePartnerUrl(value) {
-  if (!value) return true;
-  try {
-    const url = new URL(value);
-    return safeUrlProtocols.includes(url.protocol);
-  } catch (error) {
-    return false;
-  }
-}
-
 const stringField = (value) => (typeof value === 'string' ? value.trim() : '');
 const numberField = (value) => {
   if (value === '' || value === null || value === undefined) return 0;
@@ -45,8 +35,9 @@ export function normalisePromotedDeal(input = {}, existing = {}) {
   const dealType = enumField(input, existing, 'dealType', promotedDealTypes, 'package');
   const bookingMode = enumField(input, existing, 'bookingMode', promotedDealBookingModes, dealType === 'affiliate' ? 'affiliate' : 'manual-quote');
   const partnerUrl = stringField(input.partnerUrl ?? existing.partnerUrl);
-  if (bookingMode === 'affiliate' && partnerUrl && !isSafePartnerUrl(partnerUrl)) {
-    throw validationError('partnerUrl', 'Partner URL must start with http:// or https:// and cannot use javascript: or data: URLs.');
+  const partnerId = stringField(input.partnerId ?? existing.partnerId);
+  if (bookingMode === 'affiliate' && partnerUrl && !validatePartnerUrl(partnerUrl, partnerId || undefined)) {
+    throw validationError('partnerUrl', 'Partner URL must be an https:// URL on an approved partner domain; javascript:, data:, http: and unapproved domains are not allowed.');
   }
   const title = stringField(input.title ?? existing.title);
   const destination = stringField(input.destination ?? existing.destination);
@@ -64,7 +55,7 @@ export function normalisePromotedDeal(input = {}, existing = {}) {
     dealType,
     title,
     supplierName: stringField(input.supplierName ?? existing.supplierName),
-    partnerId: stringField(input.partnerId ?? existing.partnerId),
+    partnerId,
     partnerUrl,
     resultType: stringField(input.resultType ?? existing.resultType) || (dealType === 'advert' ? 'advert' : 'package'),
     provider: stringField(input.provider ?? existing.provider) || 'promoted-deals',
@@ -104,7 +95,7 @@ export function publicPromotedDeal(deal) {
 
 export function mapPromotedDealToHolidayResult(deal) {
   const publicDeal = publicPromotedDeal(deal);
-  const safePartnerUrl = isSafePartnerUrl(publicDeal.partnerUrl) ? publicDeal.partnerUrl : '';
+  const safePartnerUrl = validatePartnerUrl(publicDeal.partnerUrl, publicDeal.partnerId || undefined) ? publicDeal.partnerUrl : '';
   return {
     ...publicDeal,
     id: publicDeal.id.startsWith('promoted-') ? publicDeal.id : `promoted-${publicDeal.id}`,

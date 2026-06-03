@@ -12,3 +12,7 @@
 - [ ] For non-live testing only, `ENABLE_TEST_ADMIN_LOGIN=true` may be used with `TEST_ADMIN_ACCESS_TOKEN=pickyholiday-test-admin`.
 - [ ] Before production launch, set a strong `ADMIN_ACCESS_TOKEN` and disable/remove `ENABLE_TEST_ADMIN_LOGIN`.
 - [ ] Confirm `/admin/login` works and `/admin`, `/admin/enquiries`, `/admin/deals`, `/admin/pages`, `/admin/ops` load after login.
+
+## Partner redirect launch readiness
+
+Before Railway production launch, set `VITE_TRAVEL_PROVIDER_MODE=api`, `TRAVEL_PROVIDER_MODE=duffel` or `hybrid`, `VITE_SHOW_DEMO_DEALS=false`, `ENABLE_PARTNER_REDIRECTS=true`, `PARTNER_REDIRECT_PROVIDER_MODE=enabled` and `ENABLE_TEST_ADMIN_LOGIN=false`. After deploy, search Barcelona, confirm results are not all demo fixtures, click “Check live price” to open a safe partner site, submit “Ask for group quote”, then run `/admin/ops` system tests. PickyHoliday must remain enquiry-first: no payments, bookings, orders, supplier reservations or ATOL claims.

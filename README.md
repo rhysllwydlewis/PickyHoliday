@@ -26,11 +26,17 @@ This repo still does **not** create live bookings, Duffel orders, Amadeus orders
 
 ## Local development
 
-Mock mode is the safe default and requires no credentials:
+Production defaults are API-first; explicit mock mode is still available for local/dev/demo testing and requires no credentials:
 
 ```bash
-TRAVEL_PROVIDER_MODE=mock
-VITE_TRAVEL_PROVIDER_MODE=mock
+TRAVEL_PROVIDER_MODE=duffel
+VITE_TRAVEL_PROVIDER_MODE=api
+VITE_SHOW_DEMO_DEALS=false
+ENABLE_PARTNER_REDIRECTS=true
+PARTNER_REDIRECT_PROVIDER_MODE=enabled
+# Local/dev/demo only:
+# TRAVEL_PROVIDER_MODE=mock
+# VITE_TRAVEL_PROVIDER_MODE=mock
 TRAVEL_PRIMARY_FLIGHT_PROVIDER=duffel
 ENABLE_AMADEUS_SECONDARY=false
 AFFILIATE_PROVIDER_MODE=mock
@@ -49,10 +55,10 @@ Vite proxies `/api` to `http://localhost:8787`, so `VITE_API_BASE_URL` can stay 
 
 Server-side provider selection is controlled by `TRAVEL_PROVIDER_MODE`:
 
-- `mock` - mock provider plus package/affiliate config results; default and credential-free.
-- `duffel` - Duffel flight provider if configured, plus manual deals and package/affiliate config results.
-- `amadeus` - Amadeus sandbox/search provider if configured, plus manual deals and package/affiliate config results.
-- `hybrid` - Duffel plus manual deals and package/affiliate config results; Amadeus is included only when `ENABLE_AMADEUS_SECONDARY=true`.
+- `duffel` - production-oriented default: Duffel flight provider if configured, partner live-price redirects and manual deals.
+- `amadeus` - Amadeus sandbox/search provider if configured, partner live-price redirects and manual deals.
+- `hybrid` - Duffel plus partner live-price redirects and manual deals; Amadeus is included only when `ENABLE_AMADEUS_SECONDARY=true`.
+- `mock` - explicit local/dev/demo mock provider plus package/affiliate config fixtures; do not use for production launch.
 
 `TRAVEL_PRIMARY_FLIGHT_PROVIDER=duffel` records the preferred strategic flight path. Do not create any `VITE_DUFFEL_*` token variable: Duffel tokens must stay server-side only.
 
@@ -187,3 +193,9 @@ Analytics defaults to JSON fallback storage with `ANALYTICS_STORAGE_MODE=json`. 
 Webhook testing is admin-only. Configure `WEBHOOK_TEST_ALLOWED_HOSTS` in production where practical and keep `WEBHOOK_TEST_TIMEOUT_MS=5000` unless a shorter timeout is required. Test payloads must not contain secrets.
 
 No live booking, payment, Duffel order, Amadeus order, supplier reservation or real customer email sending is added by the operations centre.
+
+## Partner live-price redirects and production search defaults
+
+Production search is now API-first: `VITE_TRAVEL_PROVIDER_MODE` defaults to `api` and the backend defaults to `TRAVEL_PROVIDER_MODE=duffel` with partner live-price redirects enabled. This is the fastest safe route away from dummy cards while PickyHoliday remains enquiry-first: partners handle live price, availability, booking and protection terms, and PickyHoliday captures group enquiries only. Do not use `TRAVEL_PROVIDER_MODE=mock`, `VITE_TRAVEL_PROVIDER_MODE=mock` or `VITE_SHOW_DEMO_DEALS=true` for production launch. Set Railway to `VITE_TRAVEL_PROVIDER_MODE=api`, `VITE_SHOW_DEMO_DEALS=false`, `ENABLE_PARTNER_REDIRECTS=true`, `PARTNER_REDIRECT_PROVIDER_MODE=enabled`, and keep `ENABLE_TEST_ADMIN_LOGIN=false` unless a non-production smoke test explicitly needs it.
+
+See `docs/PARTNER_REDIRECT_LIVE_RESULTS_PHASE.md` for verification steps in `/admin/ops` and manual checks for “Check live price” partner redirects.

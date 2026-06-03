@@ -42,3 +42,10 @@ Use this checklist before merging changes to PickyHoliday.
 
 - [ ] In non-live test mode, `/admin/login` accepts `pickyholiday-test-admin` when `ADMIN_ACCESS_TOKEN` is unset and `ENABLE_TEST_ADMIN_LOGIN=true`.
 - [ ] Production launch plan sets a real `ADMIN_ACCESS_TOKEN` and disables temporary test login.
+
+## Partner redirect pre-merge checks
+
+- Confirm `.env.example` keeps `VITE_TRAVEL_PROVIDER_MODE=api`, `TRAVEL_PROVIDER_MODE=duffel`, `VITE_SHOW_DEMO_DEALS=false`, `ENABLE_PARTNER_REDIRECTS=true` and `PARTNER_REDIRECT_PROVIDER_MODE=enabled`.
+- Run `npm run build` and `npm run test:api`.
+- Confirm search cards say “Check live price” / “Ask for group quote” for partner redirects and do not say “Book now”, “Booking confirmed”, fake ATOL protection or supplier reservation wording.
+- Confirm `/admin/ops` includes frontend/backend provider mode, partner provider, partner URL safety and mock-mode warning checks.

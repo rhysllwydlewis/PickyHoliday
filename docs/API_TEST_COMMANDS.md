@@ -1,29 +1,30 @@
 # API test commands
 
-Mock mode should pass without credentials and should default to JSON enquiry storage. Start the backend first:
-
-```bash
-TRAVEL_PROVIDER_MODE=mock AFFILIATE_PROVIDER_MODE=mock ENQUIRY_STORAGE_MODE=json npm run dev:api
-```
-
-Then run the automated smoke test from another terminal:
+The automated smoke test starts a local API server in the production-oriented, credential-free default shape: API-first frontend settings, `TRAVEL_PROVIDER_MODE=duffel`, demo deals hidden, and partner redirects enabled. It backs up/restores local JSON stores so test enquiries, analytics and promoted deals do not pollute the working tree.
 
 ```bash
 npm run test:api
 ```
 
+Use `SMOKE_TRAVEL_PROVIDER_MODE`/`SMOKE_VITE_TRAVEL_PROVIDER_MODE` only for targeted smoke experiments. The default smoke run should stay API-first; explicit mock-mode support is covered inside the registry assertions without making production smoke tests depend on mock cards.
+
 The smoke test checks that:
 
-- `/api/health` includes Duffel in `providerStatus`.
-- `/api/health` includes `affiliate-package` in `providerStatus`.
+- `/api/health` includes Duffel, affiliate-package and partner-redirect in `providerStatus`.
+- `/api/health` does not default to mock and exposes partner redirect configured status.
 - `/api/health` includes `enquiryStorageMode`, `databaseConfigured`, and `databaseStatus` without exposing `DATABASE_URL`.
-- `/api/travel/flights` returns flight-capable mock results.
-- `/api/travel/packages` returns package/affiliate results.
+- `/api/travel/search` returns partner redirect results with safe partner URLs.
+- `/api/travel/flights`, `/api/travel/hotels`, `/api/travel/packages`, and `/api/travel/holiday-composer` return controlled envelopes without requiring live external partner APIs.
 - Package results use safe non-live booking modes only.
-- `/api/travel/search` works.
-- `/api/travel/holiday-composer` works.
 - `/api/travel/enquiries` returns an enquiry id and an enquiry-only response, not a booking confirmation.
 - Invalid enquiry email input returns a controlled validation error.
+- `/admin/ops` includes API mode, partner provider, partner URL safety and mock fallback reporting checks.
+
+For manual local mock-mode exploration only:
+
+```bash
+TRAVEL_PROVIDER_MODE=mock AFFILIATE_PROVIDER_MODE=mock ENQUIRY_STORAGE_MODE=json VITE_TRAVEL_PROVIDER_MODE=mock npm run dev:api
+```
 
 ## Local manual curl checks
 
@@ -183,3 +184,7 @@ curl -i -X POST -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN" -H 'Content-Type:
 ```
 
 Webhook tests should use HTTPS targets or localhost in development/test only, and payloads must not include secrets.
+
+## Partner redirect/API-first smoke coverage
+
+`npm run test:api` starts a credential-free local API with `TRAVEL_PROVIDER_MODE=duffel`, `VITE_TRAVEL_PROVIDER_MODE=api`, `VITE_SHOW_DEMO_DEALS=false`, `ENABLE_PARTNER_REDIRECTS=true` and `PARTNER_REDIRECT_PROVIDER_MODE=enabled`. The smoke suite verifies that default backend mode is not mock, explicit mock mode still works through the registry, `/api/travel/search` returns partner redirect cards, partner URLs reject `javascript:` and `data:` URLs, forbidden booking-confirmation wording is absent, secrets are not exposed, and `/admin/ops` includes API-mode and partner URL checks.
