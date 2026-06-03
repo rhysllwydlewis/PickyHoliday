@@ -230,3 +230,24 @@ curl -s -X POST http://localhost:8787/api/travel/holiday-composer \
 ```
 
 Expected envelope fields include `results`, `providerMode`, `providerErrors`, `providerStatus` and `meta.resultShape="composed-holiday-v1"`. Result cards are normalised holiday ideas and must not contain booking, payment or supplier-reservation claims.
+
+## Booking.com Demand provider smoke checks
+
+Run the local provider-level smoke check without real credentials:
+
+```bash
+npm run test:booking-demand
+```
+
+This checks the disabled-provider state, Amsterdam destination mapping, explicit `filters.bookingDemandCityId`, local Booking.com-shaped hotel offer normalisation, composer integration and secret redaction.
+
+To exercise Booking.com-shaped offers through the API without external calls:
+
+```bash
+BOOKING_DEMAND_ENABLED=true BOOKING_DEMAND_TEST_MOCK=true AFFILIATE_PROVIDER_MODE=disabled ENABLE_PARTNER_REDIRECTS=false npm run dev:api
+curl -s -X POST http://localhost:8787/api/travel/holiday-composer \
+  -H 'Content-Type: application/json' \
+  -d '{"destination":"Amsterdam","originAirport":"London (All Airports)","departureDate":"2026-08-10","returnDate":"2026-08-17","partySize":2,"adults":2,"rooms":1,"intent":"Holidays"}' | jq '.results[] | {provider,supplierName,hotelName,sourceBreakdown}'
+```
+
+To test with real Booking.com Demand sandbox credentials, set the Railway/server-side variables from `docs/BOOKING_DEMAND_PROVIDER.md`, search Amsterdam or pass a verified `filters.bookingDemandCityId`, and confirm `/api/health` plus `/api/travel/holiday-composer` do not expose the API key, bearer token or affiliate id.
