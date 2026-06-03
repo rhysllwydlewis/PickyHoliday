@@ -10,7 +10,8 @@
     "server": "node server/index.js",
     "dev:api": "node server/index.js",
     "start": "node server/index.js",
-    "test:api": "node scripts/smoke-api.mjs"
+    "test:api": "node scripts/smoke-api.mjs",
+    "test:booking-demand": "node scripts/smoke-booking-demand.mjs"
   },
   "dependencies": {
     "lucide-react": "latest",
