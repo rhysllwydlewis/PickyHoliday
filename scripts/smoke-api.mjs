@@ -3,6 +3,7 @@ import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { createTravelProviderRegistry } from '../server/travelProviderRegistry.js';
 import { validatePartnerUrl } from '../src/services/partners/partnerDeepLinks.js';
 import { criteriaFromSearchParams, criteriaToSearchParams, normaliseHolidaySearchCriteria } from '../src/services/search/holidaySearchCriteria.js';
+import { departureAirportCodeLookup, departureAirports, destinationAirportCodeLookup, destinationSuggestions, normaliseTravelOptionText, popularDestinationChips } from '../src/data/travelOptions.js';
 
 const shouldStartLocalServer = !process.env.API_BASE_URL;
 const baseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
@@ -93,6 +94,7 @@ const endpoints = [
   { method: 'GET', path: '/api/health' },
   { method: 'GET', path: '/api/readiness' },
   { method: 'POST', path: '/api/travel/search', body: { destination: 'Barcelona', intent: 'Holidays' } },
+  { method: 'POST', path: '/api/travel/search', body: { destination: 'Lisbon', origin: 'Amsterdam', originAirport: 'Amsterdam', intent: 'Holidays', adults: 4, children: 0, rooms: 2, nights: 5 } },
   { method: 'POST', path: '/api/travel/flights', body: { destination: 'Barcelona', origin: 'London (All Airports)' } },
   { method: 'POST', path: '/api/travel/hotels', body: { destination: 'Barcelona', intent: 'Group hotel stays' } },
   { method: 'POST', path: '/api/travel/packages', body: { destination: 'Barcelona', intent: 'Holidays' } },
@@ -409,7 +411,7 @@ const assertContentPages = async () => {
 };
 
 const assertPublicAppRoutes = async () => {
-  const routes = ['/', '/search?destination=Barcelona&originAirport=Manchester&adults=6&children=2&rooms=3', '/search?destination=Barcelona&originAirport=Manchester&partySize=8&budgetPerPerson=450&rooms=3', '/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/pages', '/admin/content', '/admin/features', '/admin/settings', '/admin/ops', '/destinations/barcelona', '/group-holidays/stag-and-hen', '/guides/best-group-holiday-destinations'];
+  const routes = ['/', '/search?destination=Barcelona&originAirport=Manchester&adults=6&children=2&rooms=3', '/search?destination=Lisbon&originAirport=Amsterdam&adults=4&children=0&rooms=2&nights=5', '/search?destination=Barcelona&originAirport=Manchester&partySize=8&budgetPerPerson=450&rooms=3', '/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/pages', '/admin/content', '/admin/features', '/admin/settings', '/admin/ops', '/destinations/barcelona', '/group-holidays/stag-and-hen', '/guides/best-group-holiday-destinations'];
   for (const route of routes) {
     const response = await fetch(`${baseUrl}${route}`);
     assertResponseHardening(response, `GET ${route}`);
@@ -525,6 +527,26 @@ const assertBadJson = async () => {
 };
 
 
+const assertTravelOptions = () => {
+  const airportLabels = new Set(departureAirports.map((airport) => airport.label));
+  for (const label of ['London (All Airports)', 'Manchester', 'Dublin', 'Amsterdam', 'Lisbon', 'Athens', 'Larnaca']) {
+    if (!airportLabels.has(label)) throw new Error(`Expanded departure airport options did not include ${label}.`);
+  }
+  const destinationLabels = new Set(destinationSuggestions.map((destination) => destination.label));
+  for (const label of ['Barcelona', 'Albufeira', 'Zante', 'Ayia Napa', 'Dubrovnik', 'Reykjavik']) {
+    if (!destinationLabels.has(label)) throw new Error(`Expanded destination suggestions did not include ${label}.`);
+  }
+  if (airportLabels.size !== departureAirports.length) throw new Error('Expanded departure airport options included duplicate labels.');
+  if (destinationLabels.size !== destinationSuggestions.length) throw new Error('Expanded destination suggestions included duplicate labels.');
+  if (departureAirportCodeLookup.amsterdam !== 'AMS' || departureAirportCodeLookup[normaliseTravelOptionText('Paris Charles de Gaulle')] !== 'CDG') throw new Error('Expanded airport code lookup did not include European airport codes.');
+  if (destinationAirportCodeLookup.majorca !== 'PMI' || destinationAirportCodeLookup.zakynthos !== 'ZTH' || destinationAirportCodeLookup[normaliseTravelOptionText('Ayia Napa')] !== 'LCA') throw new Error('Destination alias code lookup did not include common European destination aliases.');
+  if (destinationAirportCodeLookup[normaliseTravelOptionText('St Julian’s')] !== 'MLA' || destinationAirportCodeLookup[normaliseTravelOptionText('St Julians')] !== 'MLA') throw new Error('Destination lookup did not normalise apostrophe variants.');
+  if (popularDestinationChips.length < 8 || popularDestinationChips.length > 10) throw new Error('Popular destination chips should stay within the compact 8-10 chip range.');
+  if (!popularDestinationChips.every((chip) => destinationLabels.has(chip))) throw new Error('Popular destination chips should all exist in destination suggestions.');
+  if (!popularDestinationChips.includes('Amsterdam') || !popularDestinationChips.includes('Majorca')) throw new Error('Popular destination chips missed key European group-holiday destinations.');
+  console.log('✓ Expanded European airport, destination suggestion and popular chip data passed');
+};
+
 const assertHolidayCriteriaSearchParams = () => {
   const criteria = normaliseHolidaySearchCriteria({ destination: 'Barcelona', originAirport: 'Manchester', adults: 6, children: 2, rooms: 3, partySize: 12 });
   if (criteria.partySize !== 8) throw new Error('Adults and children did not drive the derived partySize.');
@@ -550,6 +572,7 @@ const assertProviderModeDefaults = () => {
 
 try {
   assertProviderModeDefaults();
+  assertTravelOptions();
   assertHolidayCriteriaSearchParams();
   await backupJsonStores();
   await waitForLocalServer();

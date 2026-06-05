@@ -51,6 +51,11 @@ npm run dev
 
 Vite proxies `/api` to `http://localhost:8787`, so `VITE_API_BASE_URL` can stay blank locally. The API allows local Vite origins (`localhost` and `127.0.0.1` on port `5173`) by default; set `CORS_ORIGIN` to a comma-separated allow-list for split deployments. For a split deployed frontend/API, set `VITE_API_BASE_URL` to the API origin.
 
+
+## Travel option data
+
+Search hero airport, destination suggestion, popular chip and destination category lists are centralised in `src/data/travelOptions.js`. The data is intentionally local/static so the search experience can feel rich across UK, Ireland and European holiday routes while preserving the enquiry-first model.
+
 ## Provider modes
 
 Server-side provider selection is controlled by `TRAVEL_PROVIDER_MODE`:

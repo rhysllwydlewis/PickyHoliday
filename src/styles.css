@@ -445,3 +445,13 @@ footer:after{content:"";position:absolute;left:0;right:0;top:0;height:1px;backgr
 @media(max-width:1100px){.composer-fields{grid-template-columns:repeat(6,minmax(0,1fr));grid-template-areas:"destination destination destination airport airport airport" "depart depart return return button button" "adults children rooms nights flexibility flexibility"}.composer-searchbtn{min-height:62px}.spotlight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.search-summary-bar{align-items:stretch;display:grid}}
 @media(max-width:720px){.composer-fields{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"destination destination" "airport airport" "depart return" "adults children" "rooms nights" "flexibility button"}.spotlight-grid{grid-template-columns:1fr}.composer-search-panel{width:calc(100% - 24px);padding:14px}.compact-field,.composer-fields .destination-field,.composer-searchbtn{min-height:62px}.search-hero h1{font-size:34px}.search-quote-strip{display:grid}.tabs{overflow:auto;padding-bottom:4px;gap:8px}.tabs button{padding:0 14px}}
 @media(max-width:480px){.composer-fields{grid-template-columns:1fr;grid-template-areas:"destination" "airport" "depart" "return" "adults" "children" "rooms" "nights" "flexibility" "button"}.composer-search-panel .popular{gap:6px}.composer-search-panel .popular button{padding:7px 9px}}
+
+/* Expanded travel-option search controls */
+.airport-field select{font-size:13px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;padding-right:4px}
+.location-suggestions{max-height:310px;overflow:auto}
+.location-suggestions button span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.location-suggestions button b{flex:0 0 auto;font-size:11px;text-align:right;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.popular{gap:10px 14px;align-items:center}
+.popular button{border:1px solid #dceafa;border-radius:999px;background:#f7fbff;padding:5px 9px;font-weight:900;line-height:1;color:#075edb}
+.popular button:hover{background:#eef6ff;color:#034fb9}
+@media(max-width:720px){.popular{margin-left:0;gap:8px}.popular button{font-size:11px;padding:5px 8px}.location-suggestions{max-height:260px}}
