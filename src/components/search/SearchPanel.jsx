@@ -40,7 +40,7 @@ function SearchInput({ icon: Icon, label, name, value, onChange, type = 'text', 
   );
 }
 
-export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, locationSuggestions, onLookupLocations }) {
+export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, isLoading = false, locationSuggestions, onLookupLocations }) {
   const lookupLocationsRef = React.useRef(onLookupLocations);
   React.useEffect(() => { lookupLocationsRef.current = onLookupLocations; }, [onLookupLocations]);
 
@@ -129,7 +129,33 @@ export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSear
         <SearchInput icon={Hotel} label="Rooms" name="rooms" type="number" min="1" max="30" value={search.rooms} onChange={updateSearchField} className="rooms-field" />
         <SearchInput icon={Clock3} label="Nights" name="nights" type="number" min="1" max="60" value={search.nights} onChange={updateSearchField} className="nights-field" />
         <SearchInput icon={CalendarDays} label="Date flexibility" name="dateFlexibilityDays" value={search.dateFlexibilityDays} options={fieldOptions.flexibility} onChange={updateSearchField} className="flexibility-field" />
-        <button className="searchbtn composer-searchbtn search-action-field" type="submit">Search ideas <ChevronRight size={20} /></button>
+        <button
+          className={`searchbtn composer-searchbtn search-action-field${isLoading ? ' searchbtn--loading' : ''}`}
+          type="submit"
+          aria-label={isLoading ? 'Searching…' : 'Search ideas'}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <svg className="searchbtn-sun" viewBox="0 0 20 20" fill="none" aria-hidden="true" width="20" height="20">
+                <circle cx="10" cy="10" r="4" fill="#08234c" opacity="0.9" />
+                {[0,45,90,135,180,225,270,315].map((deg, i) => {
+                  const r = deg * Math.PI / 180;
+                  return (
+                    <line key={i}
+                      x1={10 + Math.cos(r) * 5.5} y1={10 + Math.sin(r) * 5.5}
+                      x2={10 + Math.cos(r) * 7.5} y2={10 + Math.sin(r) * 7.5}
+                      stroke="#08234c" strokeWidth="1.6" strokeLinecap="round"
+                    />
+                  );
+                })}
+              </svg>
+              <span>Searching…</span>
+            </>
+          ) : (
+            <>Search ideas <ChevronRight size={20} /></>
+          )}
+        </button>
       </form>
       <div className="popular">
         <span>Popular:</span>

@@ -15,9 +15,9 @@ img{display:block;width:100%;height:100%;object-fit:cover}
 /* ── Brand logo ─────────────────────────────────────────────── */
 @keyframes mark-pop{0%{opacity:0;transform:scale(.62) translateY(6px)}60%{transform:scale(1.06) translateY(-1px)}100%{opacity:1;transform:scale(1) translateY(0)}}
 @keyframes sun-appear{0%,20%{opacity:0;transform:scale(.4)}70%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
-@keyframes ray-appear{0%,30%{opacity:0;transform:scaleX(0)}80%{opacity:1;transform:scaleX(1.2)}100%{opacity:1;transform:scaleX(1)}}
+@keyframes ray-appear{0%,30%{opacity:0}90%{opacity:1}100%{opacity:1}}
 @keyframes pin-drop{0%,40%{opacity:0;transform:translateY(-10px) scale(.7)}75%{opacity:1;transform:translateY(2px) scale(1.05)}100%{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes plane-fly{0%{transform:translate(-14px,8px) rotate(-20deg);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translate(14px,-8px) rotate(-20deg);opacity:0}}
+@keyframes plane-fly{0%{transform:translate(-13px,7px) rotate(-22deg);opacity:0}18%{opacity:1}82%{opacity:1}100%{transform:translate(13px,-7px) rotate(-22deg);opacity:0}}
 @keyframes spark-pop{0%,50%{opacity:0;transform:scale(0)}75%{opacity:1;transform:scale(1.4)}100%{opacity:.85;transform:scale(1)}}
 @keyframes wordmark-slide{0%,25%{opacity:0;transform:translateX(-8px)}100%{opacity:1;transform:translateX(0)}}
 @keyframes tld-fade{0%,70%{opacity:0}100%{opacity:.7}}
@@ -38,7 +38,7 @@ img{display:block;width:100%;height:100%;object-fit:cover}
 /* Intro animation — only .brand-logo--intro applies motion */
 .brand-logo--intro .brand-logo-mark{animation:mark-pop .7s cubic-bezier(.34,1.56,.64,1) .05s both}
 .brand-logo--intro .brand-logo-sun{animation:sun-appear .55s ease .55s both}
-.brand-logo--intro .brand-logo-ray{animation:ray-appear .3s ease both;transform-origin:center 19px}
+.brand-logo--intro .brand-logo-ray{animation:ray-appear .35s ease both}
 .brand-logo--intro .brand-logo-pin{animation:pin-drop .45s cubic-bezier(.34,1.56,.64,1) 1.05s both}
 .brand-logo--intro .brand-logo-plane{animation:plane-fly 1.2s ease .9s both}
 .brand-logo--intro .brand-logo-spark--a{animation:spark-pop .3s ease 1.5s both}
@@ -63,6 +63,50 @@ img{display:block;width:100%;height:100%;object-fit:cover}
 .brand-logo .brand-logo-spark{opacity:.85;transform:none}
 .brand-logo .brand-logo-tld{opacity:.7}
 }
+/* ── Site-wide tasteful animations ──────────────────────────── */
+
+/* Search button: spinning sun while results load */
+@keyframes sun-spin{to{transform:rotate(360deg)}}
+.searchbtn--loading{opacity:.88;cursor:wait}
+.searchbtn--loading:hover{transform:none}
+.searchbtn-sun{animation:sun-spin .9s linear infinite;flex:none}
+
+/* Search tabs: smooth colour + scale transition */
+.tabs button,.composer-search-panel .tabs button{transition:background .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease}
+.tabs .active{transform:scale(1.04);box-shadow:0 2px 10px rgba(7,94,219,.12)}
+
+/* Deal cards: staggered entrance fade-in + lift */
+@keyframes card-enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.grid-six .deal-card,.search-result-grid .deal-card{animation:card-enter .42s ease both}
+.grid-six .deal-card:nth-child(1),.search-result-grid .deal-card:nth-child(1){animation-delay:.05s}
+.grid-six .deal-card:nth-child(2),.search-result-grid .deal-card:nth-child(2){animation-delay:.11s}
+.grid-six .deal-card:nth-child(3),.search-result-grid .deal-card:nth-child(3){animation-delay:.17s}
+.grid-six .deal-card:nth-child(4),.search-result-grid .deal-card:nth-child(4){animation-delay:.23s}
+.grid-six .deal-card:nth-child(5),.search-result-grid .deal-card:nth-child(5){animation-delay:.28s}
+.grid-six .deal-card:nth-child(6),.search-result-grid .deal-card:nth-child(6){animation-delay:.33s}
+.grid-six .deal-card:nth-child(n+7),.search-result-grid .deal-card:nth-child(n+7){animation-delay:.36s}
+
+/* Spotlight cards: same entrance */
+.spotlight-grid .spotlight-card{animation:card-enter .44s ease both}
+.spotlight-grid .spotlight-card:nth-child(1){animation-delay:.04s}
+.spotlight-grid .spotlight-card:nth-child(2){animation-delay:.12s}
+.spotlight-grid .spotlight-card:nth-child(3){animation-delay:.20s}
+.spotlight-grid .spotlight-card:nth-child(4){animation-delay:.28s}
+
+/* Loading state: gentle pulse */
+@keyframes loading-pulse{0%,100%{opacity:.7}50%{opacity:1}}
+.loading-state{animation:loading-pulse 1.4s ease-in-out infinite}
+
+/* Reduced-motion: disable all new animations */
+@media(prefers-reduced-motion:reduce){
+.searchbtn-sun{animation:none}
+.searchbtn--loading{opacity:.82}
+.tabs button,.composer-search-panel .tabs button{transition:none}
+.grid-six .deal-card,.search-result-grid .deal-card,.spotlight-grid .spotlight-card{animation:none}
+.loading-state{animation:none}
+}
+/* ── /Site-wide tasteful animations ─────────────────────────── */
+
 /* ── /Brand logo ─────────────────────────────────────────────── */
 .primary-nav{position:relative;z-index:1;display:flex;gap:4px;margin-left:18px;align-items:center;flex:1;min-width:0}
 .primary-nav .nav-link{position:relative;display:flex;gap:6px;align-items:center;color:#0b2d62;text-decoration:none;font-size:14px;font-weight:900;background:transparent;border-radius:999px;padding:12px 10px;line-height:1.05;transition:background .2s ease,box-shadow .2s ease,color .2s ease,transform .2s ease;white-space:nowrap}
