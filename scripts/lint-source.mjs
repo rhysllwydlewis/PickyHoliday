@@ -12,7 +12,7 @@ for (const file of sourceFiles) {
   const source = readFileSync(file, 'utf8');
   if (/^(<<<<<<<|=======|>>>>>>>) /m.test(source)) failures.push(`${file}: contains merge conflict markers`);
   if (/try\s*\{[\s\S]{0,500}?\b(import|require)\b/.test(source)) failures.push(`${file}: wraps an import/require in a try block`);
-  if (/\.only\s*\(/.test(source)) failures.push(`${file}: contains focused test/debug marker .only(`);
+  if (/\.only\s*\(/.test(source)) failures.push(`${file}: contains focused test/debug marker (.only)`);
 }
 
 for (const file of nodeCheckable) {
