@@ -1,8 +1,9 @@
 import React from 'react';
 import { BriefcaseBusiness, CalendarDays, ChevronRight, Clock3, HeartHandshake, Hotel, MapPin, Plane, Users } from 'lucide-react';
-import { normaliseHolidaySearchCriteria } from '../../services/search/holidaySearchCriteria.js';
+import { addDaysToIsoDate, applySmartHolidaySearchField } from '../../services/search/holidaySearchCriteria.js';
 import { fieldOptions } from '../../app/appConstants.js';
-import { destinationSuggestions, normaliseTravelOptionText, popularDestinationChips } from '../../data/travelOptions.js';
+import { airportComboboxValue, airportResultLabel, airportResultMeta, destinationComboboxValue, destinationResultMeta, normaliseTravelOptionText, popularDestinationChips, searchAirportOptions, searchDestinationOptions } from '../../data/travelOptions.js';
+import { SmartTravelField } from './SmartTravelField.jsx';
 
 const searchTabs = [
   ['Holidays', Plane, true],
@@ -11,18 +12,6 @@ const searchTabs = [
   ['Stag & Hen', BriefcaseBusiness],
   ['Families', HeartHandshake],
 ];
-const destinationSuggestionListId = 'destination-suggestions';
-const destinationDatalistId = 'destination-options';
-
-const normaliseMatchText = normaliseTravelOptionText;
-const searchableDestinationText = (destination) => normaliseMatchText([
-  destination.label,
-  destination.countryRegion,
-  destination.group,
-  ...(destination.aliases || []),
-  ...(destination.tags || []),
-].join(' '));
-
 function renderSelectOption(option) {
   const value = option.value ?? option.label ?? option;
   const label = option.label ?? option;
@@ -51,21 +40,12 @@ function SearchInput({ icon: Icon, label, name, value, onChange, type = 'text', 
   );
 }
 
-function DestinationSuggestionButton({ destination, onSelect, source = 'Local' }) {
-  return (
-    <button type="button" role="option" onMouseDown={(event) => event.preventDefault()} onClick={() => onSelect(destination.value || destination.label || destination.cityName || destination.name)}>
-      <span>{destination.label || destination.name}</span>
-      <b>{source === 'Local' ? destination.countryRegion || destination.group : destination.iataCode || source}</b>
-    </button>
-  );
-}
-
 export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, locationSuggestions, onLookupLocations }) {
   const lookupLocationsRef = React.useRef(onLookupLocations);
   React.useEffect(() => { lookupLocationsRef.current = onLookupLocations; }, [onLookupLocations]);
 
   const updateSearchField = (name, value) => {
-    setSearch((currentSearch) => normaliseHolidaySearchCriteria({ ...currentSearch, [name]: value }));
+    setSearch((currentSearch) => applySmartHolidaySearchField(currentSearch, name, value));
   };
 
   React.useEffect(() => {
@@ -75,18 +55,23 @@ export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSear
     return () => window.clearTimeout(timeout);
   }, [search.destination]);
 
-  const localDestinationMatches = React.useMemo(() => {
-    const query = normaliseMatchText(search.destination);
-    if (!query) return [];
-    return destinationSuggestions
-      .filter((destination) => searchableDestinationText(destination).includes(query))
-      .slice(0, 6);
-  }, [search.destination]);
+  const airportOptions = React.useMemo(() => searchAirportOptions(search.originAirport, { limit: 10 }), [search.originAirport]);
+  const groupedAirportOptions = React.useMemo(() => searchAirportOptions('', { includeGroupsWhenEmpty: true }), []);
+  const destinationOptions = React.useMemo(() => {
+    const localOptions = searchDestinationOptions(search.destination, { limit: 10 });
+    const query = normaliseTravelOptionText(search.destination);
+    if (!query) return localOptions;
+    const providerOptions = (locationSuggestions || [])
+      .filter((location) => !localOptions.some((item) => normaliseTravelOptionText(item.label) === normaliseTravelOptionText(location.cityName || location.name)))
+      .slice(0, Math.max(0, 10 - localOptions.length))
+      .map((location) => ({ ...location, label: location.name, value: location.cityName || location.name, countryRegion: location.iataCode || 'Provider' }));
+    return [...localOptions, ...providerOptions];
+  }, [locationSuggestions, search.destination]);
 
-  const providerSuggestions = React.useMemo(() => locationSuggestions
-    .filter((location) => !localDestinationMatches.some((item) => normaliseMatchText(item.label) === normaliseMatchText(location.cityName || location.name)))
-    .slice(0, 3), [locationSuggestions, localDestinationMatches]);
-  const hasSuggestions = localDestinationMatches.length > 0 || providerSuggestions.length > 0;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const minimumReturnDate = addDaysToIsoDate(search.departureDate, 1) || todayIso;
+  const departureDateMin = search.departureDate && search.departureDate < todayIso ? undefined : todayIso;
+  const returnDateMin = search.returnDate && search.returnDate < minimumReturnDate ? undefined : minimumReturnDate;
 
   return (
     <section className="search-panel composer-search-panel" id="search">
@@ -106,38 +91,39 @@ export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSear
         ))}
       </div>
       <form className="fields composer-fields" onSubmit={(event) => { event.preventDefault(); onSearch(); }}>
-        <label className="field big destination-field">
-          <span>Destination</span>
-          <p>
-            <MapPin size={18} />
-            <input
-              value={search.destination}
-              onChange={(event) => updateSearchField('destination', event.target.value)}
-              onBlur={() => onLookupLocations(search.destination)}
-              placeholder="Destination, resort or hotel"
-              aria-autocomplete="list"
-              aria-controls={destinationSuggestionListId}
-              aria-expanded={hasSuggestions}
-              list={destinationDatalistId}
-            />
-            <datalist id={destinationDatalistId}>
-              {destinationSuggestions.map((destination) => <option key={destination.label} value={destination.label} />)}
-            </datalist>
-          </p>
-          {hasSuggestions && (
-            <div className="location-suggestions" id={destinationSuggestionListId} role="listbox" aria-label="Destination suggestions">
-              {localDestinationMatches.map((destination) => (
-                <DestinationSuggestionButton key={destination.label} destination={destination} onSelect={(value) => updateSearchField('destination', value)} />
-              ))}
-              {providerSuggestions.map((location) => (
-                <DestinationSuggestionButton key={location.id} destination={{ ...location, label: location.name, value: location.cityName || location.name }} source="Provider" onSelect={(value) => updateSearchField('destination', value)} />
-              ))}
-            </div>
-          )}
-        </label>
-        <SearchInput icon={Plane} label="From / departure airport" name="originAirport" value={search.originAirport} options={fieldOptions.origin} onChange={updateSearchField} className="airport-field" />
-        <SearchInput label="Depart" name="departureDate" type="date" value={search.departureDate} onChange={updateSearchField} className="depart-field" />
-        <SearchInput label="Return" name="returnDate" type="date" value={search.returnDate} onChange={updateSearchField} className="return-field" />
+        <SmartTravelField
+          icon={MapPin}
+          label="Destination"
+          name="destination"
+          value={search.destination}
+          placeholder="Destination, resort or hotel"
+          options={destinationOptions}
+          onChange={updateSearchField}
+          onBlur={(value) => onLookupLocations(value)}
+          getOptionValue={destinationComboboxValue}
+          getOptionLabel={(option) => option.label || option.name || ''}
+          getOptionMeta={destinationResultMeta}
+          className="destination-field"
+          emptyHint="Try a resort, city, country or trip style"
+        />
+        <SmartTravelField
+          icon={Plane}
+          label="From / departure airport"
+          name="originAirport"
+          value={search.originAirport}
+          placeholder="Airport or IATA code"
+          options={airportOptions}
+          groupedOptions={groupedAirportOptions}
+          showGroupsWhenEmpty
+          onChange={updateSearchField}
+          getOptionValue={airportComboboxValue}
+          getOptionLabel={airportResultLabel}
+          getOptionMeta={airportResultMeta}
+          className="airport-field compact-field"
+          emptyHint="Start typing an airport, city or IATA code"
+        />
+        <SearchInput label="Depart" name="departureDate" type="date" min={departureDateMin} value={search.departureDate} onChange={updateSearchField} className="depart-field" />
+        <SearchInput label="Return" name="returnDate" type="date" min={returnDateMin} value={search.returnDate} onChange={updateSearchField} className="return-field" />
         <SearchInput icon={Users} label="Adults" name="adults" type="number" min="1" max="60" value={search.adults} onChange={updateSearchField} className="adult-field" />
         <SearchInput icon={Users} label="Children" name="children" type="number" min="0" max="60" value={search.children} onChange={updateSearchField} className="children-field" />
         <SearchInput icon={Hotel} label="Rooms" name="rooms" type="number" min="1" max="30" value={search.rooms} onChange={updateSearchField} className="rooms-field" />
