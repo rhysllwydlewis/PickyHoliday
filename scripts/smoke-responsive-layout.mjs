@@ -160,4 +160,41 @@ const failingStorage = {
 };
 assert.equal(storeSearchHandoff({ criteria: { destination: 'Rome' }, response: { results: [] } }, failingStorage), '', 'Storage failures should not block direct search redirects');
 
+
+/* ── Search results page v2 assertions ────────────────────── */
+const searchResultCard = readFileSync(new URL('../src/components/search/SearchResultCard.jsx', import.meta.url), 'utf8');
+
+assert(searchResultsPage.includes('search-results-layout'), 'Search results page should render a dedicated results layout');
+assert(searchResultsPage.includes('search-filters-panel'), 'Search results page should render a desktop filter panel');
+assert(searchResultsPage.includes('search-results-toolbar'), 'Search results page should render a results toolbar');
+assert(searchResultsPage.includes('displayedResults.length'), 'Search results page should use displayed/filtered results for counts');
+assert(searchResultsPage.includes('runSearch(criteria)'), 'Search results page should preserve the direct search fallback');
+assert(searchResultsPage.includes('isLoading={isLoading}'), 'Search results SearchPanel should receive page loading state');
+assert(searchResultsPage.includes('aria-label="Search results filters"'), 'Search filters should have accessible labelling');
+assert(searchResultsPage.includes('aria-live="polite"'), 'Search results should expose polite live regions');
+assert(searchResultsPage.includes('aria-busy={isLoading}'), 'Search results list should expose aria-busy while loading');
+assert(searchResultsPage.includes('aria-expanded={mobileFiltersOpen}') && searchResultsPage.includes('aria-controls="mobile-search-filters"'), 'Mobile filter toggle should expose expanded state and controlled region');
+assert(searchResultsPage.includes('requestIdRef'), 'Search results page should guard against stale async responses');
+
+for (const field of ['dealReasonLabel', 'hotelSummary', 'flightSummary', 'boardBasis', 'groupSizeLabel', 'protectionLabel']) {
+  assert(searchResultCard.includes(field), `SearchResultCard should render ${field}`);
+}
+assert(searchResultCard.includes('onToggleShortlist') && searchResultCard.includes('isShortlisted'), 'SearchResultCard should preserve shortlist handling');
+assert(searchResultCard.includes('onView(deal)'), 'SearchResultCard should preserve view handling');
+assert(searchResultCard.includes('onQuote?.([deal])'), 'SearchResultCard should preserve quote handling');
+assert(searchResultCard.includes('Check live price') && searchResultCard.includes('View trip') && searchResultCard.includes('Ask for group quote'), 'SearchResultCard should keep enquiry-first CTA language');
+
+for (const className of ['.search-results-top', '.search-results-layout', '.search-filters-panel', '.search-results-toolbar', '.search-result-list', '.search-result-card', '.search-result-card-media', '.search-result-card-body', '.search-result-card-price', '.search-result-meta', '.search-result-badges', '.search-result-skeleton']) {
+  assert(styles.includes(className), `Search results CSS should include ${className}`);
+}
+assert(styles.includes('@media(min-width:1100px)') && styles.includes('grid-template-columns:minmax(250px,280px) minmax(0,1fr)'), 'Search results CSS should include desktop sidebar layout rules');
+assert(styles.includes('@media(max-width:720px)') && styles.includes('.search-result-card{grid-template-columns:1fr'), 'Search results CSS should include mobile card layout rules');
+assert(styles.includes('@keyframes skeleton-shimmer'), 'Search results CSS should include skeleton shimmer styling');
+assert(styles.includes('prefers-reduced-motion:reduce') && styles.includes('search-result-skeleton') && styles.includes('animation:none'), 'Reduced motion should disable search result skeleton animations');
+
+const forbiddenSearchResultPhrases = ['Book now', 'Booking confirmed', 'Checkout', 'Reserve now', 'Pay now'];
+for (const phrase of forbiddenSearchResultPhrases) {
+  assert(!searchResultsPage.includes(phrase) && !searchResultCard.includes(phrase), `Search results must not include forbidden action wording: ${phrase}`);
+}
+
 console.log('Responsive layout smoke assertions passed');
