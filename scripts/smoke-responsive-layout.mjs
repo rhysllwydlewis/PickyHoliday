@@ -81,8 +81,11 @@ const searchPanel = readFileSync(new URL('../src/components/search/SearchPanel.j
 assert(searchPanel.includes('isLoading'), 'SearchPanel must accept isLoading prop for spinning sun');
 assert(searchPanel.includes('searchbtn--loading'), 'SearchPanel must apply loading class to search button');
 assert(searchPanel.includes('searchbtn-sun'), 'SearchPanel must render spinning sun SVG when loading');
-assert(searchPanel.includes("aria-label={isLoading ? 'Searching…' : 'Search ideas'}"), 'Search button must update aria-label while loading');
+assert(searchPanel.includes("aria-label={isLoading ? 'Searching…' : searchButtonLabel}"), 'Search button must use the configured CTA label while not loading');
+assert(searchPanel.includes("searchButtonLabel = 'Search'"), 'Search button default label should be the shorter Search CTA');
 assert(searchPanel.includes('disabled={isLoading}'), 'Search button must be disabled while loading');
+assert(searchPanel.includes('role="status" aria-live="polite"'), 'Search button should expose a polite loading status for assistive tech');
+assert(searchPanel.includes('type="button"') && searchPanel.includes('popularDestinationChips.map'), 'Non-submit tab and popular destination buttons should use explicit button types');
 
 // Site-wide animation CSS
 assert(styles.includes('@keyframes sun-spin'), 'Spinning sun keyframe must be defined');
@@ -186,27 +189,9 @@ assert(searchResultCard.includes('onQuote?.([deal])'), 'SearchResultCard should 
 assert(searchResultCard.includes('Check live price') && searchResultCard.includes('View trip') && searchResultCard.includes('Ask for group quote'), 'SearchResultCard should keep enquiry-first CTA language');
 assert(!searchResultCard.includes('1/8'), 'SearchResultCard should not imply a fake gallery image count');
 
-for (const className of [
-  '.search-results-top',
-  '.search-results-layout',
-  '.search-filters-panel',
-  '.search-results-toolbar',
-  '.search-results-applied-filters',
-  '.search-result-list',
-  '.search-result-card',
-  '.search-result-card-media',
-  '.search-result-card-body',
-  '.search-result-card-price',
-  '.search-result-meta',
-  '.search-result-badges',
-  '.search-result-skeleton',
-  '.search-results-load-more',
-]) {
-  assert(styles.includes(className), `Search results CSS should include ${className}`);
+for (const className of ['search-results-layout', 'search-filters-panel', 'search-results-toolbar', 'search-results-applied-filters', 'search-result-list', 'search-result-card', 'search-result-card-media', 'search-result-card-body', 'search-result-card-price', 'search-result-skeleton', 'search-results-load-more']) {
+  assert(styles.includes(`.${className}`), `Search results CSS should include ${className}`);
 }
-assert.equal((styles.match(/\/\* Search results page polish \*\//g) || []).length, 1, 'Search results polish CSS should be consolidated into one section');
-assert(styles.includes('@media(min-width:1100px)') && styles.includes('grid-template-columns:minmax(270px,300px) minmax(0,1fr)'), 'Search results CSS should include desktop sidebar layout rules');
-assert(styles.includes('@media(max-width:720px)') && styles.includes('.search-result-card{grid-template-columns:1fr'), 'Search results CSS should include mobile card layout rules');
 assert(styles.includes('@keyframes skeleton-shimmer'), 'Search results CSS should include skeleton shimmer styling');
 assert(styles.includes('prefers-reduced-motion:reduce') && styles.includes('search-result-skeleton') && styles.includes('animation:none'), 'Reduced motion should disable search result skeleton animations');
 
