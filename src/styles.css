@@ -385,27 +385,29 @@ footer:after{content:"";position:absolute;left:0;right:0;top:0;height:1px;backgr
   .group-fields{grid-template-columns:auto 1fr}
 }
 
-.composer-search-panel{border-radius:24px;background:linear-gradient(135deg,rgba(255,255,255,.97),rgba(244,250,255,.9));box-shadow:0 28px 70px rgba(8,42,98,.16),inset 0 1px 0 rgba(255,255,255,.95);padding:18px 24px 20px}
-.composer-fields{grid-template-columns:repeat(6,minmax(0,1fr));align-items:stretch;gap:12px;grid-template-areas:"destination destination destination destination airport airport" "depart return adults children rooms button" "advanced advanced advanced advanced advanced advanced"}
-.composer-fields .destination-field{grid-area:destination;height:84px;min-height:84px;border-radius:16px;border-color:#cfe0f5;box-shadow:0 12px 28px rgba(15,62,119,.08)}
+.composer-search-panel{border-radius:22px;background:linear-gradient(135deg,rgba(255,255,255,.97),rgba(244,250,255,.9));box-shadow:0 24px 58px rgba(8,42,98,.14),inset 0 1px 0 rgba(255,255,255,.95);padding:14px 18px 15px}
+.composer-search-panel .tabs{gap:10px;margin-bottom:10px}
+.composer-search-panel .tabs button{height:34px;border-radius:10px;padding:0 14px;font-size:13px}
+.composer-fields{grid-template-columns:repeat(12,minmax(0,1fr));align-items:stretch;gap:9px;grid-template-areas:"destination destination destination airport airport airport depart depart return return button button" "adults adults children children rooms rooms nights nights flexibility flexibility flexibility flexibility"}
+.composer-fields .destination-field{grid-area:destination;border-radius:14px;border-color:#cfe0f5;box-shadow:0 10px 24px rgba(15,62,119,.07)}
 .composer-fields .airport-field{grid-area:airport}
 .composer-fields .depart-field{grid-area:depart}
 .composer-fields .return-field{grid-area:return}
 .composer-fields .adult-field{grid-area:adults}
 .composer-fields .children-field{grid-area:children}
 .composer-fields .rooms-field{grid-area:rooms}
-.compact-field{height:68px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.96)}
-.compact-field span{margin-bottom:8px;text-transform:none;letter-spacing:.01em}
+.composer-fields .nights-field{grid-area:nights}
+.composer-fields .flexibility-field{grid-area:flexibility}
+.compact-field,.composer-fields .destination-field{height:62px;min-height:62px;padding:10px 12px;border-radius:13px;background:rgba(255,255,255,.96)}
+.compact-field span,.composer-fields .destination-field span{margin-bottom:7px;text-transform:none;letter-spacing:.01em;font-size:10px}
 .compact-field p{display:grid;grid-template-columns:minmax(0,1fr) auto}
-.compact-field input,.compact-field select{font-size:13px}
-.composer-searchbtn{grid-area:button;min-height:68px;border-radius:14px;align-self:stretch}
-.advanced-search-row{grid-area:advanced;display:flex;gap:10px;align-items:center;justify-content:flex-end;padding-top:2px}
-.advanced-search-row .secondary-field{height:54px;min-height:54px;width:min(190px,100%);padding:9px 12px;background:rgba(248,251,255,.86);border-color:#e3edf9}
-.advanced-search-row .secondary-field span{margin-bottom:5px;font-size:10px}
-.advanced-search-row .secondary-field input,.advanced-search-row .secondary-field select{font-size:12px}
-.composer-search-panel .popular{margin:16px 0 0;gap:8px;align-items:center;flex-wrap:wrap}
-.composer-search-panel .popular span{font-weight:900;margin-right:2px}
-.composer-search-panel .popular button{border:1px solid #dceafa;background:rgba(255,255,255,.78);border-radius:999px;padding:7px 10px;font-weight:900;color:#075edb;line-height:1}
+.composer-fields .destination-field p{display:grid;grid-template-columns:auto minmax(0,1fr)}
+.compact-field input,.compact-field select,.composer-fields .destination-field input{font-size:13px}
+.composer-fields .search-action-field{grid-area:button}
+.composer-searchbtn{min-height:62px;border-radius:14px;align-self:stretch;padding:0 14px;font-size:15px;box-shadow:0 12px 22px rgba(232,154,0,.24)}
+.composer-search-panel .popular{margin:10px 0 0;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px}
+.composer-search-panel .popular span{font-weight:900;margin-right:1px}
+.composer-search-panel .popular button{border:1px solid #dceafa;background:rgba(255,255,255,.76);border-radius:999px;padding:6px 9px;font-size:11px;font-weight:900;color:#075edb;line-height:1}
 .spotlighted-deals{margin-top:14px}
 .spotlight-note{margin:-4px 0 14px;color:#5c7498;font-weight:800;font-size:13px}
 .spotlight-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
@@ -440,6 +442,6 @@ footer:after{content:"";position:absolute;left:0;right:0;top:0;height:1px;backgr
 .search-result-grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
 .search-quote-strip{display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid #dceafa;border-radius:18px;background:linear-gradient(135deg,#eef6ff,#fff8df);padding:16px;color:#123d76;font-weight:900}
 .diagnostic-toggle{text-align:right}
-@media(max-width:1100px){.composer-fields{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"destination destination" "airport airport" "depart return" "adults children" "rooms button" "advanced advanced"}.composer-fields .destination-field{grid-row:auto}.advanced-search-row{justify-content:flex-start}.spotlight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.search-summary-bar{align-items:stretch;display:grid}}
-@media(max-width:720px){.composer-fields{grid-template-columns:1fr;grid-template-areas:"destination" "airport" "depart" "return" "adults" "children" "rooms" "button" "advanced"}.spotlight-grid{grid-template-columns:1fr}.composer-search-panel{width:calc(100% - 24px);padding:14px}.compact-field,.composer-searchbtn{min-height:62px}.advanced-search-row{display:grid;grid-template-columns:1fr 1fr}.advanced-search-row .secondary-field{width:100%}.search-hero h1{font-size:34px}.search-quote-strip{display:grid}.tabs{overflow:auto;padding-bottom:4px;gap:8px}.tabs button{padding:0 14px}}
-@media(max-width:480px){.advanced-search-row{grid-template-columns:1fr}.composer-search-panel .popular{gap:6px}.composer-search-panel .popular button{padding:7px 9px}}
+@media(max-width:1100px){.composer-fields{grid-template-columns:repeat(6,minmax(0,1fr));grid-template-areas:"destination destination destination airport airport airport" "depart depart return return button button" "adults children rooms nights flexibility flexibility"}.composer-searchbtn{min-height:62px}.spotlight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.search-summary-bar{align-items:stretch;display:grid}}
+@media(max-width:720px){.composer-fields{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"destination destination" "airport airport" "depart return" "adults children" "rooms nights" "flexibility button"}.spotlight-grid{grid-template-columns:1fr}.composer-search-panel{width:calc(100% - 24px);padding:14px}.compact-field,.composer-fields .destination-field,.composer-searchbtn{min-height:62px}.search-hero h1{font-size:34px}.search-quote-strip{display:grid}.tabs{overflow:auto;padding-bottom:4px;gap:8px}.tabs button{padding:0 14px}}
+@media(max-width:480px){.composer-fields{grid-template-columns:1fr;grid-template-areas:"destination" "airport" "depart" "return" "adults" "children" "rooms" "nights" "flexibility" "button"}.composer-search-panel .popular{gap:6px}.composer-search-panel .popular button{padding:7px 9px}}

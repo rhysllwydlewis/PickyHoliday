@@ -77,11 +77,9 @@ export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSear
         <SearchInput icon={Users} label="Adults" name="adults" type="number" min="1" max="60" value={search.adults} onChange={updateSearchField} className="adult-field" />
         <SearchInput icon={Users} label="Children" name="children" type="number" min="0" max="60" value={search.children} onChange={updateSearchField} className="children-field" />
         <SearchInput icon={Hotel} label="Rooms" name="rooms" type="number" min="1" max="30" value={search.rooms} onChange={updateSearchField} className="rooms-field" />
-        <button className="searchbtn composer-searchbtn">Search ideas <ChevronRight size={20} /></button>
-        <div className="advanced-search-row" aria-label="Secondary search options">
-          <SearchInput icon={Clock3} label="Nights" name="nights" type="number" min="1" max="60" value={search.nights} onChange={updateSearchField} className="secondary-field" />
-          <SearchInput icon={CalendarDays} label="Date flexibility" name="dateFlexibilityDays" value={search.dateFlexibilityDays} options={fieldOptions.flexibility} onChange={updateSearchField} className="secondary-field" />
-        </div>
+        <SearchInput icon={Clock3} label="Nights" name="nights" type="number" min="1" max="60" value={search.nights} onChange={updateSearchField} className="nights-field" />
+        <SearchInput icon={CalendarDays} label="Date flexibility" name="dateFlexibilityDays" value={search.dateFlexibilityDays} options={fieldOptions.flexibility} onChange={updateSearchField} className="flexibility-field" />
+        <button className="searchbtn composer-searchbtn search-action-field" type="submit">Search ideas <ChevronRight size={20} /></button>
       </form>
       <div className="popular">
         <span>Popular:</span>
