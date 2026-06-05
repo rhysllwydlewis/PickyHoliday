@@ -51,7 +51,6 @@ for (const blocked of ['booking confirmed', 'reservation_id', 'order created', '
   assert(!allSource.includes(blocked), `Responsive changes must not introduce booking/payment/reservation wording: ${blocked}`);
 }
 
-
 /* ── Navbar logo assertions ─────────────────────────────────── */
 const brand = readFileSync(new URL('../src/components/layout/Brand.jsx', import.meta.url), 'utf8');
 
@@ -75,7 +74,6 @@ assert(styles.includes('brand-logo-holiday'), 'Brand wordmark holiday part must 
 assert(styles.includes('brand-logo--footer'), 'Footer logo variant must be styled');
 assert(styles.includes('brand-logo-mark{width:30px'), 'Mobile logo mark must be smaller');
 
-
 /* ── Site-wide animation assertions ────────────────────────── */
 const searchPanel = readFileSync(new URL('../src/components/search/SearchPanel.jsx', import.meta.url), 'utf8');
 
@@ -97,17 +95,8 @@ assert(styles.includes('spotlight-grid .spotlight-card'), 'Spotlight card entran
 assert(styles.includes('.tabs button,.composer-search-panel .tabs button{transition:'), 'Search tabs must have smooth transitions');
 
 // Reduced-motion covers new animations — check entire stylesheet since there are multiple blocks
-assert(
-  styles.includes('@media(prefers-reduced-motion:reduce)') &&
-  styles.includes('searchbtn-sun{animation:none}'),
-  'Reduced-motion must disable spinning sun'
-);
-assert(
-  styles.includes('.deal-card') && styles.includes('animation:none') &&
-  styles.includes('@media(prefers-reduced-motion:reduce)'),
-  'Reduced-motion must disable deal card animations'
-);
-
+assert(styles.includes('@media(prefers-reduced-motion:reduce)') && styles.includes('searchbtn-sun{animation:none}'), 'Reduced-motion must disable spinning sun');
+assert(styles.includes('.deal-card') && styles.includes('animation:none') && styles.includes('@media(prefers-reduced-motion:reduce)'), 'Reduced-motion must disable deal card animations');
 
 /* ── Hero search handoff assertions ───────────────────────── */
 const app = readFileSync(new URL('../src/app/App.jsx', import.meta.url), 'utf8');
@@ -121,7 +110,10 @@ assert(app.includes("params.set('handoff', handoffId)"), 'Homepage search should
 assert(app.includes('isLoading={isHeroSearchLoading}'), 'Homepage SearchPanel should receive the hero loading state');
 assert(searchResultsPage.includes('readSearchHandoff(window.location.search)'), 'Search results page should read homepage search handoffs');
 assert(searchResultsPage.includes('initialHandoff?.response?.results'), 'Search results page should initialise from handoff results');
-assert(searchResultsPage.includes('if (initialHandoff)') && searchResultsPage.includes('applySearchResponse(initialHandoff.response, initialHandoff.criteria)'), 'Search results page should render handoff responses without re-searching');
+assert(
+  searchResultsPage.includes('if (initialHandoff)') && searchResultsPage.includes('applySearchResponse(initialHandoff.response, initialHandoff.criteria)'),
+  'Search results page should render handoff responses without re-searching',
+);
 assert(searchResultsPage.includes('window.history.replaceState') && searchResultsPage.includes('criteriaToSearchParams(initialHandoff.criteria)'), 'Search results page should remove consumed handoff ids from the URL');
 
 const createMemoryStorage = () => {
@@ -156,10 +148,11 @@ assert.equal(readSearchHandoff(`handoff=${expiredId}`, expiredStorage), null, 'E
 assert.equal(expiredStorage.getItem(searchHandoffStorageKey(expiredId)), null, 'Expired search handoff should be removed');
 
 const failingStorage = {
-  setItem: () => { throw new Error('quota exceeded'); },
+  setItem: () => {
+    throw new Error('quota exceeded');
+  },
 };
 assert.equal(storeSearchHandoff({ criteria: { destination: 'Rome' }, response: { results: [] } }, failingStorage), '', 'Storage failures should not block direct search redirects');
-
 
 /* ── Search results page v2 assertions ────────────────────── */
 const searchResultCard = readFileSync(new URL('../src/components/search/SearchResultCard.jsx', import.meta.url), 'utf8');
@@ -167,7 +160,15 @@ const searchResultCard = readFileSync(new URL('../src/components/search/SearchRe
 assert(searchResultsPage.includes('search-results-layout'), 'Search results page should render a dedicated results layout');
 assert(searchResultsPage.includes('search-filters-panel'), 'Search results page should render a desktop filter panel');
 assert(searchResultsPage.includes('search-results-toolbar'), 'Search results page should render a results toolbar');
+assert(searchResultsPage.includes('search-results-applied-filters'), 'Search results page should render applied filter chips');
+assert(searchResultsPage.includes('filterCounts') && searchResultsPage.includes('option.test(deal)'), 'Search filters should calculate counts from raw results');
 assert(searchResultsPage.includes('displayedResults.length'), 'Search results page should use displayed/filtered results for counts');
+assert(searchResultsPage.includes('visibleResults') && searchResultsPage.includes('Load more ideas'), 'Search results page should add load-more rhythm for long lists');
+assert(searchResultsPage.includes('activeFilterCount'), 'Mobile filter button should expose the number of active filters');
+assert(searchResultsPage.includes('aria-label="Map view coming soon" disabled'), 'Unavailable map control should be explicitly disabled');
+assert(searchResultsPage.includes('Load more holiday ideas. Showing'), 'Load-more button should describe the current visible result range');
+assert(!searchResultsPage.includes('search-results-heading'), 'Search results top hero should stay minimal and not duplicate result summary text above the refinement form');
+assert(searchResultsPage.includes('search-results-safety-note'), 'Search results safety copy should be moved out of the top hero into a compact note');
 assert(searchResultsPage.includes('runSearch(criteria)'), 'Search results page should preserve the direct search fallback');
 assert(searchResultsPage.includes('isLoading={isLoading}'), 'Search results SearchPanel should receive page loading state');
 assert(searchResultsPage.includes('aria-label="Search results filters"'), 'Search filters should have accessible labelling');
@@ -176,23 +177,40 @@ assert(searchResultsPage.includes('aria-busy={isLoading}'), 'Search results list
 assert(searchResultsPage.includes('aria-expanded={mobileFiltersOpen}') && searchResultsPage.includes('aria-controls="mobile-search-filters"'), 'Mobile filter toggle should expose expanded state and controlled region');
 assert(searchResultsPage.includes('requestIdRef'), 'Search results page should guard against stale async responses');
 
-for (const field of ['dealReasonLabel', 'hotelSummary', 'flightSummary', 'boardBasis', 'groupSizeLabel', 'protectionLabel']) {
+for (const field of ['dealReasonLabel', 'hotelSummary', 'flightSummary', 'boardBasis', 'groupSizeLabel', 'protectionLabel', 'scoreReasons']) {
   assert(searchResultCard.includes(field), `SearchResultCard should render ${field}`);
 }
 assert(searchResultCard.includes('onToggleShortlist') && searchResultCard.includes('isShortlisted'), 'SearchResultCard should preserve shortlist handling');
 assert(searchResultCard.includes('onView(deal)'), 'SearchResultCard should preserve view handling');
 assert(searchResultCard.includes('onQuote?.([deal])'), 'SearchResultCard should preserve quote handling');
 assert(searchResultCard.includes('Check live price') && searchResultCard.includes('View trip') && searchResultCard.includes('Ask for group quote'), 'SearchResultCard should keep enquiry-first CTA language');
+assert(!searchResultCard.includes('1/8'), 'SearchResultCard should not imply a fake gallery image count');
 
-for (const className of ['.search-results-top', '.search-results-layout', '.search-filters-panel', '.search-results-toolbar', '.search-result-list', '.search-result-card', '.search-result-card-media', '.search-result-card-body', '.search-result-card-price', '.search-result-meta', '.search-result-badges', '.search-result-skeleton']) {
+for (const className of [
+  '.search-results-top',
+  '.search-results-layout',
+  '.search-filters-panel',
+  '.search-results-toolbar',
+  '.search-results-applied-filters',
+  '.search-result-list',
+  '.search-result-card',
+  '.search-result-card-media',
+  '.search-result-card-body',
+  '.search-result-card-price',
+  '.search-result-meta',
+  '.search-result-badges',
+  '.search-result-skeleton',
+  '.search-results-load-more',
+]) {
   assert(styles.includes(className), `Search results CSS should include ${className}`);
 }
-assert(styles.includes('@media(min-width:1100px)') && styles.includes('grid-template-columns:minmax(250px,280px) minmax(0,1fr)'), 'Search results CSS should include desktop sidebar layout rules');
+assert.equal((styles.match(/\/\* Search results page polish \*\//g) || []).length, 1, 'Search results polish CSS should be consolidated into one section');
+assert(styles.includes('@media(min-width:1100px)') && styles.includes('grid-template-columns:minmax(270px,300px) minmax(0,1fr)'), 'Search results CSS should include desktop sidebar layout rules');
 assert(styles.includes('@media(max-width:720px)') && styles.includes('.search-result-card{grid-template-columns:1fr'), 'Search results CSS should include mobile card layout rules');
 assert(styles.includes('@keyframes skeleton-shimmer'), 'Search results CSS should include skeleton shimmer styling');
 assert(styles.includes('prefers-reduced-motion:reduce') && styles.includes('search-result-skeleton') && styles.includes('animation:none'), 'Reduced motion should disable search result skeleton animations');
 
-const forbiddenSearchResultPhrases = ['Book now', 'Booking confirmed', 'Checkout', 'Reserve now', 'Pay now'];
+const forbiddenSearchResultPhrases = ['Book now', 'Booking confirmed', 'Checkout', 'Reserve now', 'Pay now', 'Order now'];
 for (const phrase of forbiddenSearchResultPhrases) {
   assert(!searchResultsPage.includes(phrase) && !searchResultCard.includes(phrase), `Search results must not include forbidden action wording: ${phrase}`);
 }
