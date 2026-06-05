@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { hasPricedAmount, img, priceCopy } from '../../app/appConstants.js';
 import './SearchResultCard.css';
+import './SearchResultCardPolish.css';
 
 const formatMoney = (value, currency = 'GBP') => {
   const amount = Number(value || 0);
@@ -68,6 +69,12 @@ const getImageCountLabel = (deal = {}) => {
   return '1/6';
 };
 
+const getRatingStars = (deal = {}) => {
+  const rating = Number(deal.rating || 0);
+  if (!Number.isFinite(rating) || rating <= 0) return 0;
+  return Math.max(1, Math.min(5, Math.round(rating)));
+};
+
 const getReviewSignal = (deal = {}) => {
   const rating = Number(deal.rating || 0);
   const score = Number(deal.score || 0);
@@ -106,6 +113,7 @@ export function SearchResultCard({ deal, index = 0, onView, isShortlisted = fals
   const detailRows = getDetailRows(deal);
   const badgeLabels = getBadgeLabels(deal);
   const priceBadges = getPriceBadges(deal, hasPrice, totalEstimate);
+  const ratingStars = getRatingStars(deal);
 
   return (
     <article className="search-result-card search-result-card--retail">
@@ -151,10 +159,20 @@ export function SearchResultCard({ deal, index = 0, onView, isShortlisted = fals
               {place}
             </p>
           </div>
-          <div className="search-result-stars" aria-label={deal.rating ? `${deal.rating} star rating` : 'Rating to confirm'}>
-            {Array.from({ length: 5 }).map((_, starIndex) => (
-              <Star key={starIndex} size={14} fill="currentColor" aria-hidden="true" />
-            ))}
+          <div className="search-result-stars" aria-label={ratingStars ? `${ratingStars} star rating` : 'Rating to confirm'}>
+            {ratingStars ? (
+              Array.from({ length: 5 }).map((_, starIndex) => (
+                <Star
+                  key={starIndex}
+                  size={14}
+                  fill={starIndex < ratingStars ? 'currentColor' : 'none'}
+                  className={starIndex < ratingStars ? 'is-filled' : 'is-empty'}
+                  aria-hidden="true"
+                />
+              ))
+            ) : (
+              <span>Rating to confirm</span>
+            )}
           </div>
         </div>
 
