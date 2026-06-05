@@ -1,9 +1,12 @@
+import { departureAirportCodeLookup, destinationAirportCodeLookup, extractTravelOptionCode, normaliseTravelOptionText } from '../../data/travelOptions.js';
+
 const DEFAULT_BASE_URL = 'https://test.api.amadeus.com';
 const DEFAULT_CURRENCY = 'GBP';
 const DEFAULT_ADULTS = 2;
 const DEFAULT_NIGHTS = 7;
 
 const destinationCodes = {
+  ...destinationAirportCodeLookup,
   ibiza: 'IBZ',
   tenerife: 'TCI',
   barcelona: 'BCN',
@@ -21,6 +24,7 @@ const destinationCodes = {
 };
 
 const originCodes = {
+  ...departureAirportCodeLookup,
   'london (all airports)': 'LON',
   london: 'LON',
   manchester: 'MAN',
@@ -30,6 +34,7 @@ const originCodes = {
 };
 
 const cityCodes = {
+  ...Object.fromEntries([...new Set(Object.values(destinationAirportCodeLookup))].map((code) => [code, code])),
   IBZ: 'IBZ',
   TCI: 'TCI',
   BCN: 'BCN',
@@ -43,9 +48,8 @@ const cityCodes = {
   AGP: 'AGP',
 };
 
-const normalise = (value = '') => value.toString().trim().toLowerCase();
-const looksLikeIata = (value) => /^[A-Z]{3}$/.test(`${value || ''}`.trim().toUpperCase());
-const explicitCode = (value) => (looksLikeIata(value) ? value.trim().toUpperCase() : '');
+const normalise = normaliseTravelOptionText;
+const explicitCode = extractTravelOptionCode;
 
 const addDays = (date, days) => {
   const nextDate = new Date(date);

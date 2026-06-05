@@ -1,6 +1,7 @@
 import { captureAnalyticsEvent } from '../services/travelApi.js';
 import { imageUrls } from '../data/mockDeals.js';
 import { validatePartnerUrl } from '../services/partners/partnerDeepLinks.js';
+import { departureAirportGroups, departureAirports } from '../data/travelOptions.js';
 
 export const img = (id) => imageUrls[id] || id;
 export const hasPricedAmount = (deal) => Number(deal?.priceFrom || 0) > 0;
@@ -41,8 +42,9 @@ export const saveAdminToken = (token) => { window.sessionStorage.setItem(adminTo
 export const clearAdminToken = () => {
   try { window.sessionStorage.removeItem(adminTokenStorageKey); } catch (error) {}
 };
+export const defaultOriginAirport = departureAirports[0]?.value || 'London (All Airports)';
 export const fieldOptions = {
-  origin: ['London (All Airports)', 'Manchester', 'Birmingham', 'Bristol', 'Edinburgh'],
+  origin: departureAirportGroups,
   flexibility: [
     { label: 'Exact dates', value: 0 },
     { label: '±1 day', value: 1 },

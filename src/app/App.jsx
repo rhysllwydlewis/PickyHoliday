@@ -28,6 +28,7 @@ import { replaceJsonLd, updateSeoMeta } from '../services/seo/seoMeta.js';
 import {
   adminPaths,
   defaultSiteConfig,
+  defaultOriginAirport,
   fieldOptions,
   getawaySearchConfig,
   mergeHolidayResults,
@@ -51,7 +52,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState('Holidays');
   const [search, setSearch] = useState(() => normaliseHolidaySearchCriteria({
     destination: '',
-    originAirport: fieldOptions.origin[0],
+    originAirport: defaultOriginAirport,
     departureDate: '',
     returnDate: '',
     nights: 7,

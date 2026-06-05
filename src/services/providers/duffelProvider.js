@@ -1,3 +1,5 @@
+import { departureAirportCodeLookup, destinationAirportCodeLookup, extractTravelOptionCode, normaliseTravelOptionText } from '../../data/travelOptions.js';
+
 const DEFAULT_BASE_URL = 'https://api.duffel.com';
 const DEFAULT_VERSION = 'v2';
 const DEFAULT_CURRENCY = 'GBP';
@@ -5,6 +7,7 @@ const DEFAULT_ADULTS = 2;
 const DEFAULT_NIGHTS = 7;
 
 const destinationCodes = {
+  ...destinationAirportCodeLookup,
   barcelona: 'BCN',
   ibiza: 'IBZ',
   malaga: 'AGP',
@@ -21,6 +24,7 @@ const destinationCodes = {
 };
 
 const originCodes = {
+  ...departureAirportCodeLookup,
   'london (all airports)': 'LON',
   london: 'LON',
   heathrow: 'LHR',
@@ -32,9 +36,8 @@ const originCodes = {
   liverpool: 'LPL',
 };
 
-const normalise = (value = '') => value.toString().trim().toLowerCase();
-const looksLikeIata = (value) => /^[A-Z]{3}$/.test(`${value || ''}`.trim().toUpperCase());
-const explicitCode = (value) => (looksLikeIata(value) ? value.trim().toUpperCase() : '');
+const normalise = normaliseTravelOptionText;
+const explicitCode = extractTravelOptionCode;
 const resolveCode = (value, knownCodes, fallback) => explicitCode(value) || knownCodes[normalise(value)] || fallback;
 
 const addDays = (date, days) => {
