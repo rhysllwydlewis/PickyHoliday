@@ -56,6 +56,8 @@ const waitForLocalServer = async () => {
     VITE_SHOW_DEMO_DEALS: process.env.VITE_SHOW_DEMO_DEALS || 'false',
     ENABLE_PARTNER_REDIRECTS: process.env.ENABLE_PARTNER_REDIRECTS || 'true',
     PARTNER_REDIRECT_PROVIDER_MODE: process.env.PARTNER_REDIRECT_PROVIDER_MODE || 'enabled',
+    ENABLE_BOOKING_DEMAND: process.env.ENABLE_BOOKING_DEMAND || 'false',
+    BOOKING_DEMAND_MODE: process.env.BOOKING_DEMAND_MODE || 'disabled',
   };
   if (process.env.ADMIN_ACCESS_TOKEN) serverEnv.ADMIN_ACCESS_TOKEN = adminAccessToken;
   else {
@@ -148,6 +150,8 @@ const assertHealth = (data) => {
   if (typeof data.amadeusConfigured !== 'boolean') throw new Error('/api/health did not expose Amadeus configured true/false.');
   if (typeof data.amadeusSecondaryEnabled !== 'boolean') throw new Error('/api/health did not expose Amadeus secondary status.');
   if (typeof data.affiliatePackageConfigured !== 'boolean') throw new Error('/api/health did not expose affiliate package configured true/false.');
+  if (typeof data.bookingDemandConfigured !== 'boolean' || typeof data.bookingDemandEnabled !== 'boolean') throw new Error('/api/health did not expose Booking.com Demand safe configured/enabled flags.');
+  if (!(data.providerStatus || []).some((provider) => provider.provider === 'booking-demand')) throw new Error('/api/health did not include booking-demand in providerStatus.');
   if (!['json', 'postgres'].includes(data.enquiryStorageMode)) throw new Error('/api/health did not expose enquiryStorageMode.');
   if (typeof data.databaseConfigured !== 'boolean') throw new Error('/api/health did not expose databaseConfigured true/false.');
   if (!['json', 'postgres-ready', 'postgres-not-configured', 'postgres-error'].includes(data.databaseStatus)) throw new Error('/api/health did not expose a valid databaseStatus.');
@@ -165,7 +169,7 @@ const assertHealth = (data) => {
   if (healthJson.includes('postgres://') || healthJson.includes('postgresql://')) {
     throw new Error('/api/health appeared to expose a database connection string.');
   }
-  for (const secretName of ['DATABASE_URL', 'PGPASSWORD', 'ADMIN_ACCESS_TOKEN']) {
+  for (const secretName of ['DATABASE_URL', 'PGPASSWORD', 'ADMIN_ACCESS_TOKEN', 'BOOKING_DEMAND_API_KEY', 'BOOKING_DEMAND_AFFILIATE_ID']) {
     if (healthJson.includes(secretName)) throw new Error(`/api/health appeared to expose ${secretName}.`);
   }
 };
@@ -402,12 +406,16 @@ const assertContentPages = async () => {
   console.log('✓ Admin content-page create/update/status checks passed');
 };
 
-const assertSearchRoute = async () => {
-  const response = await fetch(`${baseUrl}/search?destination=Barcelona&originAirport=Manchester&partySize=8&rooms=3`);
-  assertResponseHardening(response, 'GET /search');
-  const text = await response.text();
-  if (!response.ok || !text.includes('PickyHoliday')) throw new Error('/search route did not return the built app shell. Run npm run build before npm run test:api.');
-  console.log('✓ /search route returned the built app shell');
+const assertPublicAppRoutes = async () => {
+  const routes = ['/', '/search?destination=Barcelona&originAirport=Manchester&partySize=8&rooms=3', '/destinations/barcelona', '/group-holidays/stag-and-hen', '/guides/best-group-holiday-destinations'];
+  for (const route of routes) {
+    const response = await fetch(`${baseUrl}${route}`);
+    assertResponseHardening(response, `GET ${route}`);
+    const text = await response.text();
+    if (!response.ok || !text.includes('PickyHoliday')) throw new Error(`${route} did not return the built app shell. Run npm run build before npm run test:api.`);
+    if (route.startsWith('/search') && !text.includes('id="root"')) throw new Error('/search app shell did not include the React root.');
+  }
+  console.log('✓ Public app routes returned the built app shell after the frontend refactor');
 };
 
 const assertSitemapAndRobots = async () => {
@@ -528,7 +536,7 @@ try {
   await assertAdminPromotedDeals();
   await assertContentPages();
   await assertSitemapAndRobots();
-  await assertSearchRoute();
+  await assertPublicAppRoutes();
   if (adminAccessToken) console.log('✓ GET /api/admin/enquiries returned enquiries for configured admin token');
   await assertInvalidEnquiryEmail();
   console.log('✓ POST /api/travel/enquiries invalid email returned controlled 400 envelope');

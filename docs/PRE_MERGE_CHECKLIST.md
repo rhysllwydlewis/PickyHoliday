@@ -67,3 +67,13 @@ Use this checklist before merging changes to PickyHoliday.
 - [ ] Composed cards still allow shortlist and quote-builder actions where applicable.
 - [ ] API responses expose only normalised composed result fields and safe partner URLs; no raw provider payloads, tokens, bookings, payments or reservations are exposed.
 - [ ] `npm run build` and `npm run test:api` pass after building the app shell used by the `/search` route smoke check.
+
+## Booking.com Demand accommodation provider checks
+
+- [ ] Keep all Booking.com Demand credentials server-side only; do not add any `VITE_BOOKING_*` values.
+- [ ] Configure `ENABLE_BOOKING_DEMAND=true` only after `BOOKING_DEMAND_MODE`, server-side credentials and explicit city mappings are ready.
+- [ ] Use `BOOKING_DEMAND_MODE=mock` for smoke/testing without live Booking.com calls.
+- [ ] Add only verified Booking.com city ids through `BOOKING_DEMAND_CITY_MAPPINGS` or per-request `criteria.filters.bookingDemandCityId`; never guess ids from destination names.
+- [ ] Confirm disabled, missing-credentials and unmapped-destination states return controlled provider notes without breaking `/api/travel/holiday-composer`.
+- [ ] Confirm Booking.com accommodation cards show supplier/source, “Check live price” when unconfirmed, cancellation/terms checked on Booking.com, and no booking created by PickyHoliday.
+- [ ] Run `npm run test:booking-demand` alongside `npm run build` and `npm run test:api`.

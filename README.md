@@ -217,3 +217,7 @@ PickyHoliday now includes a first-pass holiday composer foundation for enquiry-f
 The `/api/travel/holiday-composer` endpoint accepts the normalised criteria and returns a `composed-holiday-v1` envelope. Results use a stable internal card shape for future flight + hotel composition, including provider, supplier, destination, hotel and flight summaries, dates/nights, rooms, price guidance or live-price check labels, score reasons, booking mode and safe partner redirect URLs only when validated. These are holiday ideas, partner redirects, quote requests or live-price checks only; no booking, payment or supplier reservation is created.
 
 The homepage also shows **Spotlighted deals** generated from available provider, partner and promoted deal data. Prices and availability are not held by PickyHoliday. Until more live hotel and flight APIs are added, composed results are normalised from current mock, affiliate-package, partner-redirect and promoted/manual deal sources.
+
+### Booking.com Demand accommodation provider
+
+Booking.com Demand is optional and server-side only. Enable it with `ENABLE_BOOKING_DEMAND=true` plus `BOOKING_DEMAND_MODE=mock|sandbox|live`, server-side credentials, and verified `BOOKING_DEMAND_CITY_MAPPINGS`. The holiday composer never guesses city ids: unsupported destinations produce controlled provider notes while other providers continue returning enquiry-first results. See `docs/BOOKING_DEMAND_PROVIDER.md` for setup and guardrails.
