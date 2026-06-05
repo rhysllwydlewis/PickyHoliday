@@ -76,7 +76,7 @@ export function SearchResultsPage({ onOpenDeal, isShortlisted, onToggleShortlist
         <h1>Group holiday ideas matched to your trip</h1>
         <p>These are enquiry-first ideas, partner redirects, quote requests or live-price checks only. No booking has been created, no payment has been taken and no supplier reservation has been made.</p>
       </section>
-      <SearchPanel activeTab={activeTab} setActiveTab={setActiveTab} search={criteria} setSearch={setCriteria} onSearch={submitSearch} locationSuggestions={locationSuggestions} onLookupLocations={onLookupLocations} />
+      <SearchPanel activeTab={activeTab} setActiveTab={setActiveTab} search={criteria} setSearch={setCriteria} onSearch={submitSearch} isLoading={isLoading} locationSuggestions={locationSuggestions} onLookupLocations={onLookupLocations} />
       <section className="content block search-results-shell">
         <div className="search-summary-bar">
           <div><span>Search summary</span><b>{holidaySearchSummary(criteria)}</b></div>

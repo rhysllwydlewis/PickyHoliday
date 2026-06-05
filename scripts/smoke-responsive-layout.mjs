@@ -50,4 +50,61 @@ for (const blocked of ['booking confirmed', 'reservation_id', 'order created', '
   assert(!allSource.includes(blocked), `Responsive changes must not introduce booking/payment/reservation wording: ${blocked}`);
 }
 
+
+/* ── Navbar logo assertions ─────────────────────────────────── */
+const brand = readFileSync(new URL('../src/components/layout/Brand.jsx', import.meta.url), 'utf8');
+
+// Component structure
+assert(brand.includes('aria-label="PickyHoliday home"'), 'Logo must have aria-label="PickyHoliday home"');
+assert(brand.includes('type="button"'), 'Logo button must have explicit type="button"');
+assert(brand.includes('handleLogoClick'), 'Logo must implement home/scroll-to-top routing');
+assert(brand.includes("window.location.assign('/')"), 'Logo must navigate to / from non-home pages');
+assert(brand.includes('scrollToId'), 'Logo must scroll to top when already on home page');
+assert(brand.includes('brand-logo--intro'), 'Logo must gate intro animation class');
+assert(brand.includes('brand-logo-mark'), 'Logo must render a logo mark');
+assert(brand.includes('brand-logo-wordmark'), 'Logo must render a wordmark');
+
+// CSS
+assert(styles.includes('@keyframes mark-pop'), 'Logo intro animation keyframes must be defined');
+assert(styles.includes('@keyframes wordmark-slide'), 'Wordmark slide-in keyframe must be defined');
+assert(styles.includes('prefers-reduced-motion'), 'Logo CSS must include prefers-reduced-motion fallback');
+assert(styles.includes('brand-logo--intro'), 'Logo intro class must be styled');
+assert(styles.includes('brand-logo-picky'), 'Brand wordmark picky part must be styled');
+assert(styles.includes('brand-logo-holiday'), 'Brand wordmark holiday part must be styled');
+assert(styles.includes('brand-logo--footer'), 'Footer logo variant must be styled');
+assert(styles.includes('brand-logo-mark{width:30px'), 'Mobile logo mark must be smaller');
+
+
+/* ── Site-wide animation assertions ────────────────────────── */
+const searchPanel = readFileSync(new URL('../src/components/search/SearchPanel.jsx', import.meta.url), 'utf8');
+
+// Search button spinning sun
+assert(searchPanel.includes('isLoading'), 'SearchPanel must accept isLoading prop for spinning sun');
+assert(searchPanel.includes('searchbtn--loading'), 'SearchPanel must apply loading class to search button');
+assert(searchPanel.includes('searchbtn-sun'), 'SearchPanel must render spinning sun SVG when loading');
+assert(searchPanel.includes("aria-label={isLoading ? 'Searching…' : 'Search ideas'}"), 'Search button must update aria-label while loading');
+assert(searchPanel.includes('disabled={isLoading}'), 'Search button must be disabled while loading');
+
+// Site-wide animation CSS
+assert(styles.includes('@keyframes sun-spin'), 'Spinning sun keyframe must be defined');
+assert(styles.includes('@keyframes card-enter'), 'Deal card entrance keyframe must be defined');
+assert(styles.includes('@keyframes loading-pulse'), 'Loading pulse keyframe must be defined');
+assert(styles.includes('searchbtn--loading'), 'Search button loading state must be styled');
+assert(styles.includes('searchbtn-sun'), 'Spinning sun must be styled');
+assert(styles.includes('grid-six .deal-card'), 'Deal card entrance animation must be scoped to grid');
+assert(styles.includes('spotlight-grid .spotlight-card'), 'Spotlight card entrance must be scoped');
+assert(styles.includes('.tabs button,.composer-search-panel .tabs button{transition:'), 'Search tabs must have smooth transitions');
+
+// Reduced-motion covers new animations — check entire stylesheet since there are multiple blocks
+assert(
+  styles.includes('@media(prefers-reduced-motion:reduce)') &&
+  styles.includes('searchbtn-sun{animation:none}'),
+  'Reduced-motion must disable spinning sun'
+);
+assert(
+  styles.includes('.deal-card') && styles.includes('animation:none') &&
+  styles.includes('@media(prefers-reduced-motion:reduce)'),
+  'Reduced-motion must disable deal card animations'
+);
+
 console.log('Responsive layout smoke assertions passed');
