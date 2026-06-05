@@ -4,6 +4,7 @@ import { addDaysToIsoDate, applySmartHolidaySearchField } from '../../services/s
 import { fieldOptions } from '../../app/appConstants.js';
 import { airportComboboxValue, airportResultLabel, airportResultMeta, destinationComboboxValue, destinationResultMeta, normaliseTravelOptionText, popularDestinationChips, searchAirportOptions, searchDestinationOptions } from '../../data/travelOptions.js';
 import { SmartTravelField } from './SmartTravelField.jsx';
+import './SearchPanelPolish.css';
 
 const searchTabs = [
   ['Holidays', Plane, true],
@@ -40,7 +41,7 @@ function SearchInput({ icon: Icon, label, name, value, onChange, type = 'text', 
   );
 }
 
-export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, isLoading = false, locationSuggestions, onLookupLocations }) {
+export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSearch, isLoading = false, locationSuggestions, onLookupLocations, searchButtonLabel = 'Search' }) {
   const lookupLocationsRef = React.useRef(onLookupLocations);
   React.useEffect(() => { lookupLocationsRef.current = onLookupLocations; }, [onLookupLocations]);
 
@@ -74,10 +75,11 @@ export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSear
   const returnDateMin = search.returnDate && search.returnDate < minimumReturnDate ? undefined : minimumReturnDate;
 
   return (
-    <section className="search-panel composer-search-panel" id="search">
+    <section className="search-panel composer-search-panel" id="search" aria-busy={isLoading}>
       <div className="tabs" role="tablist" aria-label="Holiday type">
         {searchTabs.map(([tab, Icon, flag]) => (
           <button
+            type="button"
             key={tab}
             className={activeTab === tab ? 'active' : ''}
             onClick={() => { setActiveTab(tab); updateSearchField('intent', tab); }}
@@ -132,9 +134,10 @@ export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSear
         <button
           className={`searchbtn composer-searchbtn search-action-field${isLoading ? ' searchbtn--loading' : ''}`}
           type="submit"
-          aria-label={isLoading ? 'Searching…' : 'Search ideas'}
+          aria-label={isLoading ? 'Searching…' : searchButtonLabel}
           disabled={isLoading}
         >
+          <span className="sr-only" role="status" aria-live="polite">{isLoading ? 'Searching holiday ideas' : ''}</span>
           {isLoading ? (
             <>
               <svg className="searchbtn-sun" viewBox="0 0 20 20" fill="none" aria-hidden="true" width="20" height="20">
@@ -153,14 +156,14 @@ export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSear
               <span>Searching…</span>
             </>
           ) : (
-            <>Search ideas <ChevronRight size={20} /></>
+            <>{searchButtonLabel} <ChevronRight size={20} /></>
           )}
         </button>
       </form>
       <div className="popular">
         <span>Popular:</span>
         {popularDestinationChips.map((destination) => (
-          <button key={destination} onClick={() => updateSearchField('destination', destination)}>{destination}</button>
+          <button type="button" key={destination} onClick={() => updateSearchField('destination', destination)}>{destination}</button>
         ))}
       </div>
     </section>
