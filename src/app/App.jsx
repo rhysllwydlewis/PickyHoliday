@@ -24,6 +24,7 @@ import {
   searchLocations,
 } from '../services/travelApi.js';
 import { criteriaToSearchParams, holidaySearchSummary, normaliseHolidaySearchCriteria } from '../services/search/holidaySearchCriteria.js';
+import { storeSearchHandoff } from '../services/search/searchHandoff.js';
 import { replaceJsonLd, updateSeoMeta } from '../services/seo/seoMeta.js';
 import {
   adminPaths,
@@ -66,6 +67,7 @@ export function App() {
   const [dealList, setDealList] = useState([]);
   const [spotlightedDeals, setSpotlightedDeals] = useState([]);
   const [isSearching, setIsSearching] = useState(true);
+  const [isHeroSearchLoading, setIsHeroSearchLoading] = useState(false);
   const [isLoadingSpotlights, setIsLoadingSpotlights] = useState(true);
   const [searchError, setSearchError] = useState('');
   const [getawayList, setGetawayList] = useState(getaways);
@@ -257,10 +259,24 @@ export function App() {
     }
   }, [isSearchRoute]);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
+    if (isHeroSearchLoading) return;
+
     const criteria = normaliseHolidaySearchCriteria({ ...search, intent: activeTab });
     trackEvent({ type: 'composed_search_submitted', category: 'search', label: criteria.destination || activeTab, metadata: { destination: criteria.destination, intent: activeTab, dateFlexibilityDays: criteria.dateFlexibilityDays, adults: criteria.adults, children: criteria.children, partySize: criteria.partySize, rooms: criteria.rooms } });
-    window.location.href = `/search?${criteriaToSearchParams(criteria).toString()}`;
+    setIsHeroSearchLoading(true);
+
+    try {
+      const response = await searchComposedHolidays(criteria);
+      const handoffId = storeSearchHandoff({ criteria, response });
+      const params = criteriaToSearchParams(criteria);
+      if (handoffId) params.set('handoff', handoffId);
+
+      window.location.href = `/search?${params.toString()}`;
+    } catch (error) {
+      showNotice('Sorry, composed holiday ideas are temporarily unavailable. Please try again.');
+      setIsHeroSearchLoading(false);
+    }
   };
 
   const handleNewsletter = (event) => {
@@ -320,7 +336,7 @@ export function App() {
       <main>
         {siteConfig.announcement?.active && siteConfig.featureFlags?.enableAnnouncementBanner !== false && siteConfig.announcement?.text && <div className="announcement">{siteConfig.announcement.text}</div>}
         <Hero config={siteConfig} />
-        <SearchPanel activeTab={activeTab} setActiveTab={setActiveTab} search={search} setSearch={setSearch} onSearch={handleSearch} locationSuggestions={locationSuggestions} onLookupLocations={lookupLocations} />
+        <SearchPanel activeTab={activeTab} setActiveTab={setActiveTab} search={search} setSearch={setSearch} onSearch={handleSearch} isLoading={isHeroSearchLoading} locationSuggestions={locationSuggestions} onLookupLocations={lookupLocations} />
         <SpotlightedDealsSection deals={spotlightedDeals} onViewDeal={handleViewDeal} isShortlisted={isDealShortlisted} onToggleShortlist={(deal) => toggleShortlist(deal, 'spotlight-card')} onQuote={(deals) => openQuoteBuilder(deals, 'spotlighted-deals')} isLoading={isLoadingSpotlights} />
         <DealsSection
           dealsToShow={filteredDeals}

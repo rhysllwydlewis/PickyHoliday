@@ -1,20 +1,34 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
 import { SearchPanel } from '../../components/search/SearchPanel.jsx';
 import { DealCard } from '../../components/deals/DealCard.jsx';
 import { ProviderDiagnostics } from '../../components/provider/ProviderDiagnostics.jsx';
 import { searchComposedHolidays } from '../../services/travelApi.js';
 import { criteriaFromSearchParams, criteriaToSearchParams, holidaySearchSummary, normaliseHolidaySearchCriteria } from '../../services/search/holidaySearchCriteria.js';
 import { showProviderDiagnostics, trackEvent } from '../appConstants.js';
-import { updateSeoMeta, replaceJsonLd } from '../../services/seo/seoMeta.js';
+import { updateSeoMeta } from '../../services/seo/seoMeta.js';
+import { readSearchHandoff } from '../../services/search/searchHandoff.js';
 
 export function SearchResultsPage({ onOpenDeal, isShortlisted, onToggleShortlist, onQuote, diagnostics, setDiagnostics, locationSuggestions, onLookupLocations }) {
-  const [criteria, setCriteria] = useState(() => criteriaFromSearchParams(window.location.search));
+  const [initialHandoff] = useState(() => readSearchHandoff(window.location.search));
+  const [criteria, setCriteria] = useState(() => initialHandoff?.criteria || criteriaFromSearchParams(window.location.search));
   const [activeTab, setActiveTab] = useState(criteria.intent || 'Holidays');
-  const [results, setResults] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [results, setResults] = useState(() => initialHandoff?.response?.results || []);
+  const [isLoading, setIsLoading] = useState(() => !initialHandoff);
   const [error, setError] = useState('');
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  const applySearchResponse = useCallback((response, normalised) => {
+    setResults(response.results || []);
+    setDiagnostics((current) => ({
+      ...current,
+      backendMode: response.providerMode || current.backendMode,
+      activeProviders: response.meta?.activeProviders || current.activeProviders,
+      latestSource: (response.providerStatus || []).filter((status) => status.resultCount > 0).map((status) => status.provider).join(', ') || response.providerMode,
+      providerErrors: response.providerErrors || [],
+      providerStatus: response.providerStatus || current.providerStatus,
+    }));
+    trackEvent({ type: 'composed_search_results_viewed', category: 'search', label: normalised.destination || normalised.intent, metadata: { destination: normalised.destination, providerMode: response.providerMode, resultCount: response.results?.length || 0, sort: normalised.sort } });
+  }, [setDiagnostics]);
 
   const runSearch = useCallback(async (nextCriteria = criteria) => {
     const normalised = normaliseHolidaySearchCriteria(nextCriteria);
@@ -22,26 +36,24 @@ export function SearchResultsPage({ onOpenDeal, isShortlisted, onToggleShortlist
     setError('');
     try {
       const response = await searchComposedHolidays(normalised);
-      setResults(response.results || []);
-      setDiagnostics((current) => ({
-        ...current,
-        backendMode: response.providerMode || current.backendMode,
-        activeProviders: response.meta?.activeProviders || current.activeProviders,
-        latestSource: (response.providerStatus || []).filter((status) => status.resultCount > 0).map((status) => status.provider).join(', ') || response.providerMode,
-        providerErrors: response.providerErrors || [],
-        providerStatus: response.providerStatus || current.providerStatus,
-      }));
-      trackEvent({ type: 'composed_search_results_viewed', category: 'search', label: normalised.destination || normalised.intent, metadata: { destination: normalised.destination, providerMode: response.providerMode, resultCount: response.results?.length || 0, sort: normalised.sort } });
+      applySearchResponse(response, normalised);
     } catch (searchError) {
       setError('Sorry, composed holiday ideas are temporarily unavailable. You can still ask for a group quote.');
       setResults([]);
     } finally {
       setIsLoading(false);
     }
-  }, [criteria, setDiagnostics]);
+  }, [applySearchResponse, criteria]);
 
   useEffect(() => {
     updateSeoMeta({ metaTitle: 'Search holiday ideas | PickyHoliday', metaDescription: 'Search enquiry-first group holiday ideas with destination, airports, dates, adults, children and rooms.', canonicalPath: '/search' });
+    if (initialHandoff) {
+      const params = criteriaToSearchParams(initialHandoff.criteria);
+      window.history.replaceState({}, '', `/search?${params.toString()}`);
+      setError('');
+      applySearchResponse(initialHandoff.response, initialHandoff.criteria);
+      return;
+    }
     runSearch(criteria);
   }, []);
 
@@ -110,4 +122,3 @@ export function SearchResultsPage({ onOpenDeal, isShortlisted, onToggleShortlist
     </main>
   );
 }
-

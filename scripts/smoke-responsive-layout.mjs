@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { criteriaFromSearchParams } from '../src/services/search/holidaySearchCriteria.js';
+import { readSearchHandoff, searchHandoffMaxAgeMs, searchHandoffStorageKey, storeSearchHandoff } from '../src/services/search/searchHandoff.js';
 
 const header = readFileSync(new URL('../src/components/layout/Header.jsx', import.meta.url), 'utf8');
 const homeSections = readFileSync(new URL('../src/app/HomeSections.jsx', import.meta.url), 'utf8');
@@ -106,5 +107,57 @@ assert(
   styles.includes('@media(prefers-reduced-motion:reduce)'),
   'Reduced-motion must disable deal card animations'
 );
+
+
+/* ── Hero search handoff assertions ───────────────────────── */
+const app = readFileSync(new URL('../src/app/App.jsx', import.meta.url), 'utf8');
+const searchResultsPage = readFileSync(new URL('../src/app/routes/SearchResultsPage.jsx', import.meta.url), 'utf8');
+
+assert(app.includes('isHeroSearchLoading'), 'Homepage search should keep a dedicated loading state');
+assert(app.includes('setIsHeroSearchLoading(true)'), 'Homepage search should enter loading state before redirecting');
+assert(app.includes('await searchComposedHolidays(criteria)'), 'Homepage search should gather composed results before redirecting');
+assert(app.includes('storeSearchHandoff({ criteria, response })'), 'Homepage search should store a search handoff after results resolve');
+assert(app.includes("params.set('handoff', handoffId)"), 'Homepage search should redirect with a handoff id when storage succeeds');
+assert(app.includes('isLoading={isHeroSearchLoading}'), 'Homepage SearchPanel should receive the hero loading state');
+assert(searchResultsPage.includes('readSearchHandoff(window.location.search)'), 'Search results page should read homepage search handoffs');
+assert(searchResultsPage.includes('initialHandoff?.response?.results'), 'Search results page should initialise from handoff results');
+assert(searchResultsPage.includes('if (initialHandoff)') && searchResultsPage.includes('applySearchResponse(initialHandoff.response, initialHandoff.criteria)'), 'Search results page should render handoff responses without re-searching');
+assert(searchResultsPage.includes('window.history.replaceState') && searchResultsPage.includes('criteriaToSearchParams(initialHandoff.criteria)'), 'Search results page should remove consumed handoff ids from the URL');
+
+const createMemoryStorage = () => {
+  const values = new Map();
+  return {
+    getItem: (key) => values.get(key) || null,
+    removeItem: (key) => values.delete(key),
+    setItem: (key, value) => values.set(key, value),
+  };
+};
+
+const handoffStorage = createMemoryStorage();
+const handoffId = storeSearchHandoff({ criteria: { destination: 'Barcelona', adults: 4 }, response: { providerMode: 'mock', results: [{ id: 'deal-1' }] } }, handoffStorage);
+assert(handoffId, 'Search handoff storage should return an id when storage succeeds');
+const handoff = readSearchHandoff(`destination=Barcelona&handoff=${handoffId}`, handoffStorage);
+assert.equal(handoff.criteria.destination, 'Barcelona');
+assert.equal(handoff.criteria.adults, 4);
+assert.equal(handoff.response.results[0].id, 'deal-1');
+assert.equal(handoffStorage.getItem(searchHandoffStorageKey(handoffId)), null, 'Search handoff should be removed after it is read');
+
+const criteriaFallbackStorage = createMemoryStorage();
+const criteriaFallbackId = 'hero-missing-criteria';
+criteriaFallbackStorage.setItem(searchHandoffStorageKey(criteriaFallbackId), JSON.stringify({ createdAt: Date.now(), source: 'hero-search', response: { results: [{ id: 'fallback-criteria' }] } }));
+const fallbackHandoff = readSearchHandoff(`destination=Lisbon&adults=3&handoff=${criteriaFallbackId}`, criteriaFallbackStorage);
+assert.equal(fallbackHandoff.criteria.destination, 'Lisbon', 'Search handoff should fall back to URL criteria if stored criteria are missing');
+assert.equal(fallbackHandoff.criteria.adults, 3, 'Search handoff URL criteria fallback should preserve party fields');
+
+const expiredStorage = createMemoryStorage();
+const expiredId = 'hero-expired';
+expiredStorage.setItem(searchHandoffStorageKey(expiredId), JSON.stringify({ createdAt: Date.now() - searchHandoffMaxAgeMs - 1, source: 'hero-search', response: { results: [{ id: 'stale' }] } }));
+assert.equal(readSearchHandoff(`handoff=${expiredId}`, expiredStorage), null, 'Expired search handoff should be ignored');
+assert.equal(expiredStorage.getItem(searchHandoffStorageKey(expiredId)), null, 'Expired search handoff should be removed');
+
+const failingStorage = {
+  setItem: () => { throw new Error('quota exceeded'); },
+};
+assert.equal(storeSearchHandoff({ criteria: { destination: 'Rome' }, response: { results: [] } }, failingStorage), '', 'Storage failures should not block direct search redirects');
 
 console.log('Responsive layout smoke assertions passed');
