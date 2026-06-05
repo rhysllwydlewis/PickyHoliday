@@ -1,0 +1,3 @@
+/* Final polish hooks for premium search result cards. */
+.search-result-card--retail .search-result-stars .is-empty{opacity:.32}
+.search-result-card--retail .search-result-stars span{display:inline-flex;align-items:center;border:1px solid #dce8f8;border-radius:999px;background:#f7fbff;color:#526a90;padding:6px 10px;font-size:12px;font-weight:950;white-space:nowrap}
