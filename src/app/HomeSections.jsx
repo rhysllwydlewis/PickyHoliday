@@ -20,12 +20,12 @@ export function Hero({ config }) {
         <div className="eyebrow"><Star fill="currentColor" size={15} /> {hero.eyebrow || 'GROUP HOLIDAYS, MADE EASY'}</div>
         <h1>{titleParts[0] || 'Smart group holidays.'}<br /><span>{titleParts[1] || 'More fun.'}</span> {titleParts.slice(2).join('. ') || 'Less fuss.'}</h1>
         <p>{hero.subtitle || 'Compare inspiration, partner redirects and saved enquiries for mates, families and every kind of group adventure.'}</p>
-        <div className="assurances">
+        <ul className="assurances" aria-label="Planning reassurance" role="list">
           {(hero.assuranceChips || ['Best group ideas', 'Saved enquiries', 'Advisor review', 'No auto-booking']).map((assurance, index) => {
             const Icon = [CircleDollarSign, WalletCards, Clock3, BadgeCheck][index];
-            return <span key={assurance}><Icon size={17} /> {assurance}</span>;
+            return <li key={assurance}><Icon size={17} aria-hidden="true" /> {assurance}</li>;
           })}
-        </div>
+        </ul>
       </div>
       <div className="trust-float"><b>Excellent</b><Stars small /><span>4.7 out of 5</span><small>★ Trustpilot</small></div>
     </section>
