@@ -137,6 +137,7 @@ export const destinationAliases = {
   'Ayia Napa': ['Larnaca', 'Nissi Beach'],
   'Costa del Sol': ['Malaga', 'Marbella'],
   Tenerife: ['Tenerife South', 'Canary Islands'],
+  'Lake Garda': ['Malcesine'],
 };
 
 const destination = (label, group, countryRegion, tags = [], aliases = []) => ({
@@ -302,6 +303,116 @@ export const destinationAirportCodeLookup = destinationSuggestions.reduce((looku
   for (const alias of option.aliases || []) addCodeAlias(lookup, alias, code);
   return lookup;
 }, {});
+
+
+const tagLabels = {
+  beach: 'Beach',
+  city: 'City',
+  party: 'Party',
+  family: 'Family',
+  villas: 'Villas',
+  'stag-hen': 'Stag & Hen',
+  'group-hotels': 'Group Hotels',
+};
+
+const compactRegionLabel = (region = '') => (region === 'United Kingdom' ? 'UK' : region);
+const optionTextParts = (parts) => parts.filter(Boolean).join(' ');
+const normalisedWords = (value) => normaliseTravelOptionText(value).split(' ').filter(Boolean);
+
+const scoreTextField = (query, value, weight = 0) => {
+  const text = normaliseTravelOptionText(value);
+  if (!query || !text.includes(query)) return -1;
+  if (text === query) return 120 + weight;
+  if (text.startsWith(query)) return 100 + weight;
+  if (normalisedWords(text).some((word) => word.startsWith(query))) return 84 + weight;
+  return 38 + weight;
+};
+
+const bestFieldScore = (query, fields = []) => fields.reduce((best, field) => Math.max(best, scoreTextField(query, field.value, field.weight)), -1);
+
+export const airportSearchText = (airportOption = {}) => normaliseTravelOptionText(optionTextParts([
+  airportOption.label,
+  airportOption.label ? `${airportOption.label} Airport` : '',
+  airportOption.airportCity,
+  airportOption.iataCode,
+  airportOption.countryRegion,
+  airportOption.group,
+]));
+
+export const airportResultLabel = (airportOption = {}) => `${airportOption.label || ''}${airportOption.iataCode ? ` (${airportOption.iataCode})` : ''}`.trim();
+export const airportResultMeta = (airportOption = {}) => compactRegionLabel(airportOption.countryRegion || airportOption.group || '');
+export const airportComboboxValue = (airportOption = {}) => airportResultLabel(airportOption) || airportOption.value || '';
+
+export const destinationSearchText = (destinationOption = {}) => normaliseTravelOptionText(optionTextParts([
+  destinationOption.label,
+  destinationOption.countryRegion,
+  destinationOption.group,
+  ...(destinationOption.aliases || []),
+  ...(destinationOption.tags || []),
+  ...(destinationOption.tags || []).map((tag) => tagLabels[tag] || tag),
+]));
+
+export const destinationTagLabel = (tag) => tagLabels[tag] || `${tag || ''}`.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+export const destinationResultMeta = (destinationOption = {}) => [
+  destinationOption.countryRegion,
+  (destinationOption.tags || []).slice(0, 3).map(destinationTagLabel).join(' / '),
+].filter(Boolean).join(' · ');
+export const destinationComboboxValue = (destinationOption = {}) => destinationOption.value || destinationOption.label || '';
+
+export const popularDestinationSuggestions = popularDestinationChips
+  .map((label) => destinationSuggestions.find((option) => normaliseTravelOptionText(option.label) === normaliseTravelOptionText(label)))
+  .filter(Boolean);
+
+export function searchAirportOptions(query = '', { limit = 10, includeGroupsWhenEmpty = false } = {}) {
+  const normalisedQuery = normaliseTravelOptionText(query);
+  if (!normalisedQuery) {
+    const grouped = departureAirportGroups.map((group) => ({
+      ...group,
+      options: group.options.map((option) => ({ ...option, groupLabel: group.label })),
+    }));
+    if (includeGroupsWhenEmpty) return grouped;
+    return grouped.flatMap((group) => group.options).slice(0, limit);
+  }
+
+  return departureAirports
+    .map((option, index) => {
+      const score = bestFieldScore(normalisedQuery, [
+        { value: option.iataCode, weight: 22 },
+        { value: option.label, weight: 18 },
+        { value: `${option.label} Airport`, weight: 18 },
+        { value: option.airportCity, weight: 14 },
+        { value: option.countryRegion, weight: 2 },
+        { value: option.group, weight: 0 },
+        { value: airportSearchText(option), weight: -20 },
+      ]);
+      return { ...option, score, originalIndex: index };
+    })
+    .filter((option) => option.score >= 0)
+    .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
+    .slice(0, limit);
+}
+
+export function searchDestinationOptions(query = '', { limit = 10, popularWhenEmpty = true } = {}) {
+  const normalisedQuery = normaliseTravelOptionText(query);
+  if (!normalisedQuery) return (popularWhenEmpty ? popularDestinationSuggestions : destinationSuggestions).slice(0, limit);
+
+  return destinationSuggestions
+    .map((option, index) => {
+      const score = bestFieldScore(normalisedQuery, [
+        { value: option.label, weight: 20 },
+        ...(option.aliases || []).map((alias) => ({ value: alias, weight: 18 })),
+        { value: option.countryRegion, weight: 6 },
+        ...(option.tags || []).map((tag) => ({ value: tag, weight: 5 })),
+        ...(option.tags || []).map((tag) => ({ value: tagLabels[tag] || tag, weight: 5 })),
+        { value: option.group, weight: 0 },
+        { value: destinationSearchText(option), weight: -24 },
+      ]);
+      return { ...option, score, originalIndex: index };
+    })
+    .filter((option) => option.score >= 0)
+    .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
+    .slice(0, limit);
+}
 
 export const destinationGroups = [...new Set(destinationSuggestions.map((item) => item.group))].map((label) => ({
   label,

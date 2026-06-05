@@ -32,6 +32,57 @@ export const defaultHolidaySearchCriteria = {
   filters: {},
 };
 
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+const isoDateToUtc = (value) => {
+  if (!isoDatePattern.test(`${value || ''}`)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+const utcDateToIso = (date) => date.toISOString().slice(0, 10);
+export const addDaysToIsoDate = (value, days = 0) => {
+  const date = isoDateToUtc(value);
+  if (!date) return '';
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + Number(days || 0));
+  return utcDateToIso(next);
+};
+export const daysBetweenIsoDates = (start, end) => {
+  const startDate = isoDateToUtc(start);
+  const endDate = isoDateToUtc(end);
+  if (!startDate || !endDate) return null;
+  return Math.round((endDate.getTime() - startDate.getTime()) / 86400000);
+};
+export function applySmartHolidaySearchField(current = {}, name, value) {
+  const draft = { ...current, [name]: value };
+  const criteria = normaliseHolidaySearchCriteria(draft);
+  if (name === 'departureDate' && criteria.departureDate) {
+    const currentGap = daysBetweenIsoDates(criteria.departureDate, criteria.returnDate);
+    if (currentGap && currentGap > 0) {
+      criteria.nights = Math.min(60, currentGap);
+      if (currentGap > 60) criteria.returnDate = addDaysToIsoDate(criteria.departureDate, criteria.nights);
+    } else {
+      criteria.returnDate = addDaysToIsoDate(criteria.departureDate, criteria.nights);
+    }
+  }
+  if (name === 'returnDate' && criteria.departureDate && criteria.returnDate) {
+    const nights = daysBetweenIsoDates(criteria.departureDate, criteria.returnDate);
+    if (nights && nights > 0) {
+      criteria.nights = Math.min(60, nights);
+      if (nights > 60) criteria.returnDate = addDaysToIsoDate(criteria.departureDate, criteria.nights);
+    } else {
+      criteria.returnDate = addDaysToIsoDate(criteria.departureDate, criteria.nights || 1);
+    }
+  }
+  if (name === 'nights' && criteria.departureDate) {
+    criteria.returnDate = addDaysToIsoDate(criteria.departureDate, criteria.nights);
+  }
+  if (['adults', 'children', 'rooms'].includes(name) && criteria.rooms > criteria.partySize) {
+    criteria.rooms = Math.max(1, Math.min(criteria.rooms, criteria.partySize));
+    criteria.roomMix = criteria.rooms > 1 ? `${criteria.rooms} rooms` : '1 room';
+  }
+  return normaliseHolidaySearchCriteria(criteria);
+}
+
 export function normaliseHolidaySearchCriteria(input = {}) {
   const source = input || {};
   const destination = asString(source.destination);
