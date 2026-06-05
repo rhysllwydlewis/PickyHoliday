@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { createTravelProviderRegistry } from '../server/travelProviderRegistry.js';
 import { validatePartnerUrl } from '../src/services/partners/partnerDeepLinks.js';
+import { criteriaFromSearchParams, criteriaToSearchParams, normaliseHolidaySearchCriteria } from '../src/services/search/holidaySearchCriteria.js';
 
 const shouldStartLocalServer = !process.env.API_BASE_URL;
 const baseUrl = process.env.API_BASE_URL || 'http://localhost:8787';
@@ -95,7 +96,7 @@ const endpoints = [
   { method: 'POST', path: '/api/travel/flights', body: { destination: 'Barcelona', origin: 'London (All Airports)' } },
   { method: 'POST', path: '/api/travel/hotels', body: { destination: 'Barcelona', intent: 'Group hotel stays' } },
   { method: 'POST', path: '/api/travel/packages', body: { destination: 'Barcelona', intent: 'Holidays' } },
-  { method: 'POST', path: '/api/travel/holiday-composer', body: { destination: 'Barcelona', originAirport: 'Manchester', departureDate: '2026-08-10', returnDate: '2026-08-17', dateFlexibilityDays: 2, flexibleDates: true, partySize: 8, adults: 8, children: 0, rooms: 3, roomMix: '3 rooms, mixed doubles and twins', budgetPerPerson: 450, intent: 'Holidays', sort: 'recommended' } },
+  { method: 'POST', path: '/api/travel/holiday-composer', body: { destination: 'Barcelona', originAirport: 'Manchester', departureDate: '2026-08-10', returnDate: '2026-08-17', dateFlexibilityDays: 2, flexibleDates: true, adults: 6, children: 2, rooms: 3, intent: 'Holidays', sort: 'recommended' } },
   { method: 'POST', path: '/api/travel/enquiries', body: { destination: 'Barcelona', customerName: 'Smoke Test', customerEmail: 'smoke@example.com', consentToContact: true } },
   { method: 'POST', path: '/api/travel/enquiries', body: {
     destination: 'Barcelona',
@@ -214,7 +215,7 @@ const assertComposedHolidayResults = (data, label) => {
   }
   if (!Array.isArray(data.providerErrors)) throw new Error(`${label} providerErrors was not an array.`);
   if (data.meta?.resultShape !== 'composed-holiday-v1') throw new Error(`${label} did not expose composed-holiday-v1 resultShape.`);
-  if (!data.meta?.criteria || data.meta.criteria.dateFlexibilityDays !== 2 || data.meta.criteria.partySize !== 8 || data.meta.criteria.rooms !== 3) throw new Error(`${label} did not normalise richer search criteria.`);
+  if (!data.meta?.criteria || data.meta.criteria.dateFlexibilityDays !== 2 || data.meta.criteria.adults !== 6 || data.meta.criteria.children !== 2 || data.meta.criteria.partySize !== 8 || data.meta.criteria.rooms !== 3) throw new Error(`${label} did not normalise richer search criteria.`);
   const requiredFields = ['id', 'resultType', 'provider', 'supplierName', 'destination', 'hotelName', 'hotelSummary', 'flightSummary', 'departureAirport', 'dateLabel', 'nights', 'groupSizeLabel', 'rooms', 'roomMix', 'priceFrom', 'currency', 'priceQualifier', 'score', 'scoreReasons', 'dealReasonLabel', 'bookingMode', 'protectionLabel', 'sourceBreakdown'];
   for (const result of data.results) {
     if (result.resultType !== 'composed-holiday') throw new Error(`${label} returned a non-composed resultType: ${result.resultType}`);
@@ -408,7 +409,7 @@ const assertContentPages = async () => {
 };
 
 const assertPublicAppRoutes = async () => {
-  const routes = ['/', '/search?destination=Barcelona&originAirport=Manchester&partySize=8&rooms=3', '/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/pages', '/admin/content', '/admin/features', '/admin/settings', '/admin/ops', '/destinations/barcelona', '/group-holidays/stag-and-hen', '/guides/best-group-holiday-destinations'];
+  const routes = ['/', '/search?destination=Barcelona&originAirport=Manchester&adults=6&children=2&rooms=3', '/search?destination=Barcelona&originAirport=Manchester&partySize=8&budgetPerPerson=450&rooms=3', '/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/pages', '/admin/content', '/admin/features', '/admin/settings', '/admin/ops', '/destinations/barcelona', '/group-holidays/stag-and-hen', '/guides/best-group-holiday-destinations'];
   for (const route of routes) {
     const response = await fetch(`${baseUrl}${route}`);
     assertResponseHardening(response, `GET ${route}`);
@@ -523,6 +524,20 @@ const assertBadJson = async () => {
   }
 };
 
+
+const assertHolidayCriteriaSearchParams = () => {
+  const criteria = normaliseHolidaySearchCriteria({ destination: 'Barcelona', originAirport: 'Manchester', adults: 6, children: 2, rooms: 3, partySize: 12 });
+  if (criteria.partySize !== 8) throw new Error('Adults and children did not drive the derived partySize.');
+  const params = criteriaToSearchParams(criteria);
+  for (const [key, expected] of [['adults', '6'], ['children', '2'], ['rooms', '3']]) {
+    if (params.get(key) !== expected) throw new Error(`/search params did not include ${key}=${expected}.`);
+  }
+  if (params.has('budgetPerPerson')) throw new Error('Default hero-style search params unexpectedly included budgetPerPerson.');
+  const legacy = criteriaFromSearchParams('destination=Barcelona&partySize=8&budgetPerPerson=450&rooms=3');
+  if (legacy.partySize !== 8 || legacy.adults !== 8 || legacy.budgetPerPerson !== 450 || legacy.rooms !== 3) throw new Error('Legacy partySize/budgetPerPerson search URL did not remain compatible.');
+  console.log('✓ Holiday criteria params preserved adults, children, rooms and legacy budget compatibility');
+};
+
 const assertProviderModeDefaults = () => {
   const defaultRegistry = createTravelProviderRegistry({});
   if (defaultRegistry.mode !== 'duffel') throw new Error('Backend registry did not default to duffel.');
@@ -535,6 +550,7 @@ const assertProviderModeDefaults = () => {
 
 try {
   assertProviderModeDefaults();
+  assertHolidayCriteriaSearchParams();
   await backupJsonStores();
   await waitForLocalServer();
   console.log(`Running PickyHoliday API smoke tests against ${baseUrl}`);

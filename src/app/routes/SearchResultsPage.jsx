@@ -41,7 +41,7 @@ export function SearchResultsPage({ onOpenDeal, isShortlisted, onToggleShortlist
   }, [criteria, setDiagnostics]);
 
   useEffect(() => {
-    updateSeoMeta({ metaTitle: 'Search holiday ideas | PickyHoliday', metaDescription: 'Search enquiry-first group holiday ideas with destination, dates, flexibility, party size and rooms.', canonicalPath: '/search' });
+    updateSeoMeta({ metaTitle: 'Search holiday ideas | PickyHoliday', metaDescription: 'Search enquiry-first group holiday ideas with destination, airports, dates, adults, children and rooms.', canonicalPath: '/search' });
     runSearch(criteria);
   }, []);
 
