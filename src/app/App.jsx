@@ -56,8 +56,9 @@ export function App() {
     returnDate: '',
     nights: 7,
     dateFlexibilityDays: 0,
-    partySize: 8,
-    rooms: 2,
+    adults: 2,
+    children: 0,
+    rooms: 1,
     intent: 'Holidays',
   }));
   const [searchSummary, setSearchSummary] = useState('Showing popular group holiday ideas. Ask for group quote saves an enquiry only; it is not a booking.');
@@ -257,7 +258,7 @@ export function App() {
 
   const handleSearch = () => {
     const criteria = normaliseHolidaySearchCriteria({ ...search, intent: activeTab });
-    trackEvent({ type: 'composed_search_submitted', category: 'search', label: criteria.destination || activeTab, metadata: { destination: criteria.destination, intent: activeTab, dateFlexibilityDays: criteria.dateFlexibilityDays, partySize: criteria.partySize, rooms: criteria.rooms } });
+    trackEvent({ type: 'composed_search_submitted', category: 'search', label: criteria.destination || activeTab, metadata: { destination: criteria.destination, intent: activeTab, dateFlexibilityDays: criteria.dateFlexibilityDays, adults: criteria.adults, children: criteria.children, partySize: criteria.partySize, rooms: criteria.rooms } });
     window.location.href = `/search?${criteriaToSearchParams(criteria).toString()}`;
   };
 

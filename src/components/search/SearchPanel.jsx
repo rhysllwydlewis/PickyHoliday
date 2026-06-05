@@ -1,6 +1,6 @@
 import React from 'react';
-import { BriefcaseBusiness, CalendarDays, ChevronRight, Clock3, HeartHandshake, Hotel, MapPin, Plane, Users, WalletCards } from 'lucide-react';
-import { criteriaToSearchParams, normaliseHolidaySearchCriteria } from '../../services/search/holidaySearchCriteria.js';
+import { BriefcaseBusiness, CalendarDays, ChevronRight, Clock3, HeartHandshake, Hotel, MapPin, Plane, Users } from 'lucide-react';
+import { normaliseHolidaySearchCriteria } from '../../services/search/holidaySearchCriteria.js';
 import { fieldOptions } from '../../app/appConstants.js';
 
 const searchTabs = [
@@ -11,18 +11,18 @@ const searchTabs = [
   ['Families', HeartHandshake],
 ];
 
-function SearchInput({ icon: Icon, label, name, value, onChange, type = 'text', placeholder = '', min, options }) {
+function SearchInput({ icon: Icon, label, name, value, onChange, type = 'text', placeholder = '', min, max, options, className = '' }) {
   const input = options ? (
     <select name={name} value={value} onChange={(event) => onChange(name, event.target.value)}>
       {options.map((option) => <option key={option.value ?? option} value={option.value ?? option}>{option.label ?? option}</option>)}
     </select>
   ) : (
-    <input name={name} type={type} min={min} value={value ?? ''} onChange={(event) => onChange(name, event.target.value)} placeholder={placeholder} />
+    <input name={name} type={type} min={min} max={max} value={value ?? ''} onChange={(event) => onChange(name, event.target.value)} placeholder={placeholder} />
   );
   return (
-    <label className="field compact-field">
+    <label className={`field compact-field ${className}`.trim()}>
       <span>{label}</span>
-      <p>{input}<Icon size={17} /></p>
+      <p>{input}{Icon && <Icon size={17} />}</p>
     </label>
   );
 }
@@ -71,16 +71,17 @@ export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSear
             </div>
           )}
         </label>
-        <SearchInput icon={Plane} label="From" name="originAirport" value={search.originAirport} options={fieldOptions.origin} onChange={updateSearchField} />
-        <SearchInput icon={CalendarDays} label="Depart" name="departureDate" type="date" value={search.departureDate} onChange={updateSearchField} />
-        <SearchInput icon={CalendarDays} label="Return date" name="returnDate" type="date" value={search.returnDate} onChange={updateSearchField} />
-        <SearchInput icon={Clock3} label="Nights" name="nights" type="number" min="1" value={search.nights} onChange={updateSearchField} />
-        <SearchInput icon={CalendarDays} label="Flexibility" name="dateFlexibilityDays" value={search.dateFlexibilityDays} options={fieldOptions.flexibility} onChange={updateSearchField} />
-        <SearchInput icon={Users} label="Party size" name="partySize" type="number" min="1" value={search.partySize} onChange={updateSearchField} />
-        <SearchInput icon={Hotel} label="Rooms" name="rooms" type="number" min="1" value={search.rooms} onChange={updateSearchField} />
-        <SearchInput icon={Users} label="Room mix" name="roomMix" value={search.roomMix} placeholder="e.g. twins + doubles" onChange={updateSearchField} />
-        <SearchInput icon={WalletCards} label="Budget pp" name="budgetPerPerson" type="number" min="0" value={search.budgetPerPerson || ''} placeholder="Optional" onChange={updateSearchField} />
+        <SearchInput icon={Plane} label="From / departure airport" name="originAirport" value={search.originAirport} options={fieldOptions.origin} onChange={updateSearchField} className="airport-field" />
+        <SearchInput label="Depart" name="departureDate" type="date" value={search.departureDate} onChange={updateSearchField} className="depart-field" />
+        <SearchInput label="Return" name="returnDate" type="date" value={search.returnDate} onChange={updateSearchField} className="return-field" />
+        <SearchInput icon={Users} label="Adults" name="adults" type="number" min="1" max="60" value={search.adults} onChange={updateSearchField} className="adult-field" />
+        <SearchInput icon={Users} label="Children" name="children" type="number" min="0" max="60" value={search.children} onChange={updateSearchField} className="children-field" />
+        <SearchInput icon={Hotel} label="Rooms" name="rooms" type="number" min="1" max="30" value={search.rooms} onChange={updateSearchField} className="rooms-field" />
         <button className="searchbtn composer-searchbtn">Search ideas <ChevronRight size={20} /></button>
+        <div className="advanced-search-row" aria-label="Secondary search options">
+          <SearchInput icon={Clock3} label="Nights" name="nights" type="number" min="1" max="60" value={search.nights} onChange={updateSearchField} className="secondary-field" />
+          <SearchInput icon={CalendarDays} label="Date flexibility" name="dateFlexibilityDays" value={search.dateFlexibilityDays} options={fieldOptions.flexibility} onChange={updateSearchField} className="secondary-field" />
+        </div>
       </form>
       <div className="popular">
         <span>Popular:</span>
