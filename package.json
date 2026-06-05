@@ -12,7 +12,9 @@
     "start": "node server/index.js",
     "test:api": "node scripts/smoke-api.mjs",
     "test:booking-demand": "node scripts/smoke-booking-demand.mjs",
-    "test:smart-search": "node scripts/smoke-smart-search.mjs"
+    "test:smart-search": "node scripts/smoke-smart-search.mjs",
+    "test:responsive-layout": "node scripts/smoke-responsive-layout.mjs",
+    "lint": "node scripts/lint-source.mjs"
   },
   "dependencies": {
     "lucide-react": "latest",
