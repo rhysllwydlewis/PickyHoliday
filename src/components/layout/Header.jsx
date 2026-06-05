@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BriefcaseBusiness, ChevronDown, ChevronRight, Menu, Users, X } from 'lucide-react';
 import { scrollToId } from '../../app/appConstants.js';
 import { Logo } from './Brand.jsx';
@@ -12,9 +12,36 @@ const navTargets = {
   Support: 'footer',
 };
 
+const tabletVisibleNavCount = 3;
+
 export function Header({ onAction, onSignIn }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const menuRef = useRef(null);
+  const menuButtonRef = useRef(null);
   const nav = Object.keys(navTargets);
+
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setMobileOpen(false);
+        window.requestAnimationFrame(() => menuButtonRef.current?.focus());
+      }
+    };
+
+    const handleOutsideClick = (event) => {
+      if (menuRef.current?.contains(event.target) || menuButtonRef.current?.contains(event.target)) return;
+      setMobileOpen(false);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handleOutsideClick);
+    };
+  }, [mobileOpen]);
 
   const handleNav = (label) => {
     setMobileOpen(false);
@@ -29,58 +56,65 @@ export function Header({ onAction, onSignIn }) {
     else window.location.assign('/admin/login');
   };
 
+  const handleStartPlanning = () => {
+    setMobileOpen(false);
+    scrollToId('search');
+  };
+
   return (
     <header className="topbar" id="top">
       <div className="navwrap">
         <Logo />
         <nav className="primary-nav" aria-label="Primary navigation">
           {nav.map((label, index) => (
-            <button className="nav-link" key={label} onClick={() => handleNav(label)}>
+            <button type="button" className={index >= tabletVisibleNavCount ? 'nav-link nav-link-secondary' : 'nav-link'} key={label} onClick={() => handleNav(label)}>
               <span>{label}</span>
               {index !== 3 && <ChevronDown className="nav-chevron" size={14} />}
             </button>
           ))}
         </nav>
         <button
+          type="button"
           className="signin glass-button"
           onClick={handleSignIn}
         >
           <span className="button-glow" aria-hidden="true" />
           <Users size={19} /> <span>Sign in</span>
         </button>
-        <button className="start glass-button" onClick={() => scrollToId('search')}>
+        <button type="button" className="start glass-button" onClick={handleStartPlanning}>
           <span className="button-glow" aria-hidden="true" />
           <BriefcaseBusiness size={17} /> <span>Start planning</span>
         </button>
         <button
+          ref={menuButtonRef}
+          type="button"
           className="mobile"
           onClick={() => setMobileOpen((open) => !open)}
           aria-controls="mobile-navigation"
           aria-expanded={mobileOpen}
-          aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+          aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
         >
-          {mobileOpen ? <X /> : <Menu />}
+          {mobileOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
         </button>
       </div>
       {mobileOpen && (
-        <div className="mobile-menu" id="mobile-navigation">
-          {nav.map((label) => (
-            <button className="mobile-link" key={label} onClick={() => handleNav(label)}>
+        <nav className="mobile-menu" id="mobile-navigation" ref={menuRef} aria-label="Collapsed navigation">
+          {nav.map((label, index) => (
+            <button type="button" className={index < tabletVisibleNavCount ? 'mobile-link tablet-menu-duplicate' : 'mobile-link'} key={label} onClick={() => handleNav(label)}>
               <span>{label}</span>
-              <ChevronRight size={16} />
+              <ChevronRight size={16} aria-hidden="true" />
             </button>
           ))}
-          <button className="mobile-signin" onClick={handleSignIn}>
-            <Users size={17} />
+          <button type="button" className="mobile-signin" onClick={handleSignIn}>
+            <Users size={17} aria-hidden="true" />
             <span>Sign in</span>
           </button>
-          <button className="mobile-start" onClick={() => { setMobileOpen(false); scrollToId('search'); }}>
-            <BriefcaseBusiness size={17} />
+          <button type="button" className="mobile-start" onClick={handleStartPlanning}>
+            <BriefcaseBusiness size={17} aria-hidden="true" />
             <span>Start planning</span>
           </button>
-        </div>
+        </nav>
       )}
     </header>
   );
 }
-
