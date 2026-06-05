@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { readFile, rm, writeFile } from 'node:fs/promises';
+import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { createTravelProviderRegistry } from '../server/travelProviderRegistry.js';
 import { validatePartnerUrl } from '../src/services/partners/partnerDeepLinks.js';
 
@@ -181,6 +181,7 @@ const assertReadiness = (data) => {
 
 const assertSiteConfig = (data) => {
   if (!data.siteConfig?.hero || !data.siteConfig?.featureFlags) throw new Error('/api/site-config did not include safe public config.');
+  if (data.siteConfig.featureFlags.showProviderDiagnostics === true) throw new Error('/api/site-config made provider diagnostics publicly visible by default.');
   const body = JSON.stringify(data);
   for (const secretName of ['DATABASE_URL', 'ADMIN_ACCESS_TOKEN', 'DUFFEL_ACCESS_TOKEN', 'AMADEUS_CLIENT_SECRET']) {
     if (body.includes(secretName)) throw new Error(`/api/site-config appeared to expose ${secretName}.`);
@@ -407,15 +408,31 @@ const assertContentPages = async () => {
 };
 
 const assertPublicAppRoutes = async () => {
-  const routes = ['/', '/search?destination=Barcelona&originAirport=Manchester&partySize=8&rooms=3', '/destinations/barcelona', '/group-holidays/stag-and-hen', '/guides/best-group-holiday-destinations'];
+  const routes = ['/', '/search?destination=Barcelona&originAirport=Manchester&partySize=8&rooms=3', '/admin', '/admin/login', '/admin/enquiries', '/admin/deals', '/admin/pages', '/admin/content', '/admin/features', '/admin/settings', '/admin/ops', '/destinations/barcelona', '/group-holidays/stag-and-hen', '/guides/best-group-holiday-destinations'];
   for (const route of routes) {
     const response = await fetch(`${baseUrl}${route}`);
     assertResponseHardening(response, `GET ${route}`);
     const text = await response.text();
     if (!response.ok || !text.includes('PickyHoliday')) throw new Error(`${route} did not return the built app shell. Run npm run build before npm run test:api.`);
-    if (route.startsWith('/search') && !text.includes('id="root"')) throw new Error('/search app shell did not include the React root.');
+    if ((route.startsWith('/search') || route.startsWith('/admin')) && !text.includes('id="root"')) throw new Error(`${route} app shell did not include the React root.`);
+    if (route === '/admin/login' && text.includes('pickyholiday-admin-token')) throw new Error('/admin/login shell exposed the sessionStorage admin token key before client JS executed.');
   }
-  console.log('✓ Public app routes returned the built app shell after the frontend refactor');
+  console.log('✓ Public, search, admin and content app routes returned the built app shell after the frontend refactor');
+};
+
+const assertBuiltFrontendSecrets = async () => {
+  const assetDir = new URL('../dist/assets/', import.meta.url);
+  const files = await readdir(assetDir).catch(() => []);
+  const assetFiles = files.filter((item) => item.endsWith('.js') || item.endsWith('.css'));
+  if (assetFiles.length === 0) throw new Error('No built frontend assets found under dist/assets. Run npm run build before npm run test:api.');
+  const forbidden = ['BOOKING_DEMAND_API_KEY', 'BOOKING_DEMAND_AFFILIATE_ID', 'secret-booking-key', 'affiliate-secret', 'DUFFEL_ACCESS_TOKEN', 'AMADEUS_CLIENT_SECRET', 'postgres://', 'postgresql://'];
+  for (const file of assetFiles) {
+    const text = await readFile(new URL(file, assetDir), 'utf8');
+    for (const marker of forbidden) {
+      if (text.includes(marker)) throw new Error(`Built frontend asset ${file} exposed ${marker}.`);
+    }
+  }
+  console.log('✓ Built frontend assets did not expose Booking.com, supplier, admin or database secret markers');
 };
 
 const assertSitemapAndRobots = async () => {
@@ -537,6 +554,7 @@ try {
   await assertContentPages();
   await assertSitemapAndRobots();
   await assertPublicAppRoutes();
+  await assertBuiltFrontendSecrets();
   if (adminAccessToken) console.log('✓ GET /api/admin/enquiries returned enquiries for configured admin token');
   await assertInvalidEnquiryEmail();
   console.log('✓ POST /api/travel/enquiries invalid email returned controlled 400 envelope');

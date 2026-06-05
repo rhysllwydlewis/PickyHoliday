@@ -221,3 +221,7 @@ The homepage also shows **Spotlighted deals** generated from available provider,
 ### Booking.com Demand accommodation provider
 
 Booking.com Demand is optional and server-side only. Enable it with `ENABLE_BOOKING_DEMAND=true` plus `BOOKING_DEMAND_MODE=mock|sandbox|live`, server-side credentials, and verified `BOOKING_DEMAND_CITY_MAPPINGS`. The holiday composer never guesses city ids: unsupported destinations produce controlled provider notes while other providers continue returning enquiry-first results. See `docs/BOOKING_DEMAND_PROVIDER.md` for setup and guardrails.
+
+## Deployment
+
+Post-deploy smoke and Railway safety checks are documented in [`docs/POST_DEPLOY_CHECKLIST.md`](docs/POST_DEPLOY_CHECKLIST.md).

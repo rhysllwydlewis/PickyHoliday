@@ -1,6 +1,14 @@
 import { createTravelProviderRegistry } from '../server/travelProviderRegistry.js';
 
 const forbidden = ['BOOKING_DEMAND_API_KEY=secret', 'secret-booking-key', 'affiliate-secret', 'Bearer secret', 'postgres://'];
+
+const assertNoBookingActions = (payload, label) => {
+  const text = JSON.stringify(payload).toLowerCase();
+  for (const blocked of ['booking confirmed', 'reservation_id', 'order created', 'payment successful', 'book now', 'supplier reservation']) {
+    if (text.includes(blocked)) throw new Error(`${label} exposed booking/reservation/payment behaviour: ${blocked}`);
+  }
+};
+
 const assertNoSecrets = (payload, label) => {
   const text = JSON.stringify(payload);
   for (const item of forbidden) {
@@ -21,6 +29,7 @@ async function assertDisabled() {
   const result = await registry.composeHoliday(search);
   if (result.meta.activeProviders.includes('booking-demand')) throw new Error('Disabled Booking.com Demand provider became active.');
   assertNoSecrets(result, 'disabled composeHoliday');
+  assertNoBookingActions(result, 'disabled composeHoliday');
 }
 
 async function assertMissingCredentials() {
@@ -30,6 +39,7 @@ async function assertMissingCredentials() {
   if (!note) throw new Error('Missing Booking.com credentials did not produce a controlled provider note.');
   if (!Array.isArray(result.results)) throw new Error('Missing credentials broke composed holiday results.');
   assertNoSecrets(result, 'missing credentials composeHoliday');
+  assertNoBookingActions(result, 'missing credentials composeHoliday');
 }
 
 async function assertUnmappedDestination() {
@@ -38,6 +48,7 @@ async function assertUnmappedDestination() {
   const note = result.providerErrors.find((item) => item.provider === 'booking-demand' && item.mode === 'unmapped-destination');
   if (!note) throw new Error('Unmapped Booking.com destination did not produce a controlled provider note.');
   assertNoSecrets(result, 'unmapped composeHoliday');
+  assertNoBookingActions(result, 'unmapped composeHoliday');
 }
 
 async function assertMockMapped() {
@@ -50,6 +61,7 @@ async function assertMockMapped() {
   if (!bookingResult.sourceBreakdown?.accommodationSource?.includes('Booking.com')) throw new Error('Booking.com accommodation source was not exposed.');
   if (!bookingResult.protectionLabel?.includes('No booking is created by PickyHoliday')) throw new Error('Booking.com enquiry-first guardrail was not exposed.');
   assertNoSecrets(result, 'mock mapped composeHoliday');
+  assertNoBookingActions(result, 'mock mapped composeHoliday');
 }
 
 await assertDisabled();
