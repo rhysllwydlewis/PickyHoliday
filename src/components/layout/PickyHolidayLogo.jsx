@@ -4,6 +4,7 @@ import './PickyHolidayLogo.css';
 import './PickyHolidayLogoFixes.css';
 
 const logoIntroStorageKey = 'pickyholiday-layered-logo-intro-v1';
+const staticPlaneTransform = 'translate(602 21) rotate(-14)';
 
 const layout = {
   pickyX: 26,
@@ -81,8 +82,6 @@ export function Logo({ footer = false }) {
     footer ? 'brand-logo--footer' : '',
     runIntro && !footer ? 'brand-logo--intro' : 'brand-logo--settled',
   ].filter(Boolean).join(' ');
-
-  const staticPlaneTransform = footer ? 'translate(602 21) rotate(-14)' : 'translate(602 21) rotate(-14)';
 
   return (
     <button type="button" className={cls} onClick={handleLogoClick} aria-label="PickyHoliday home">
