@@ -131,6 +131,51 @@
   box-shadow: 0 18px 38px rgba(8,42,98,.16);
 }
 
+/* Conservative desktop fix: keep the original controls but stop date/nights fields looking like tiny stubs. */
+.search-panel.composer-search-panel .composer-fields {
+  grid-template-columns: minmax(320px, 1.55fr) minmax(260px, 1.25fr) minmax(155px, .72fr) minmax(155px, .72fr) minmax(150px, .68fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.search-panel.composer-search-panel .composer-fields .field,
+.search-panel.composer-search-panel .composer-fields .destination-field,
+.search-panel.composer-search-panel .composer-fields .compact-field {
+  min-width: 0;
+  min-height: 70px;
+}
+
+.search-panel.composer-search-panel .depart-field input,
+.search-panel.composer-search-panel .return-field input,
+.search-panel.composer-search-panel .nights-field input,
+.search-panel.composer-search-panel .flexibility-field select {
+  width: 100%;
+  min-width: 0;
+}
+
+.search-panel.composer-search-panel .depart-field,
+.search-panel.composer-search-panel .return-field,
+.search-panel.composer-search-panel .nights-field,
+.search-panel.composer-search-panel .flexibility-field {
+  min-width: 0;
+}
+
+.search-panel.composer-search-panel .composer-searchbtn {
+  min-height: 70px;
+}
+
+@media(max-width:1180px) {
+  .search-panel.composer-search-panel .composer-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .search-panel.composer-search-panel .destination-field,
+  .search-panel.composer-search-panel .airport-field,
+  .search-panel.composer-search-panel .search-action-field {
+    grid-column: 1 / -1;
+  }
+}
+
 @media(max-width:720px) {
   .composer-search-panel {
     box-shadow: 0 14px 30px rgba(15,62,119,.12);
@@ -138,6 +183,11 @@
 
   .composer-search-panel .tabs {
     gap: 8px;
+  }
+
+  .search-panel.composer-search-panel .composer-fields {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .composer-searchbtn {
