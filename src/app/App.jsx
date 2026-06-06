@@ -157,7 +157,7 @@ export function App() {
   const openQuoteBuilder = (deals, source = 'quote-builder') => {
     const selectedDeals = (Array.isArray(deals) ? deals : [deals]).filter(Boolean);
     trackEvent({ type: 'quote_builder_started', category: 'enquiry', label: selectedDeals[0]?.destination || search.destination || 'group quote', metadata: { destination: selectedDeals[0]?.destination || search.destination, resultId: selectedDeals[0]?.resultId || selectedDeals[0]?.id, provider: selectedDeals[0]?.provider, shortlistCount: selectedDeals.length, source } });
-    setModal({ type: 'quote-builder', deals: selectedDeals.length ? selectedDeals : shortlist, source, onSubmitted: (enquiry) => showNotice(enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.') });
+    setModal({ type: 'quote-builder', deals: selectedDeals.length ? selectedDeals : shortlist, source, onSubmitted: (enquiry) => showNotice(enquiry.message || 'Thanks, your enquiry has been saved. No payment taken by PickyHoliday.') });
   };
 
   const refreshDiagnostics = async () => {
@@ -309,7 +309,7 @@ export function App() {
     setModal(dealModalContent(selected, {
       onOpenEnquiry: setModal,
       onSubmitted: (enquiry) => {
-        showNotice(enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.');
+        showNotice(enquiry.message || 'Thanks, your enquiry has been saved. No payment taken by PickyHoliday.');
       },
       onShortlist: (deal) => toggleShortlist(deal, 'deal-modal'),
       isShortlisted: isDealShortlisted,

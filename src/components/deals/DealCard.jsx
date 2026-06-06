@@ -14,13 +14,13 @@ export function DealCard({ deal, onView, isShortlisted = false, onToggleShortlis
         <h3>{deal.hotelName}</h3>
         <div className="rating"><Stars small />{deal.rating}</div>
         <p className="provider-chip">{deal.supplierName} · {deal.sourceBreakdown?.accommodationSource || deal.resultType}</p>
-        {deal.provider === 'booking-demand' && <p className="provider-chip">Booking.com hotel source · cancellation/terms checked on partner site · no booking created by PickyHoliday</p>}
+        {deal.provider === 'booking-demand' && <p className="provider-chip">Partner hotel source · cancellation/terms checked on partner site · no payment taken by PickyHoliday</p>}
         <div className="price">
           <p>{hasPricedAmount(deal) ? 'From ' : ''}<b>{priceCopy(deal)}</b> {deal.priceQualifier}</p>
-          <button onClick={handleView}>{deal.provider === 'partner-redirect' || deal.provider === 'booking-demand' || deal.priceQualifier === 'Check live price' ? 'Check live price' : 'View trip'}</button>
+          <button type="button" onClick={handleView}>{deal.provider === 'partner-redirect' || deal.provider === 'booking-demand' || deal.priceQualifier === 'Check live price' ? 'Check live price' : 'View trip'}</button>
         </div>
-        <button className={`shortlist-card-action ${isShortlisted ? 'added' : ''}`} onClick={() => onToggleShortlist?.(deal)} aria-pressed={isShortlisted}>
-          <Heart size={15} fill={isShortlisted ? 'currentColor' : 'none'} /> {isShortlisted ? 'Added' : 'Shortlist'}
+        <button type="button" className={`shortlist-card-action ${isShortlisted ? 'added' : ''}`} onClick={() => onToggleShortlist?.(deal)} aria-pressed={isShortlisted}>
+          <Heart size={15} fill={isShortlisted ? 'currentColor' : 'none'} /> {isShortlisted ? 'Saved enquiry' : 'Save enquiry'}
         </button>
       </div>
     </article>

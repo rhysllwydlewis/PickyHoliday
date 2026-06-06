@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { LockKeyhole, X } from 'lucide-react';
 import { CompareShortlist, QuoteBuilder } from '../groupQuoteFlow.jsx';
+import { SearchTripDetailModal } from '../search/SearchTripDetailModal.jsx';
 import { listAdminEnquiries, submitEnquiry } from '../../services/travelApi.js';
-import { dealPlace, defaultFeatureFlags, defaultSiteConfig, emailPattern, isSafePartnerRedirectUrl, priceCopy, saveAdminToken, scrollToId, trackEvent } from '../../app/appConstants.js';
+import { dealPlace, defaultFeatureFlags, defaultSiteConfig, emailPattern, priceCopy, saveAdminToken, trackEvent } from '../../app/appConstants.js';
 
 function dealPayload(deal = {}) {
   return {
@@ -39,7 +40,7 @@ function validateEnquiryForm(form) {
 export function dealModalContent(selected, { onOpenEnquiry, onSubmitted, onShortlist, isShortlisted, onQuote } = {}) {
   return {
     title: selected.hotelName,
-    body: selected.provider === 'partner-redirect' ? `${selected.flightSummary}. ${selected.hotelSummary}. This sends you to the partner to check live price and availability. No booking has been created.` : `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or continue to a partner where available. No booking has been created. No payment has been taken. No supplier reservation has been made.`,
+    body: selected.provider === 'partner-redirect' ? `${selected.flightSummary}. ${selected.hotelSummary}. This sends you to the partner to check live price. No payment taken by PickyHoliday.` : `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or continue to a partner where available. No payment taken by PickyHoliday.`,
     kicker: selected.savingLabel,
     deal: selected,
     onEnquiry: (deal) => {
@@ -96,7 +97,7 @@ function EnquiryForm({ deal, onClose, onSubmitted }) {
         dateLabel: form.dateLabel.trim(),
       });
       const enquiry = response.enquiry || {};
-      setSuccess({ id: enquiry.id || enquiry.enquiryId, message: enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.' });
+      setSuccess({ id: enquiry.id || enquiry.enquiryId, message: enquiry.message || 'Thanks, your enquiry has been saved. No payment taken by PickyHoliday.' });
       onSubmitted?.(enquiry);
     } catch (error) {
       const fieldErrors = Object.fromEntries((error.fieldErrors || []).map((fieldError) => [fieldError.field, fieldError.message]));
@@ -112,10 +113,10 @@ function EnquiryForm({ deal, onClose, onSubmitted }) {
       <div className="enquiry-success" role="status">
         <span>Enquiry saved</span>
         <h2 id="modal-title">Thanks, your enquiry has been saved.</h2>
-        <p>This is not a booking confirmation. No booking has been created. No payment has been taken. No supplier reservation has been made.</p>
+        <p>This is an enquiry only. No payment taken by PickyHoliday. Partner terms are confirmed on partner site.</p>
         {success.id && <p className="enquiry-ref">Enquiry ref: {success.id}</p>}
         <div className="modal-actions">
-          <button onClick={onClose}>Close</button>
+          <button type="button" onClick={onClose}>Close</button>
         </div>
       </div>
     );
@@ -125,7 +126,7 @@ function EnquiryForm({ deal, onClose, onSubmitted }) {
     <form className="enquiry-form" onSubmit={handleSubmit} noValidate>
       <span>Saved enquiry only</span>
       <h2 id="modal-title">Ask for a group quote</h2>
-      <p>Share your contact details and notes. PickyHoliday will save this enquiry for review; this is not a booking confirmation. No supplier reservation has been made.</p>
+      <p>Share your contact details and notes. PickyHoliday will save this enquiry for review. No payment taken by PickyHoliday and partner terms are confirmed on partner site.</p>
       <div className="enquiry-trip-summary">
         <b>{deal.hotelName}</b>
         <small>{dealPlace(deal)} · {deal.supplierName} · {priceCopy(deal)} {deal.priceQualifier}</small>
@@ -232,12 +233,36 @@ export function AdminSignInForm({ onClose }) {
 
 export function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
   const featureFlags = siteConfig.featureFlags || defaultFeatureFlags;
+  const dialogRef = useRef(null);
+  const closeButtonRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!content) return undefined;
+    const previousFocus = document.activeElement;
+    window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onCloseRef.current?.();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
+    };
+  }, [content]);
+
   if (!content) return null;
+
+  const isTripDetail = Boolean(content.deal) && !content.type;
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={(event) => event.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
+      <section ref={dialogRef} className={`modal${isTripDetail ? ' modal--trip-detail' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={(event) => event.stopPropagation()} tabIndex={-1}>
+        <button ref={closeButtonRef} type="button" className="modal-close" onClick={onClose} aria-label={isTripDetail ? 'Close trip details' : 'Close dialog'}><X size={18} aria-hidden="true" /></button>
         {content.type === 'enquiry' ? (
           <EnquiryForm deal={content.deal} onClose={onClose} onSubmitted={content.onSubmitted} />
         ) : content.type === 'quote-builder' ? (
@@ -246,6 +271,8 @@ export function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
           <CompareShortlist deals={content.deals || []} />
         ) : content.type === 'admin-login' ? (
           <AdminSignInForm onClose={onClose} />
+        ) : content.deal ? (
+          <SearchTripDetailModal content={content} featureFlags={featureFlags} />
         ) : (
           <>
             <span>{content.kicker || 'PickyHoliday'}</span>
@@ -256,31 +283,11 @@ export function Dialog({ content, onClose, siteConfig = defaultSiteConfig }) {
                 {content.bullets.map((item) => <li key={item}>{item}</li>)}
               </ul>
             )}
-            {content.deal && (
-              <ul>
-                <li><b>Supplier:</b> {content.deal.supplierName}</li>
-                <li><b>Airlines:</b> {content.deal.airlineNames?.length ? content.deal.airlineNames.join(', ') : 'Quoted separately'}</li>
-                <li><b>Destination:</b> {dealPlace(content.deal)}</li>
-                <li><b>Hotel:</b> {content.deal.hotelName}</li>
-                <li><b>{content.deal.provider === 'partner-redirect' ? 'Partner price:' : 'Lead price:'}</b> {priceCopy(content.deal)} {content.deal.priceQualifier}</li>
-                {content.deal.sourceBreakdown && <li><b>Pricing confidence:</b> {content.deal.sourceBreakdown.pricingConfidence} · flight {content.deal.sourceBreakdown.flightPrice || 'n/a'} · hotel {content.deal.sourceBreakdown.hotelPrice || 'n/a'}</li>}
-                <li><b>Nights/date:</b> {content.deal.nights} nights · {content.deal.dateLabel}</li>
-                <li><b>Group size:</b> {content.deal.groupSizeLabel}</li>
-                <li><b>Board/bags:</b> {content.deal.boardBasis} · {content.deal.baggageLabel}</li>
-                <li><b>Booking mode:</b> enquiry-only saved quote request</li>
-                <li><b>Protection:</b> {content.deal.protectionLabel}</li>
-              </ul>
-            )}
             <div className="modal-actions">
               {content.actions?.map((action) => (
-                <button key={action.label} onClick={() => { onClose(); action.onClick?.(); }}>{action.label}</button>
+                <button type="button" key={action.label} onClick={() => { onClose(); action.onClick?.(); }}>{action.label}</button>
               ))}
-              {featureFlags.enableAffiliateRedirects !== false && content.deal?.partnerUrl && isSafePartnerRedirectUrl(content.deal) && <button onClick={() => { trackEvent({ type: 'partner_redirect_clicked', category: 'partner', label: content.deal.supplierName || content.deal.provider, metadata: { destination: content.deal.destination, provider: content.deal.provider, supplierName: content.deal.supplierName } }); window.open(content.deal.partnerUrl, '_blank', 'noopener,noreferrer'); }}>{content.deal.provider === 'partner-redirect' ? 'Check live price' : 'Continue to partner'}</button>}
-              {content.deal && <button onClick={() => content.onShortlist?.(content.deal)}>{content.isShortlisted?.(content.deal) ? 'Added' : 'Shortlist'}</button>}
-              {content.deal && <button onClick={() => content.onQuote?.(content.deal)}>Ask for group quote</button>}
-              {content.deal && <button onClick={() => content.onEnquiry?.(content.deal)}>Quick saved enquiry</button>}
-              <button onClick={onClose}>{content.closeLabel || (content.deal ? 'Close trip details' : 'Close')}</button>
-              {content.deal && <button onClick={() => { onClose(); scrollToId('search'); }}>Edit search</button>}
+              <button type="button" onClick={onClose}>{content.closeLabel || 'Close'}</button>
             </div>
           </>
         )}

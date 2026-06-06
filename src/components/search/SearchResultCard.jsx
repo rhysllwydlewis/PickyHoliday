@@ -5,10 +5,8 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   Heart,
-  Info,
   MapPin,
   Plane,
-  ShieldCheck,
   Sparkles,
   Star,
   Utensils,
@@ -96,9 +94,9 @@ const getDetailRows = (deal = {}) =>
     deal.baggageLabel && { icon: BriefcaseBusiness, label: deal.baggageLabel },
   ]
     .filter(Boolean)
-    .slice(0, 6);
+    .slice(0, 3);
 
-export function SearchResultCard({ deal, index = 0, onView, isShortlisted = false, onToggleShortlist, onQuote }) {
+export function SearchResultCard({ deal, index = 0, onView, isShortlisted = false, onToggleShortlist }) {
   const title = deal.hotelName || 'Holiday idea';
   const place = destinationPlace(deal);
   const imageSrc = deal.image || deal.imageId ? img(deal.imageId || deal.image) : '';
@@ -109,7 +107,6 @@ export function SearchResultCard({ deal, index = 0, onView, isShortlisted = fals
   const hasPrice = hasPricedAmount(deal);
   const totalEstimate = formatMoney(deal.totalEstimate, deal.currency);
   const perPersonEstimate = formatMoney(deal.perPersonEstimate || deal.priceFrom, deal.currency);
-  const scoreReasons = Array.isArray(deal.scoreReasons) ? deal.scoreReasons.slice(0, 3) : [];
   const detailRows = getDetailRows(deal);
   const badgeLabels = getBadgeLabels(deal);
   const priceBadges = getPriceBadges(deal, hasPrice, totalEstimate);
@@ -182,8 +179,6 @@ export function SearchResultCard({ deal, index = 0, onView, isShortlisted = fals
           <b>{sourceLabel(deal)}</b>
         </div>
 
-        {deal.hotelSummary && <p className="search-result-summary">{deal.hotelSummary}</p>}
-
         <div className="search-result-detail-grid search-result-meta">
           {detailRows.map(({ icon: Icon, label, emphasis }) => (
             <span className={emphasis ? 'is-emphasis' : ''} key={label}>
@@ -193,18 +188,6 @@ export function SearchResultCard({ deal, index = 0, onView, isShortlisted = fals
           ))}
         </div>
 
-        {scoreReasons.length > 0 && (
-          <div className="search-result-score-reasons search-result-badges" aria-label="Why this idea matched">
-            {scoreReasons.map((reason) => (
-              <span key={reason}>{reason}</span>
-            ))}
-          </div>
-        )}
-
-        <p className="search-result-protection">
-          <ShieldCheck size={16} aria-hidden="true" />
-          {deal.protectionLabel || 'Partner terms confirmed on partner site'}
-        </p>
       </div>
 
       <aside className="search-result-price-panel search-result-card-price" aria-label={`${title} price and actions`}>
@@ -235,22 +218,6 @@ export function SearchResultCard({ deal, index = 0, onView, isShortlisted = fals
         <button type="button" className="search-result-primary" onClick={() => onView(deal)}>
           {ctaLabel} <ArrowRight size={16} aria-hidden="true" />
         </button>
-        <button type="button" className="search-result-secondary" onClick={() => onQuote?.([deal])}>
-          Ask for group quote
-        </button>
-        <button
-          type="button"
-          className={`search-result-save-inline${isShortlisted ? ' is-saved' : ''}`}
-          onClick={() => onToggleShortlist?.(deal)}
-          aria-label={isShortlisted ? `Remove ${title} from saved enquiries` : `Save ${title} to enquiry shortlist`}
-          aria-pressed={isShortlisted}
-        >
-          <Heart size={15} fill={isShortlisted ? 'currentColor' : 'none'} aria-hidden="true" />
-          {isShortlisted ? 'Saved enquiry' : 'Save enquiry'}
-        </button>
-        <small className="search-result-payment-note">
-          <Info size={13} aria-hidden="true" /> No payment taken by PickyHoliday
-        </small>
       </aside>
     </article>
   );
