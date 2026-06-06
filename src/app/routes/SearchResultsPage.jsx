@@ -280,7 +280,7 @@ function SearchResultsAppliedChips({ activeFilters, onRemoveFilter, onClearFilte
 function SearchResultsLoadingSkeleton() {
   return (
     <>
-      <span className="sr-only">Searching holiday ideas...</span>
+      <span className="sr-only">Searching holiday ideas…</span>
       {Array.from({ length: 5 }).map((_, index) => (
         <article className="search-result-card search-result-skeleton" key={index} aria-hidden="true">
           <div className="search-result-card-media" />
@@ -307,8 +307,8 @@ function SearchQuoteStrip({ results, onQuote, variant = '' }) {
   return (
     <div className={`search-quote-strip${variant ? ` search-quote-strip--${variant}` : ''}`}>
       <div>
-        <p>Need multi-room allocation or a bespoke group check?</p>
-        <span>Send up to three ideas to an advisor for a saved enquiry. No payment taken.</span>
+        <p>Need help checking rooms, dates or group extras?</p>
+        <span>We’ll help shape the enquiry before any partner confirmation. No payment taken by PickyHoliday.</span>
       </div>
       <button type="button" onClick={() => onQuote(results.slice(0, 3))}>
         Ask for group quote
@@ -539,7 +539,7 @@ export function SearchResultsPage({
           </div>
           <SearchResultsAppliedChips activeFilters={activeFilters} onRemoveFilter={removeFilter} onClearFilters={clearFilters} />
           <p className="search-results-safety-note">
-            Enquiry-first ideas only. No payment taken. Partner terms confirmed on partner site.
+            Enquiry-first holiday ideas. No booking created. No payment taken. Prices and availability are confirmed by the partner or advisor.
           </p>
 
           {showProviderDiagnostics && (
@@ -594,7 +594,7 @@ export function SearchResultsPage({
           {!isLoading && !error && results.length > 0 && displayedResults.length === 0 && (
             <div className="empty-state search-results-empty">
               <h2>No ideas match these filters yet.</h2>
-              <p>Clear filters or try flexible dates or a different departure airport.</p>
+              <p>Try flexible dates, a different airport or a wider budget.</p>
               <button type="button" onClick={clearFilters}>
                 Clear filters
               </button>
@@ -603,7 +603,7 @@ export function SearchResultsPage({
           {!isLoading && !error && results.length === 0 && (
             <div className="empty-state search-results-empty">
               <h2>No ideas match this search yet.</h2>
-              <p>Try flexible dates or a different departure airport.</p>
+              <p>Try flexible dates, a different airport or a wider budget.</p>
               <button type="button" onClick={() => onQuote([])}>
                 Ask for group quote
               </button>

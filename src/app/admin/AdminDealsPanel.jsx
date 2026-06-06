@@ -27,7 +27,7 @@ const emptyDeal = {
   bookingMode: 'manual-quote',
   partnerId: '',
   partnerUrl: '',
-  protectionLabel: 'Enquiry only — no automatic booking or payment.',
+  protectionLabel: 'Enquiry-first idea. No booking created. No payment taken by PickyHoliday.',
   tags: '',
   internalNotes: '',
 };
@@ -128,7 +128,7 @@ export function AdminDealsPanel({ token }) {
       <AdminPageTitle
         kicker="Admin-managed offers"
         title="Promoted Deals"
-        copy="Create, edit, pause and archive promoted cards. This never creates a booking, payment or reservation."
+        copy="Create, edit, pause and archive promoted cards. This never creates a customer booking or takes payment."
         action={<button onClick={load} disabled={loading}>Refresh list</button>}
       />
       {error && <div className="error-state">{error}</div>}
@@ -170,7 +170,7 @@ export function AdminDealsPanel({ token }) {
           <label><span>Partner</span><select value={form.partnerId} onChange={(event) => update('partnerId', event.target.value)}><option value="">Select partner</option>{partnerDefinitions.map((partner) => <option key={partner.partnerId} value={partner.partnerId}>{partner.label}</option>)}</select></label>
           {field('partnerUrl', 'Partner URL')}
           <button type="button" onClick={generatePartnerUrl}>Generate partner search URL</button>
-          <p className="admin-muted">Partner redirects open safe partner domains only. The partner shows live price, availability, booking and protection terms.</p>
+          <p className="admin-muted">Partner redirects open safe partner domains only. The partner shows live price, availability and terms.</p>
           {field('protectionLabel', 'Protection label')}
         </fieldset>
         <fieldset>

@@ -58,7 +58,7 @@ export function AdminOpsPanel({ token }) {
 
   return (
     <>
-      <AdminPageTitle kicker="Operations centre" title="Analytics, system tests and webhook tools" copy="Monitor whether the website is working without exposing secrets or creating bookings/payments/reservations." action={<button onClick={loadOps}>Refresh</button>} />
+      <AdminPageTitle kicker="Operations centre" title="Analytics, system tests and webhook tools" copy="Monitor whether the website is working without exposing secrets or creating customer bookings or taking payments." action={<button onClick={loadOps}>Refresh</button>} />
       {error && <div className="error-state">{error}</div>}
       <div className="admin-cards">{cards.map(([label, value]) => <article key={label}><span>{label}</span><b>{value}</b></article>)}</div>
       <section className="admin-panel"><h2>Top destinations</h2><p>{(summary.topDestinationsSearched || []).map((item) => `${item.label} (${item.count})`).join(', ') || 'No search analytics yet.'}</p></section>

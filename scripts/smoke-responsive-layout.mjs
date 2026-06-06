@@ -112,7 +112,7 @@ assert(styles.includes('.deal-card') && styles.includes('animation:none') && sty
 const searchResultsPage = readFileSync(new URL('../src/app/routes/SearchResultsPage.jsx', import.meta.url), 'utf8');
 
 assert(app.includes('Why choose PickyHoliday?'), 'Homepage benefits section should use enquiry-first choice wording');
-assert(app.includes('Flexible next steps') && app.includes('Saved enquiries only — advisor follow-up before any next step'), 'Homepage visible reassurance copy should avoid booking/reservation-oriented language');
+assert(app.includes('Live-price checks') && app.includes('No booking created — no payment taken by PickyHoliday'), 'Homepage visible reassurance copy should avoid booking/reservation-oriented language');
 assert(!app.includes('Why book with PickyHoliday?') && !app.includes('Why book with us'), 'Homepage benefits section should avoid booking-oriented labels');
 assert(footer.includes("['Plan',") && !footer.includes("['Book',"), 'Footer primary column should use planning rather than booking wording');
 assert(footer.includes('Enquiry-first, advisor-led'), 'Footer promise should keep enquiry-first wording without auto-booking phrasing');
@@ -208,7 +208,7 @@ assert(!searchResultCard.includes('onQuote?.([deal])'), 'SearchResultCard should
 assert(!searchResultsPage.includes('onQuote={onQuote}\n                  />'), 'SearchResultsPage should not pass card-only quote props into compact result cards');
 assert(searchTripDetailModal.includes('content.onQuote?.(deal)'), 'SearchTripDetailModal should preserve quote handling');
 assert(searchResultCard.includes('Check live price') && searchResultCard.includes('View trip'), 'SearchResultCard should keep compact primary CTA language');
-assert(searchTripDetailModal.includes('Check live price') && searchTripDetailModal.includes('Ask for group quote') && searchTripDetailModal.includes('No payment taken') && searchTripDetailModal.includes('Partner terms confirmed on partner site'), 'Trip detail modal should keep safe enquiry-first CTA language');
+assert(searchTripDetailModal.includes('Check live price with partner') && searchTripDetailModal.includes('Ask for group quote') && searchTripDetailModal.includes('No payment taken') && searchTripDetailModal.includes('Partner terms confirmed on partner site'), 'Trip detail modal should keep safe enquiry-first CTA language');
 assert(searchTripDetailModal.includes('displaySourceLabel') && searchTripDetailModal.includes('Partner accommodation source') && searchTripDetailModal.includes('safeProtectionLabel'), 'Trip detail modal should sanitise provider/source/protection labels before rendering');
 assert(!searchResultCard.includes('1/8'), 'SearchResultCard should not imply a fake gallery image count');
 

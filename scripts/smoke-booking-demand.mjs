@@ -59,7 +59,7 @@ async function assertMockMapped() {
   if (bookingResult.supplierName !== 'Booking.com') throw new Error('Booking.com supplier name was not normalised.');
   if (bookingResult.priceQualifier !== 'Check live price') throw new Error('Booking.com unconfirmed price was not labelled Check live price.');
   if (!bookingResult.sourceBreakdown?.accommodationSource?.includes('Booking.com')) throw new Error('Booking.com accommodation source was not exposed.');
-  if (!bookingResult.protectionLabel?.includes('No booking is created by PickyHoliday')) throw new Error('Booking.com enquiry-first guardrail was not exposed.');
+  if (!bookingResult.protectionLabel?.includes('No booking created by PickyHoliday')) throw new Error('Booking.com enquiry-first guardrail was not exposed.');
   assertNoSecrets(result, 'mock mapped composeHoliday');
   assertNoBookingActions(result, 'mock mapped composeHoliday');
 }

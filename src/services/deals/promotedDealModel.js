@@ -80,7 +80,7 @@ export function normalisePromotedDeal(input = {}, existing = {}) {
     groupSizeLabel: stringField(input.groupSizeLabel ?? existing.groupSizeLabel),
     boardBasis: stringField(input.boardBasis ?? existing.boardBasis),
     baggageLabel: stringField(input.baggageLabel ?? existing.baggageLabel),
-    protectionLabel: stringField(input.protectionLabel ?? existing.protectionLabel) || 'Enquiry only — no automatic booking or payment.',
+    protectionLabel: stringField(input.protectionLabel ?? existing.protectionLabel) || 'Enquiry-first idea. No booking created. No payment taken by PickyHoliday.',
     bookingMode,
     tags: arrayField(input.tags ?? existing.tags),
     isDemo: Boolean(input.isDemo ?? existing.isDemo ?? false),

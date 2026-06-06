@@ -91,7 +91,7 @@ export function normaliseComposedHolidayResult(result = {}, criteria = {}, index
     rooms,
     roomMix: text(result.roomMix, normalisedCriteria.roomMix),
     boardBasis: text(result.boardBasis, 'Board basis to confirm'),
-    baggageLabel: text(result.baggageLabel, 'Baggage details to confirm before any partner purchase.'),
+    baggageLabel: text(result.baggageLabel, 'Baggage details are confirmed by the partner or advisor.'),
     rating: result.rating || null,
     priceFrom,
     currency: text(result.currency, 'GBP'),
@@ -104,7 +104,7 @@ export function normaliseComposedHolidayResult(result = {}, criteria = {}, index
     partnerId: text(result.partnerId),
     ...(safePartnerUrl ? { partnerUrl: safePartnerUrl } : {}),
     bookingMode,
-    protectionLabel: text(result.protectionLabel, safePartnerUrl ? 'Partner terms are confirmed on the partner site before purchase.' : 'Enquiry-first idea. No booking, payment or supplier reservation has been made.'),
+    protectionLabel: text(result.protectionLabel, safePartnerUrl ? 'Partner terms confirmed on partner site. No payment taken by PickyHoliday.' : 'Enquiry-first idea. No booking created. No payment taken by PickyHoliday.'),
     sourceBreakdown: {
       ...(result.sourceBreakdown && typeof result.sourceBreakdown === 'object' ? result.sourceBreakdown : {}),
       composer: 'normalised-provider-result',

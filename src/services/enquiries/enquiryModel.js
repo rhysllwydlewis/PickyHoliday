@@ -75,6 +75,6 @@ export function publicEnquiry(record = {}) {
     destination: record.destination,
     dateLabel: record.dateLabel,
     groupSizeLabel: record.groupSizeLabel,
-    message: 'Your enquiry has been saved. This is not a booking confirmation. No payment has been taken and no supplier reservation has been made.',
+    message: 'Your enquiry has been saved. No booking created by PickyHoliday. No payment taken. Partner confirmation happens later.',
   };
 }

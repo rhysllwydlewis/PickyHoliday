@@ -35,13 +35,6 @@ const displaySourceLabel = (value = '', fallback = 'Partner source') => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-const shouldCheckLivePrice = (deal = {}) =>
-  ['partner-redirect', 'booking-demand', 'affiliate-package'].includes(deal.provider) ||
-  deal.bookingMode === 'affiliate' ||
-  Boolean(deal.partnerUrl) ||
-  deal.priceQualifier === 'Check live price' ||
-  !hasPricedAmount(deal);
-
 const getHeroBadge = (deal = {}) => {
   if (deal.dealReasonLabel) return deal.dealReasonLabel;
   if (deal.partnerUrl || deal.bookingMode === 'affiliate') return 'Live price check';
@@ -94,8 +87,8 @@ export function SearchTripDetailModal({ content, featureFlags }) {
   const hasPrice = hasPricedAmount(deal);
   const totalEstimate = formatMoney(deal.totalEstimate, deal.currency);
   const perPersonEstimate = formatMoney(deal.perPersonEstimate || deal.priceFrom, deal.currency);
-  const primaryLabel = shouldCheckLivePrice(deal) ? 'Check live price' : 'Continue with enquiry';
   const canOpenPartner = featureFlags?.enableAffiliateRedirects !== false && deal.partnerUrl && isSafePartnerRedirectUrl(deal);
+  const primaryLabel = canOpenPartner ? 'Check live price with partner' : 'Ask for group quote';
   const isSaved = Boolean(content.isShortlisted?.(deal));
   const details = detailItems(deal);
   const scoreReasons = Array.isArray(deal.scoreReasons) ? deal.scoreReasons.filter(Boolean).slice(0, 5) : [];
@@ -110,6 +103,10 @@ export function SearchTripDetailModal({ content, featureFlags }) {
         metadata: { destination: deal.destination, provider: deal.provider, supplierName: deal.supplierName, resultId: deal.id || deal.resultId },
       });
       window.open(deal.partnerUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (content.onQuote) {
+      content.onQuote(deal);
       return;
     }
     content.onEnquiry?.(deal);
@@ -186,7 +183,7 @@ export function SearchTripDetailModal({ content, featureFlags }) {
               <ShieldCheck size={17} aria-hidden="true" />
               {safeProtectionLabel(deal.protectionLabel)} · No payment taken by PickyHoliday.
             </p>
-            {canOpenPartner && <small>Live prices and partner terms are confirmed on the partner site before you choose any next step.</small>}
+            {canOpenPartner && <small>Partner terms and live availability are confirmed on the partner site.</small>}
           </section>
 
           {sources.length > 0 && (
@@ -219,9 +216,11 @@ export function SearchTripDetailModal({ content, featureFlags }) {
           <button type="button" className="trip-detail-primary" onClick={handlePrimary}>
             {primaryLabel} <ArrowRight size={16} aria-hidden="true" />
           </button>
-          <button type="button" className="trip-detail-secondary" onClick={() => content.onQuote?.(deal)}>
-            Ask for group quote
-          </button>
+          {canOpenPartner && (
+            <button type="button" className="trip-detail-secondary" onClick={() => content.onQuote?.(deal)}>
+              Ask for group quote
+            </button>
+          )}
           <button
             type="button"
             className={`trip-detail-save${isSaved ? ' is-saved' : ''}`}
@@ -233,7 +232,7 @@ export function SearchTripDetailModal({ content, featureFlags }) {
           </button>
           <p className="trip-detail-action-note">
             <Info size={14} aria-hidden="true" />
-            No payment taken. Partner terms confirmed on partner site.
+            No payment taken by PickyHoliday. No booking created.
           </p>
         </aside>
       </div>

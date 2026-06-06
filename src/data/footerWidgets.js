@@ -11,7 +11,7 @@ export const footerWidgetCopy = {
     kicker: 'Book villas',
     title: 'Private villas for group trips',
     body: 'Find villa-style stays where the whole group can share a base, then ask PickyHoliday to follow up on sleeping arrangements, deposits and local extras.',
-    bullets: ['Good for families, celebrations and friends who want shared space.', 'Use the search panel with Villas selected to narrow destination ideas.', 'Enquiries remain saved quote requests, not confirmed reservations.'],
+    bullets: ['Good for families, celebrations and friends who want shared space.', 'Use the search panel with Villas selected to narrow destination ideas.', 'Enquiries remain saved quote requests until you choose a partner next step.'],
     search: { intent: 'Villas', destination: 'Villas' },
     searchActionLabel: 'Search villas',
   },
@@ -89,7 +89,7 @@ export const footerWidgetCopy = {
     kicker: 'Legal',
     title: 'Terms and conditions',
     body: 'This area will host the full customer terms. For now, the important product rule is that PickyHoliday enquiries are quote requests and do not create bookings automatically.',
-    bullets: ['Search results and widgets are planning tools.', 'Supplier terms apply separately if you continue to a partner.', 'No booking, payment or reservation is created by saving an enquiry.'],
+    bullets: ['Search results and widgets are planning tools.', 'Supplier terms apply separately if you continue to a partner.', 'No booking created and no payment taken by PickyHoliday when you save an enquiry.'],
   },
   'Privacy Policy': {
     kicker: 'Privacy',

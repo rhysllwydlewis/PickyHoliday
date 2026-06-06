@@ -33,7 +33,7 @@ export const guideWidgetCopy = {
     kicker: 'Hen do guide',
     title: 'Top 10 hen do ideas you’ll all love',
     body: 'Open stag and hen planning advice for celebration-friendly destinations, group hotels and timing tips.',
-    bullets: ['Focused on party groups, changing numbers and shared planning.', 'Advisor follow-up can help check suitability before booking decisions.', 'No activities or travel are held from this preview.'],
+    bullets: ['Focused on party groups, changing numbers and shared planning.', 'Advisor follow-up can help check suitability before any partner next step.', 'No activities or travel are held from this preview.'],
     guideSlug: 'how-to-plan-a-stag-or-hen-trip',
     guideActionLabel: 'Open hen do guide',
     search: { intent: 'Stag & Hen', destination: 'Stag & Hen' },

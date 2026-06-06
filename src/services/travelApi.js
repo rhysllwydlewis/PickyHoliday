@@ -220,7 +220,7 @@ export async function submitEnquiry(payload) {
         ...enquiryPayload,
         id: mockEnquiryId,
         enquiryId: mockEnquiryId,
-        message: 'Thanks, your enquiry has been saved. This is not a booking confirmation.',
+        message: 'Thanks, your enquiry has been saved. No booking created by PickyHoliday.',
       },
       providerErrors: [],
       providerStatus: [

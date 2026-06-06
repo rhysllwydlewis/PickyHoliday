@@ -66,7 +66,7 @@ export function createAffiliatePackageProvider(config = {}) {
       supplierName: result.supplierName || `${partner?.displayName || 'Partner'} package redirect candidate`,
       partnerUrl: safePartnerUrl,
       bookingMode: safePartnerUrl ? 'affiliate' : 'manual-quote',
-      protectionLabel: result.protectionLabel || 'Partner terms and protection must be confirmed on the partner site before booking.',
+      protectionLabel: result.protectionLabel || 'Partner terms confirmed on partner site. No payment taken by PickyHoliday.',
       tags: [...new Set([...(result.tags || []), 'Package holidays'])],
     };
   };

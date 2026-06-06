@@ -29,7 +29,7 @@ export const shortlistSummary = (deal = {}) => ({
   boardBasis: deal.boardBasis || '',
   baggageLabel: deal.baggageLabel || '',
   bookingMode: deal.bookingMode || 'enquiry-only',
-  protectionLabel: deal.protectionLabel || 'Enquiry only — no automatic booking or payment.',
+  protectionLabel: deal.protectionLabel || 'Enquiry-first idea. No booking created. No payment taken by PickyHoliday.',
   priceFrom: Number(deal.priceFrom || 0) > 0 ? Number(deal.priceFrom) : null,
   currency: deal.currency || 'GBP',
   priceQualifier: deal.priceQualifier || '',
@@ -60,7 +60,7 @@ function ShortlistedDealMini({ deal, onRemove }) {
     <article>
       <b>{deal.hotelName || 'Holiday idea'}</b>
       <small>{dealLocation(deal) || 'Destination to confirm'} · {deal.supplierName || deal.provider || 'Supplier to confirm'} · {priceCopy(deal)}</small>
-      {onRemove && <button onClick={() => onRemove(deal)}>Remove</button>}
+      {onRemove && <button type="button" onClick={() => onRemove(deal)}>Remove</button>}
     </article>
   );
 }
@@ -150,7 +150,7 @@ export function QuoteBuilder({ deals = [], onClose, onSubmitted, source = 'quote
       });
       const enquiry = response.enquiry || {};
       onTrack?.({ type: 'quote_builder_submitted', category: 'enquiry', label: form.destination, metadata: { destination: form.destination, shortlistCount: safeDeals.length, source } });
-      setSuccess({ id: enquiry.id || enquiry.enquiryId, message: enquiry.message || 'Thanks, your enquiry has been saved. This is not a booking confirmation.' });
+      setSuccess({ id: enquiry.id || enquiry.enquiryId, message: enquiry.message || 'Thanks, your enquiry has been saved. No booking created by PickyHoliday.' });
       onSubmitted?.(enquiry);
     } catch (error) {
       const fieldErrors = Object.fromEntries((error.fieldErrors || []).map((fieldError) => [fieldError.field, fieldError.message]));
@@ -166,9 +166,9 @@ export function QuoteBuilder({ deals = [], onClose, onSubmitted, source = 'quote
       <div className="enquiry-success" role="status">
         <span>Saved enquiry</span>
         <h2 id="modal-title">Your group quote enquiry was saved.</h2>
-        <p>No booking has been created. No payment has been taken. No supplier reservation has been made.</p>
+        <p>No booking created. No payment taken by PickyHoliday. Partner confirmation happens later.</p>
         {success.id && <p className="enquiry-ref">Enquiry ref: {success.id}</p>}
-        <div className="modal-actions"><button onClick={onClose}>Close</button></div>
+        <div className="modal-actions"><button type="button" onClick={onClose}>Close</button></div>
       </div>
     );
   }
@@ -225,7 +225,7 @@ export function QuoteBuilder({ deals = [], onClose, onSubmitted, source = 'quote
           <p>{form.destination || 'Destination to confirm'} · {form.dateLabel || 'Dates flexible'} · {form.groupSizeLabel || 'Group size to confirm'}</p>
           <p>Budget: {form.budgetPerPerson ? `£${form.budgetPerPerson}pp` : 'Not supplied'} · Rooms: {form.roomMix || 'Not supplied'} · Occasion: {form.occasionType || 'Not supplied'}</p>
           <div className="shortlist-mini-list">{safeDeals.map((deal) => <ShortlistedDealMini key={deal.id || deal.resultId} deal={deal} />)}</div>
-          <p className="quote-safety">No booking has been created. No payment has been taken. No supplier reservation has been made.</p>
+          <p className="quote-safety">No booking created. No payment taken by PickyHoliday. Partner confirmation happens later.</p>
         </div>
       )}
 
@@ -278,12 +278,12 @@ export function ShortlistBar({ shortlist, onRemove, onCompare, onQuote, onTrack 
 
   return (
     <aside className={`shortlist-bar ${open ? 'open' : ''}`}>
-      <button className="shortlist-toggle" onClick={toggleOpen}><ClipboardList size={18} /> {shortlist.length} shortlisted {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
+      <button type="button" className="shortlist-toggle" onClick={toggleOpen}><ClipboardList size={18} /> {shortlist.length} shortlisted {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
       {open && (
         <div className="shortlist-drawer">
           <p>Browser-local shortlist only. Use it to compare ideas before a saved enquiry.</p>
           <div className="shortlist-mini-list">{shortlist.map((deal) => <ShortlistedDealMini key={deal.id || deal.resultId} deal={deal} onRemove={onRemove} />)}</div>
-          <div className="shortlist-actions"><button onClick={onCompare}>Compare shortlist</button><button onClick={onQuote}>Ask for group quote</button></div>
+          <div className="shortlist-actions"><button type="button" onClick={onCompare}>Compare shortlist</button><button type="button" onClick={onQuote}>Ask for group quote</button></div>
         </div>
       )}
     </aside>
