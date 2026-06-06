@@ -215,7 +215,7 @@ footer:after{content:"";position:absolute;left:0;right:0;top:0;height:1px;backgr
 .topbar{height:86px;padding:10px 0}
 .navwrap{padding:8px 10px 8px 14px}
 .signin,.start{display:none}
-.brand-logo:not(.brand-logo--premium) .brand-logo-mark{width:30px;height:30px}.brand-logo:not(.brand-logo--premium) .brand-logo-picky,.brand-logo:not(.brand-logo--premium) .brand-logo-holiday{font-size:19px;letter-spacing:-1px}.brand-logo:not(.brand-logo--premium) .brand-logo-tld{display:none}
+/* non-premium brand-logo selectors removed — see BrandLogoPolish.css */
 .hero{height:470px}
 .hero h1{font-size:38px}
 .assurances{margin-top:24px}
