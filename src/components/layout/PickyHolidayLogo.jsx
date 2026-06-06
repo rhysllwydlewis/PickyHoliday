@@ -3,19 +3,19 @@ import { scrollToId } from '../../app/appConstants.js';
 import './PickyHolidayLogo.css';
 import './PickyHolidayLogoFixes.css';
 
-const staticPlaneTransform = 'translate(574 21) rotate(-14)';
+const staticPlaneTransform = 'translate(586 21) rotate(-14)';
 const introSettleDelay = 4200;
 
 const layout = {
   pickyX: 26,
-  hX: 214,
-  sunX: 296,
+  hX: 226,
+  sunX: 308,
   sunY: 92,
-  lidayX: 328,
-  domainX: 526,
+  lidayX: 340,
+  domainX: 538,
 };
 
-const flightPath = 'M262 55 C324 25 408 18 474 27 C516 33 546 30 574 21';
+const flightPath = 'M274 55 C336 25 420 18 486 27 C528 33 558 30 586 21';
 let firstNavbarLogoRender = true;
 
 function prefersReducedMotion() {
@@ -100,7 +100,7 @@ export function Logo({ footer = false }) {
               <stop offset="58%" stopColor="#fff" stopOpacity="0" />
               <stop offset="100%" stopColor="#fff" stopOpacity="0" />
             </linearGradient>
-            <mask id={flightMaskId} maskUnits="userSpaceOnUse" x="250" y="0" width="350" height="90">
+            <mask id={flightMaskId} maskUnits="userSpaceOnUse" x="262" y="0" width="350" height="90">
               <path className="brand-logo-flight-reveal" d={flightPath} pathLength="240" fill="none" stroke="#fff" strokeWidth="16" strokeLinecap="round" />
             </mask>
             <clipPath id={shimmerClipId}>
