@@ -53,49 +53,60 @@ export function Logo({ footer = false }) {
     .filter(Boolean)
     .join(' ');
 
-  const id = {
-    shell: `${uid}-ph-shell`,
-    shellSheen: `${uid}-ph-shell-sheen`,
-    route: `${uid}-ph-route`,
-    routeGlow: `${uid}-ph-route-glow`,
-    accent: `${uid}-ph-accent`,
-  };
+  const gId = { badge: `${uid}-badge`, accent: `${uid}-acc` };
 
   return (
     <button type="button" className={cls} onClick={handleLogoClick} aria-label="PickyHoliday home">
+      {/* Logo mark — aria-hidden because the button label covers it */}
       <span className="brand-logo-mark" aria-hidden="true">
-        <svg className="brand-logo-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect className="brand-logo-shell" x="6" y="6" width="52" height="52" rx="18" fill={`url(#${id.shell})`} />
-          <path className="brand-logo-shell-sheen" d="M15 17C24 11 41 11 50 18" stroke={`url(#${id.shellSheen})`} strokeWidth="4" strokeLinecap="round" />
-          <path className="brand-logo-monogram-shadow" d="M22 47V18H35.5C43 18 48 22.5 48 29C48 35.5 43 40 35.5 40H22" stroke="rgba(5,24,56,0.24)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-          <path className="brand-logo-route-glow" d="M22 47V18H35.5C43 18 48 22.5 48 29C48 35.5 43 40 35.5 40H22" stroke={`url(#${id.routeGlow})`} strokeWidth="9.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path className="brand-logo-route" d="M22 47V18H35.5C43 18 48 22.5 48 29C48 35.5 43 40 35.5 40H22" stroke={`url(#${id.route})`} strokeWidth="6.4" strokeLinecap="round" strokeLinejoin="round" />
-          <path className="brand-logo-h-stem" d="M44 31V47" stroke="#FFD43F" strokeWidth="6.4" strokeLinecap="round" />
-          <path className="brand-logo-h-bridge" d="M34 40H44" stroke="#FFD43F" strokeWidth="6.4" strokeLinecap="round" />
-          <circle className="brand-logo-accent" cx="49" cy="18" r="5.3" fill={`url(#${id.accent})`} />
-          <circle className="brand-logo-accent-core" cx="49" cy="18" r="2.1" fill="rgba(255,255,255,0.76)" />
+        <svg
+          className="brand-logo-svg"
+          viewBox="0 0 64 64"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Badge — rounded square, deep navy */}
+          <rect
+            className="brand-logo-badge"
+            x="4" y="4" width="56" height="56" rx="16"
+            fill={`url(#${gId.badge})`}
+          />
+
+          {/*
+            P route stroke — the single brand mark.
+            Traces a clean P letterform starting at the bottom of the stem,
+            going up, curving around the bowl, and returning to the stem.
+            pathLength="200" normalises dasharray across browsers.
+          */}
+          <path
+            className="brand-logo-route"
+            d="M 20 48 L 20 17 H 33 Q 47 17 47 27 Q 47 37 33 37 H 20"
+            stroke="white"
+            strokeWidth="5.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            pathLength="200"
+          />
+
+          {/*
+            Gold accent — the route destination / sun.
+            Positioned top-right, clearly outside the P stroke so it reads as
+            a distinct brand element even at 32 px.
+          */}
+          <circle
+            className="brand-logo-accent"
+            cx="49" cy="14" r="5.8"
+            fill={`url(#${gId.accent})`}
+          />
 
           <defs>
-            <linearGradient id={id.shell} x1="10" y1="9" x2="57" y2="58">
-              <stop offset="0%" stopColor="#0A7AF2" />
-              <stop offset="48%" stopColor="#075EDB" />
+            <linearGradient id={gId.badge} x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#1168F7" />
               <stop offset="100%" stopColor="#082A62" />
             </linearGradient>
-            <linearGradient id={id.shellSheen} x1="15" y1="12" x2="50" y2="19">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.82)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0.08)" />
-            </linearGradient>
-            <linearGradient id={id.route} x1="22" y1="18" x2="47" y2="45">
-              <stop offset="0%" stopColor="#FFFFFF" />
-              <stop offset="100%" stopColor="#EAF8FF" />
-            </linearGradient>
-            <linearGradient id={id.routeGlow} x1="18" y1="18" x2="50" y2="48">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.32)" />
-              <stop offset="100%" stopColor="rgba(106,231,255,0.16)" />
-            </linearGradient>
-            <radialGradient id={id.accent} cx="35%" cy="30%" r="75%">
-              <stop offset="0%" stopColor="#FFF4AA" />
-              <stop offset="58%" stopColor="#FFD43F" />
+            <radialGradient id={gId.accent} cx="35%" cy="28%" r="72%">
+              <stop offset="0%" stopColor="#FFF0A0" />
+              <stop offset="55%" stopColor="#FFD43F" />
               <stop offset="100%" stopColor="#FFB400" />
             </radialGradient>
           </defs>
