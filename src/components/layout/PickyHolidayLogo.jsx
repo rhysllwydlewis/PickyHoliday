@@ -9,7 +9,7 @@ const introSettleDelay = 4200;
 const layout = {
   pickyX: 26,
   hX: 236,
-  sunX: 318,
+  sunX: 322,
   sunY: 92,
   lidayX: 350,
   domainX: 536,
