@@ -1,0 +1,311 @@
+/**
+ * PickyHoliday layered SVG logo.
+ * Vector-only wordmark, sun, swoosh, dotted flight path and aircraft animation.
+ */
+
+.brand-logo--premium {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 clamp(244px, 25vw, 340px);
+  width: clamp(244px, 25vw, 340px);
+  height: clamp(50px, 5.2vw, 72px);
+  min-width: clamp(244px, 25vw, 340px);
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  line-height: 1;
+  isolation: isolate;
+  overflow: visible;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.22s ease, filter 0.22s ease, box-shadow 0.22s ease;
+}
+
+.brand-logo--premium:focus-visible {
+  outline: 3px solid rgba(7, 94, 219, 0.34);
+  outline-offset: 5px;
+  box-shadow: 0 0 0 8px rgba(255, 180, 0, 0.14);
+}
+
+.brand-logo--premium:hover {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 12px 24px rgba(8, 42, 98, 0.14));
+}
+
+.brand-logo-stage,
+.pickyholiday-logo-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.pickyholiday-logo-svg .brand-logo-wordmark {
+  display: inline;
+}
+
+.brand-logo-picky-text {
+  fill: #082a62;
+}
+
+.brand-logo-holiday-text {
+  fill: #ffb400;
+}
+
+.brand-logo-domain {
+  fill: #075edb;
+  opacity: 1;
+}
+
+.brand-logo-underline {
+  stroke: #075edb;
+  stroke-width: 6.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 260;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 2px 2px rgba(7, 94, 219, 0.12));
+}
+
+.brand-logo-flight-path {
+  stroke: #91c7f6;
+  stroke-width: 5.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1 15;
+  opacity: 0.98;
+}
+
+.brand-logo-sun,
+.brand-logo-sun-rays,
+.brand-logo-sun-core,
+.brand-logo-sun-glow,
+.brand-logo-sun-sheen,
+.brand-logo-plane-shape {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.brand-logo-sun-rays {
+  transform-origin: 386px 92px;
+}
+
+.brand-logo-sun-glow {
+  opacity: 0.72;
+  filter: drop-shadow(0 0 9px rgba(255, 180, 0, 0.26));
+}
+
+.brand-logo-plane-shape {
+  fill: #075edb;
+  filter: drop-shadow(0 4px 7px rgba(7, 94, 219, 0.2));
+}
+
+.brand-logo-plane-window {
+  fill: #eaf8ff;
+  opacity: 0.72;
+}
+
+.brand-logo-plane-engine {
+  fill: #064db5;
+}
+
+.brand-logo-shimmer {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.brand-logo--settled .brand-logo-wordmark,
+.brand-logo--settled .brand-logo-domain,
+.brand-logo--settled .brand-logo-underline,
+.brand-logo--settled .brand-logo-flight-path,
+.brand-logo--settled .brand-logo-plane,
+.brand-logo--footer .brand-logo-wordmark,
+.brand-logo--footer .brand-logo-domain,
+.brand-logo--footer .brand-logo-underline,
+.brand-logo--footer .brand-logo-flight-path,
+.brand-logo--footer .brand-logo-plane {
+  opacity: 1;
+  transform: none;
+}
+
+.brand-logo--settled .brand-logo-underline,
+.brand-logo--footer .brand-logo-underline {
+  stroke-dashoffset: 0;
+}
+
+.brand-logo--settled .brand-logo-shimmer,
+.brand-logo--footer .brand-logo-shimmer {
+  display: none;
+}
+
+@keyframes ph-wordmark-enter {
+  0% { opacity: 0; transform: translateY(8px) scale(0.985); }
+  62% { opacity: 1; transform: translateY(-1px) scale(1.004); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ph-underline-draw {
+  0% { stroke-dashoffset: 260; opacity: 0; }
+  14% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes ph-flight-draw {
+  0% { stroke-dashoffset: 240; opacity: 0; }
+  12% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes ph-plane-visible {
+  0%, 8% { opacity: 0; }
+  16%, 100% { opacity: 1; }
+}
+
+@keyframes ph-sun-rays-in {
+  0% { opacity: 0; transform: rotate(-32deg) scale(0.68); }
+  72% { opacity: 1; transform: rotate(4deg) scale(1.04); }
+  100% { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+@keyframes ph-sun-core-pulse {
+  0% { transform: scale(0.94); filter: drop-shadow(0 0 0 rgba(255, 180, 0, 0)); }
+  38% { transform: scale(1.05); filter: drop-shadow(0 0 10px rgba(255, 180, 0, 0.32)); }
+  70% { transform: scale(0.985); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255, 180, 0, 0)); }
+}
+
+@keyframes ph-domain-in {
+  0% { opacity: 0; transform: translateX(-7px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ph-shimmer-sweep {
+  0% { opacity: 0; transform: translateX(0) skewX(-14deg); }
+  18% { opacity: 0.48; }
+  55% { opacity: 0.54; }
+  100% { opacity: 0; transform: translateX(860px) skewX(-14deg); }
+}
+
+.brand-logo--intro .brand-logo-wordmark {
+  opacity: 0;
+  animation: ph-wordmark-enter 0.78s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.brand-logo--intro .brand-logo-underline {
+  stroke-dashoffset: 260;
+  opacity: 0;
+  animation: ph-underline-draw 1.12s cubic-bezier(0.22, 1, 0.36, 1) 0.55s both;
+}
+
+.brand-logo--intro .brand-logo-flight-path {
+  stroke-dasharray: 1 15;
+  stroke-dashoffset: 240;
+  opacity: 0;
+  animation: ph-flight-draw 1.72s cubic-bezier(0.22, 1, 0.36, 1) 1.38s both;
+}
+
+.brand-logo--intro .brand-logo-plane {
+  opacity: 0;
+  animation: ph-plane-visible 2.78s ease 0.62s both;
+}
+
+.brand-logo--intro .brand-logo-sun-rays {
+  opacity: 0;
+  animation: ph-sun-rays-in 0.82s cubic-bezier(0.22, 1, 0.36, 1) 1.12s both;
+}
+
+.brand-logo--intro .brand-logo-sun-core,
+.brand-logo--intro .brand-logo-sun-glow {
+  animation: ph-sun-core-pulse 1.55s ease-in-out 1.36s both;
+}
+
+.brand-logo--intro .brand-logo-domain {
+  opacity: 0;
+  animation: ph-domain-in 0.46s cubic-bezier(0.22, 1, 0.36, 1) 3.18s both;
+}
+
+.brand-logo--intro .brand-logo-shimmer {
+  animation: ph-shimmer-sweep 1.05s ease-in-out 2.48s both;
+}
+
+.brand-logo--footer.brand-logo--premium {
+  flex-basis: clamp(214px, 20vw, 280px);
+  width: clamp(214px, 20vw, 280px);
+  min-width: clamp(214px, 20vw, 280px);
+  height: clamp(46px, 4.8vw, 62px);
+}
+
+@media(max-width:959px){
+  .brand-logo--premium {
+    flex-basis: clamp(220px, 34vw, 286px);
+    width: clamp(220px, 34vw, 286px);
+    min-width: clamp(220px, 34vw, 286px);
+    height: clamp(48px, 6.2vw, 64px);
+  }
+}
+
+@media(max-width:720px){
+  .brand-logo--premium {
+    flex-basis: clamp(198px, 53vw, 252px);
+    width: clamp(198px, 53vw, 252px);
+    min-width: clamp(198px, 53vw, 252px);
+    height: clamp(43px, 12vw, 56px);
+  }
+
+  .brand-logo--premium:hover {
+    transform: none;
+    filter: none;
+  }
+}
+
+@media(max-width:430px){
+  .brand-logo--premium {
+    flex-basis: clamp(184px, 56vw, 214px);
+    width: clamp(184px, 56vw, 214px);
+    min-width: clamp(184px, 56vw, 214px);
+    height: clamp(40px, 12.2vw, 48px);
+  }
+}
+
+@media(max-width:360px){
+  .brand-logo-domain {
+    display: none;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .brand-logo--premium,
+  .brand-logo--premium * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .brand-logo--premium:hover {
+    transform: none;
+    filter: none;
+  }
+
+  .brand-logo--premium .brand-logo-wordmark,
+  .brand-logo--premium .brand-logo-domain,
+  .brand-logo--premium .brand-logo-underline,
+  .brand-logo--premium .brand-logo-flight-path,
+  .brand-logo--premium .brand-logo-plane {
+    opacity: 1;
+    transform: none;
+  }
+
+  .brand-logo--premium .brand-logo-underline,
+  .brand-logo--premium .brand-logo-flight-path {
+    stroke-dashoffset: 0;
+  }
+
+  .brand-logo--premium .brand-logo-shimmer {
+    display: none;
+  }
+}
