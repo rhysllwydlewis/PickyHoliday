@@ -3,8 +3,8 @@ import { scrollToId } from '../../app/appConstants.js';
 import './PickyHolidayLogo.css';
 import './PickyHolidayLogoFixes.css';
 
-const logoIntroStorageKey = 'pickyholiday-layered-logo-intro-v1';
 const staticPlaneTransform = 'translate(602 21) rotate(-14)';
+const introSettleDelay = 4200;
 
 const layout = {
   pickyX: 26,
@@ -26,14 +26,7 @@ function prefersReducedMotion() {
 function shouldRunIntro(footer) {
   if (footer || !firstNavbarLogoRender || prefersReducedMotion()) return false;
   firstNavbarLogoRender = false;
-
-  try {
-    if (window.sessionStorage?.getItem(logoIntroStorageKey)) return false;
-    window.sessionStorage?.setItem(logoIntroStorageKey, '1');
-    return true;
-  } catch {
-    return true;
-  }
+  return true;
 }
 
 function handleLogoClick() {
@@ -75,6 +68,12 @@ export function Logo({ footer = false }) {
   useEffect(() => {
     if (prefersReducedMotion()) setRunIntro(false);
   }, []);
+
+  useEffect(() => {
+    if (!runIntro) return undefined;
+    const settleTimer = window.setTimeout(() => setRunIntro(false), introSettleDelay);
+    return () => window.clearTimeout(settleTimer);
+  }, [runIntro]);
 
   const cls = [
     'brand-logo',
