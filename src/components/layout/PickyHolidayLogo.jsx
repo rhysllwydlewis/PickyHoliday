@@ -12,7 +12,7 @@ const layout = {
   sunX: 296,
   sunY: 92,
   lidayX: 328,
-  domainX: 538,
+  domainX: 526,
 };
 
 const flightPath = 'M262 55 C324 25 408 18 474 27 C516 33 546 30 574 21';
