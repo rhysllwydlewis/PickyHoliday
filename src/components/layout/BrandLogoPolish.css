@@ -1,0 +1,45 @@
+/* Premium PickyHoliday animated logo refresh. */
+.brand-logo--premium{gap:10px;padding:4px 6px 4px 3px;border-radius:16px;isolation:isolate}
+.brand-logo--premium .brand-logo-mark{width:40px;height:40px;border-radius:18px;filter:drop-shadow(0 10px 22px rgba(8,42,98,.22));transform-origin:center;overflow:visible}
+.brand-logo--premium .brand-logo-svg{display:block;width:100%;height:100%;overflow:visible}
+.brand-logo--premium .brand-logo-wordmark{gap:0;align-items:baseline;filter:drop-shadow(0 1px 0 rgba(255,255,255,.72))}
+.brand-logo--premium .brand-logo-picky,.brand-logo--premium .brand-logo-holiday{font-size:clamp(21px,1.92vw,27px);line-height:.95;font-weight:1000;letter-spacing:-1.28px}
+.brand-logo--premium .brand-logo-picky{color:#082a62}
+.brand-logo--premium .brand-logo-holiday{color:#ffb000}
+.brand-logo--premium .brand-logo-tld{font-size:clamp(10px,.95vw,13px);font-weight:950;color:#075edb;margin-left:3px;padding-bottom:1px;opacity:.72}
+.brand-logo--premium:hover{transform:translateY(-1px)}
+.brand-logo--premium:hover .brand-logo-mark{filter:drop-shadow(0 14px 26px rgba(7,94,219,.28));transform:translateY(-1px) scale(1.015)}
+.brand-logo--premium .brand-logo-shell,.brand-logo--premium .brand-logo-glass,.brand-logo--premium .brand-logo-sun,.brand-logo--premium .brand-logo-horizon,.brand-logo--premium .brand-logo-sea,.brand-logo--premium .brand-logo-route,.brand-logo--premium .brand-logo-plane,.brand-logo--premium .brand-logo-dot,.brand-logo--premium .brand-logo-wordmark{transform-box:fill-box;transform-origin:center;transition:transform .22s ease,filter .22s ease,opacity .22s ease}
+.brand-logo--settled.brand-logo--premium .brand-logo-sun,.brand-logo--footer.brand-logo--premium .brand-logo-sun,.brand-logo--settled.brand-logo--premium .brand-logo-ray,.brand-logo--footer.brand-logo--premium .brand-logo-ray,.brand-logo--settled.brand-logo--premium .brand-logo-horizon,.brand-logo--footer.brand-logo--premium .brand-logo-horizon,.brand-logo--settled.brand-logo--premium .brand-logo-sea,.brand-logo--footer.brand-logo--premium .brand-logo-sea,.brand-logo--settled.brand-logo--premium .brand-logo-route,.brand-logo--footer.brand-logo--premium .brand-logo-route,.brand-logo--settled.brand-logo--premium .brand-logo-plane,.brand-logo--footer.brand-logo--premium .brand-logo-plane,.brand-logo--settled.brand-logo--premium .brand-logo-dot,.brand-logo--footer.brand-logo--premium .brand-logo-dot,.brand-logo--settled.brand-logo--premium .brand-logo-wordmark,.brand-logo--footer.brand-logo--premium .brand-logo-wordmark{opacity:1;transform:none}
+.brand-logo--settled.brand-logo--premium .brand-logo-plane,.brand-logo--footer.brand-logo--premium .brand-logo-plane{transform:translate(43px,17px) rotate(-24deg)}
+.brand-logo--settled.brand-logo--premium:hover .brand-logo-plane,.brand-logo--footer.brand-logo--premium:hover .brand-logo-plane{transform:translate(43px,17px) rotate(-18deg) translateX(1.5px)}
+.brand-logo--settled.brand-logo--premium .brand-logo-route,.brand-logo--footer.brand-logo--premium .brand-logo-route{stroke-dashoffset:0}
+
+@keyframes ph-shell-arrive{0%{opacity:0;transform:translateY(8px) scale(.82) rotate(-3deg)}58%{opacity:1;transform:translateY(-1px) scale(1.045) rotate(.8deg)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+@keyframes ph-sun-rise{0%,22%{opacity:0;transform:translateY(12px) scale(.62)}68%{opacity:1;transform:translateY(-1px) scale(1.06)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes ph-ray-soft{0%,38%{opacity:0;transform:scale(.72)}78%{opacity:.95;transform:scale(1.08)}100%{opacity:.9;transform:scale(1)}}
+@keyframes ph-wave-draw{0%,34%{opacity:0;stroke-dashoffset:42}100%{opacity:1;stroke-dashoffset:0}}
+@keyframes ph-route-draw{0%,46%{opacity:0;stroke-dashoffset:52}100%{opacity:.96;stroke-dashoffset:0}}
+@keyframes ph-plane-sweep{0%,44%{opacity:0;transform:translate(18px,48px) rotate(-38deg) scale(.78)}64%{opacity:1}100%{opacity:1;transform:translate(43px,17px) rotate(-24deg) scale(1)}}
+@keyframes ph-dot-pop{0%,58%{opacity:0;transform:scale(.2)}80%{opacity:1;transform:scale(1.24)}100%{opacity:1;transform:scale(1)}}
+@keyframes ph-word-slide{0%,20%{opacity:0;transform:translateX(-10px)}100%{opacity:1;transform:translateX(0)}}
+@keyframes ph-tld-fade{0%,72%{opacity:0;transform:translateX(-3px)}100%{opacity:.72;transform:translateX(0)}}
+
+.brand-logo--intro.brand-logo--premium .brand-logo-shell{animation:ph-shell-arrive .82s cubic-bezier(.22,1,.36,1) .05s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-sun{animation:ph-sun-rise .8s cubic-bezier(.22,1,.36,1) .38s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-ray{animation:ph-ray-soft .58s ease .72s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-horizon{stroke-dasharray:42;animation:ph-wave-draw .64s ease .78s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-sea--one{stroke-dasharray:44;animation:ph-wave-draw .7s ease .94s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-sea--two{stroke-dasharray:44;animation:ph-wave-draw .7s ease 1.08s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-route{stroke-dasharray:52;animation:ph-route-draw .72s ease 1.08s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-plane{animation:ph-plane-sweep .86s cubic-bezier(.22,1,.36,1) 1.18s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-dot--start{animation:ph-dot-pop .34s ease 1.02s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-dot--end{animation:ph-dot-pop .34s ease 1.84s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-wordmark{animation:ph-word-slide .62s cubic-bezier(.22,1,.36,1) .46s both}
+.brand-logo--intro.brand-logo--premium .brand-logo-tld{animation:ph-tld-fade .42s ease 2.05s both}
+
+.brand-logo--footer.brand-logo--premium .brand-logo-mark{width:34px;height:34px;border-radius:15px}
+.brand-logo--footer.brand-logo--premium .brand-logo-picky,.brand-logo--footer.brand-logo--premium .brand-logo-holiday{font-size:clamp(18px,1.8vw,23px)}
+
+@media(max-width:720px){.brand-logo--premium{gap:8px}.brand-logo--premium .brand-logo-mark{width:34px;height:34px;border-radius:14px}.brand-logo--premium .brand-logo-picky,.brand-logo--premium .brand-logo-holiday{font-size:20px;letter-spacing:-1px}.brand-logo--premium .brand-logo-tld{display:none}}
+@media(prefers-reduced-motion:reduce){.brand-logo--premium *{animation:none!important;transition:none!important}.brand-logo--premium .brand-logo-shell,.brand-logo--premium .brand-logo-sun,.brand-logo--premium .brand-logo-ray,.brand-logo--premium .brand-logo-horizon,.brand-logo--premium .brand-logo-sea,.brand-logo--premium .brand-logo-route,.brand-logo--premium .brand-logo-dot,.brand-logo--premium .brand-logo-wordmark,.brand-logo--premium .brand-logo-tld{opacity:1;transform:none;stroke-dashoffset:0}.brand-logo--premium .brand-logo-plane{opacity:1;transform:translate(43px,17px) rotate(-24deg);stroke-dashoffset:0}.brand-logo--premium:hover,.brand-logo--premium:hover .brand-logo-mark{transform:none}}
