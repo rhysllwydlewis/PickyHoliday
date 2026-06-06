@@ -7,6 +7,7 @@ import { img } from './appConstants.js';
 import { Stars } from '../components/layout/Brand.jsx';
 import { DealCard } from '../components/deals/DealCard.jsx';
 import { ProviderDiagnostics } from '../components/provider/ProviderDiagnostics.jsx';
+import './HomeExperiencePolish.css';
 
 const footerSearchUrl = ({ intent = 'Holidays', destination = '' } = {}) => `/?${new URLSearchParams({ intent, ...(destination ? { destination } : {}) }).toString()}#search`;
 
@@ -154,4 +155,3 @@ export function ReviewsSection({ onAction }) {
     </section>
   );
 }
-
