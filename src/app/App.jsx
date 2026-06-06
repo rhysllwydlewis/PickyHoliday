@@ -41,9 +41,9 @@ import {
 
 const benefits = [
   [BriefcaseBusiness, 'Group experts', 'Years of experience in group travel'],
-  [HandCoins, 'Low deposits', 'Secure your trip from just £49pp'],
+  [HandCoins, 'Flexible next steps', 'Compare options now and discuss deposits later with an advisor'],
   [WalletCards, 'Flexible planning', 'Save an enquiry now and discuss deposits later with an advisor'],
-  [ShieldCheck, 'Enquiry first', 'Results and redirects are not bookings or supplier reservations'],
+  [ShieldCheck, 'Enquiry first', 'Results and redirects stay enquiry-only until you choose a partner next step'],
   [Clock3, '24/7 support', 'We’re here whenever you need us'],
   [LockKeyhole, 'Secure enquiries', 'Your quote request stays with PickyHoliday advisors'],
 ];
@@ -63,7 +63,7 @@ export function App() {
     rooms: 1,
     intent: 'Holidays',
   }));
-  const [searchSummary, setSearchSummary] = useState('Showing popular group holiday ideas. Ask for group quote saves an enquiry only; it is not a booking.');
+  const [searchSummary, setSearchSummary] = useState('Showing popular group holiday ideas. Ask for group quote saves an enquiry for advisor follow-up.');
   const [dealList, setDealList] = useState([]);
   const [spotlightedDeals, setSpotlightedDeals] = useState([]);
   const [isSearching, setIsSearching] = useState(true);
@@ -357,10 +357,10 @@ export function App() {
           onRotate={(direction) => setGetawayList((list) => rotateList(list, direction))}
         />
         <section className="content block">
-          <SectionTitle title="Why book with PickyHoliday?" />
+          <SectionTitle title="Why choose PickyHoliday?" />
           <div className="benefits">
             {benefits.map(([Icon, title, copy]) => (
-              <button className="benefit" key={title} onClick={() => openMessage(title, copy, 'Why book with us')}>
+              <button className="benefit" key={title} onClick={() => openMessage(title, copy, 'Why choose us')}>
                 <Icon />
                 <div><h3>{title}</h3><p>{copy}</p></div>
               </button>
@@ -371,7 +371,7 @@ export function App() {
           <div>
             <span>BETTER TOGETHER</span>
             <h2>Save more when<br />you go <b>together</b></h2>
-            <p>Big group? Save an enquiry and tell us what you need.<br />No booking has been created. No payment has been taken.</p>
+            <p>Big group? Save an enquiry and tell us what you need.<br />No payment taken. Advisor follow-up before anyone commits.</p>
             <button onClick={() => { setSearch((currentSearch) => ({ ...currentSearch, groupSize: '20+ people, group quote' })); scrollToId('search'); }}>
               Explore group deals <ChevronRight size={18} />
             </button>
@@ -398,7 +398,7 @@ export function App() {
           <Stars small />
           <span>Rated 4.7/5</span>
           <span><LockKeyhole size={18} /> Secure enquiries</span>
-          <span>{siteConfig.trust?.protectionCopy || 'Saved enquiries only — no automatic booking'}</span>
+          <span>{siteConfig.trust?.protectionCopy || 'Saved enquiries only — advisor follow-up before any next step'}</span>
         </div>
       </main>
       <Footer onAction={openMessage} onSignIn={openSignIn} siteConfig={siteConfig} />

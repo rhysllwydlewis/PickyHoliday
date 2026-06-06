@@ -5,8 +5,13 @@ import { readSearchHandoff, searchHandoffMaxAgeMs, searchHandoffStorageKey, stor
 
 const header = readFileSync(new URL('../src/components/layout/Header.jsx', import.meta.url), 'utf8');
 const homeSections = readFileSync(new URL('../src/app/HomeSections.jsx', import.meta.url), 'utf8');
+const footer = readFileSync(new URL('../src/components/layout/Footer.jsx', import.meta.url), 'utf8');
+const app = readFileSync(new URL('../src/app/App.jsx', import.meta.url), 'utf8');
 const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
-const allSource = `${header}\n${homeSections}\n${styles}`.toLowerCase();
+const searchPanelPolish = readFileSync(new URL('../src/components/search/SearchPanelPolish.css', import.meta.url), 'utf8');
+const searchToolbarPolish = readFileSync(new URL('../src/components/search/SearchResultsToolbarPolish.css', import.meta.url), 'utf8');
+const searchCardPolish = readFileSync(new URL('../src/components/search/SearchResultCardPolish.css', import.meta.url), 'utf8');
+const allSource = `${header}\n${homeSections}\n${footer}\n${app}\n${styles}`.toLowerCase();
 
 for (const token of ['--nav-height', '--content-gutter', '--hero-height', '--hero-title-size', '--search-panel-width', '--search-field-height', '--button-height', '--tab-height', '--section-spacing']) {
   assert(styles.includes(token), `Responsive token ${token} should be defined`);
@@ -93,6 +98,8 @@ assert(styles.includes('@keyframes card-enter'), 'Deal card entrance keyframe mu
 assert(styles.includes('@keyframes loading-pulse'), 'Loading pulse keyframe must be defined');
 assert(styles.includes('searchbtn--loading'), 'Search button loading state must be styled');
 assert(styles.includes('searchbtn-sun'), 'Spinning sun must be styled');
+assert(searchPanelPolish.includes('.composer-searchbtn') && searchPanelPolish.includes('.searchbtn--loading'), 'SearchPanel polish CSS should keep compact Search and Searching states styled');
+assert(searchPanelPolish.includes('.composer-search-panel .popular button') && searchPanelPolish.includes('.composer-search-panel .tabs .active'), 'SearchPanel polish CSS should style popular chips and active tabs');
 assert(styles.includes('grid-six .deal-card'), 'Deal card entrance animation must be scoped to grid');
 assert(styles.includes('spotlight-grid .spotlight-card'), 'Spotlight card entrance must be scoped');
 assert(styles.includes('.tabs button,.composer-search-panel .tabs button{transition:'), 'Search tabs must have smooth transitions');
@@ -102,9 +109,13 @@ assert(styles.includes('@media(prefers-reduced-motion:reduce)') && styles.includ
 assert(styles.includes('.deal-card') && styles.includes('animation:none') && styles.includes('@media(prefers-reduced-motion:reduce)'), 'Reduced-motion must disable deal card animations');
 
 /* ── Hero search handoff assertions ───────────────────────── */
-const app = readFileSync(new URL('../src/app/App.jsx', import.meta.url), 'utf8');
 const searchResultsPage = readFileSync(new URL('../src/app/routes/SearchResultsPage.jsx', import.meta.url), 'utf8');
 
+assert(app.includes('Why choose PickyHoliday?'), 'Homepage benefits section should use enquiry-first choice wording');
+assert(app.includes('Flexible next steps') && app.includes('Saved enquiries only — advisor follow-up before any next step'), 'Homepage visible reassurance copy should avoid booking/reservation-oriented language');
+assert(!app.includes('Why book with PickyHoliday?') && !app.includes('Why book with us'), 'Homepage benefits section should avoid booking-oriented labels');
+assert(footer.includes("['Plan',") && !footer.includes("['Book',"), 'Footer primary column should use planning rather than booking wording');
+assert(footer.includes('Enquiry-first, advisor-led'), 'Footer promise should keep enquiry-first wording without auto-booking phrasing');
 assert(app.includes('isHeroSearchLoading'), 'Homepage search should keep a dedicated loading state');
 assert(app.includes('setIsHeroSearchLoading(true)'), 'Homepage search should enter loading state before redirecting');
 assert(app.includes('await searchComposedHolidays(criteria)'), 'Homepage search should gather composed results before redirecting');
@@ -193,7 +204,12 @@ for (const className of ['search-results-layout', 'search-filters-panel', 'searc
   assert(styles.includes(`.${className}`), `Search results CSS should include ${className}`);
 }
 assert(styles.includes('@keyframes skeleton-shimmer'), 'Search results CSS should include skeleton shimmer styling');
+assert(searchToolbarPolish.includes('.search-results-toolbar') && searchToolbarPolish.includes('min-height:74px'), 'Search toolbar polish CSS should keep the toolbar slim');
+assert(searchToolbarPolish.includes('.search-filters-content') && searchToolbarPolish.includes('.search-results-applied-filters'), 'Search toolbar polish CSS should tidy filters and applied filter chips');
+assert(searchCardPolish.includes('.search-result-summary,.search-result-card--retail .search-result-score-reasons,.search-result-card--retail .search-result-protection{display:none}') || searchCardPolish.includes('search-result-summary'), 'Compact card polish CSS should preserve hidden detail-card content in list cards');
+assert(searchCardPolish.includes('height:282px') && searchCardPolish.includes('@media(max-width:820px)'), 'Compact card polish CSS should preserve compact desktop cards and mobile stacking');
 assert(styles.includes('prefers-reduced-motion:reduce') && styles.includes('search-result-skeleton') && styles.includes('animation:none'), 'Reduced motion should disable search result skeleton animations');
+assert(searchPanelPolish.includes('prefers-reduced-motion:reduce') && searchToolbarPolish.includes('prefers-reduced-motion:reduce') && searchCardPolish.includes('prefers-reduced-motion:reduce'), 'Polish CSS should preserve reduced-motion support');
 
 const forbiddenSearchResultPhrases = ['Book now', 'Booking confirmed', 'Checkout', 'Reserve now', 'Pay now', 'Order now'];
 for (const phrase of forbiddenSearchResultPhrases) {

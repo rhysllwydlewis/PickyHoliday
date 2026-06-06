@@ -12,7 +12,7 @@ function footerWidgetFor(label, onSignIn) {
     kicker: 'PickyHoliday',
     title: label,
     body: `Open ${label.toLowerCase()} options, useful links and next steps for group holiday planning.`,
-    bullets: ['Explore relevant group holiday ideas.', 'Save an enquiry when you need advisor follow-up.', 'No booking is created from this widget.'],
+    bullets: ['Explore relevant group holiday ideas.', 'Save an enquiry when you need advisor follow-up.', 'Enquiries stay saved until you choose a next step.'],
   };
   const actions = [];
 
@@ -50,7 +50,7 @@ function footerWidgetFor(label, onSignIn) {
 export function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
   const currentYear = new Date().getFullYear();
   const cols = [
-    ['Book', ['Holidays', 'Villas', 'Group hotel stays', 'Stag & Hen', 'Families']],
+    ['Plan', ['Holidays', 'Villas', 'Group hotel stays', 'Stag & Hen', 'Families']],
     ['Destinations', defaultPublicLinks.destinations.map(labelFromSlug)],
     ['Group holidays', defaultPublicLinks.groups.map(labelFromSlug)],
     ['Guides', defaultPublicLinks.guides.map(labelFromSlug)],
@@ -63,7 +63,7 @@ export function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
       <div className="footer-glow footer-glow-gold" aria-hidden="true" />
       <div className="footer-glow footer-glow-blue" aria-hidden="true" />
       <div className="footer-promise content">
-        <span><BadgeCheck /> Enquiry-first, never auto-booked</span>
+        <span><BadgeCheck /> Enquiry-first, advisor-led</span>
         <span><Users /> Built for groups, mates and families</span>
         <button onClick={() => onAction(footerWidgetFor('Footer promise', onSignIn))}>How PickyHoliday works</button>
       </div>

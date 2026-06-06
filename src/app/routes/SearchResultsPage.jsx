@@ -308,7 +308,7 @@ function SearchQuoteStrip({ results, onQuote, variant = '' }) {
     <div className={`search-quote-strip${variant ? ` search-quote-strip--${variant}` : ''}`}>
       <div>
         <p>Need multi-room allocation or a bespoke group check?</p>
-        <span>Send up to three ideas to an advisor for a saved enquiry. No booking has been created and no payment has been taken.</span>
+        <span>Send up to three ideas to an advisor for a saved enquiry. No payment taken.</span>
       </div>
       <button type="button" onClick={() => onQuote(results.slice(0, 3))}>
         Ask for group quote
@@ -539,8 +539,7 @@ export function SearchResultsPage({
           </div>
           <SearchResultsAppliedChips activeFilters={activeFilters} onRemoveFilter={removeFilter} onClearFilters={clearFilters} />
           <p className="search-results-safety-note">
-            Enquiry-first ideas only. No booking has been created, no payment has been taken and partner terms are confirmed on partner
-            sites.
+            Enquiry-first ideas only. No payment taken. Partner terms confirmed on partner site.
           </p>
 
           {showProviderDiagnostics && (
@@ -595,8 +594,8 @@ export function SearchResultsPage({
 
           {!isLoading && !error && results.length > 0 && displayedResults.length === 0 && (
             <div className="empty-state search-results-empty">
-              <h2>No holiday ideas match those filters yet.</h2>
-              <p>Try removing a filter, widening the budget or asking an advisor to check a bespoke group option.</p>
+              <h2>No ideas match these filters yet.</h2>
+              <p>Clear filters or try flexible dates or a different departure airport.</p>
               <button type="button" onClick={clearFilters}>
                 Clear filters
               </button>
@@ -604,8 +603,8 @@ export function SearchResultsPage({
           )}
           {!isLoading && !error && results.length === 0 && (
             <div className="empty-state search-results-empty">
-              <h2>No composed holiday ideas matched this search yet.</h2>
-              <p>Try flexible dates, a different airport or ask for a group quote.</p>
+              <h2>No ideas match this search yet.</h2>
+              <p>Try flexible dates or a different departure airport.</p>
               <button type="button" onClick={() => onQuote([])}>
                 Ask for group quote
               </button>
