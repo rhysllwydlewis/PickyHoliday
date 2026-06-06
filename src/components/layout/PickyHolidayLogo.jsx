@@ -3,7 +3,6 @@ import { scrollToId } from '../../app/appConstants.js';
 import './PickyHolidayLogo.css';
 import './PickyHolidayLogoFixes.css';
 
-const logoIntroStorageKey = 'pickyholiday-layered-logo-intro-v1';
 const staticPlaneTransform = 'translate(602 21) rotate(-14)';
 
 const layout = {
@@ -26,14 +25,7 @@ function prefersReducedMotion() {
 function shouldRunIntro(footer) {
   if (footer || !firstNavbarLogoRender || prefersReducedMotion()) return false;
   firstNavbarLogoRender = false;
-
-  try {
-    if (window.sessionStorage?.getItem(logoIntroStorageKey)) return false;
-    window.sessionStorage?.setItem(logoIntroStorageKey, '1');
-    return true;
-  } catch {
-    return true;
-  }
+  return true;
 }
 
 function handleLogoClick() {
