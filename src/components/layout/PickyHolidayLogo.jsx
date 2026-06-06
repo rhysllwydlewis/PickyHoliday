@@ -4,7 +4,17 @@ import './PickyHolidayLogo.css';
 import './PickyHolidayLogoFixes.css';
 
 const logoIntroStorageKey = 'pickyholiday-layered-logo-intro-v1';
-const flightPath = 'M318 55 C402 22 500 18 566 29 C620 38 655 35 694 25';
+
+const layout = {
+  pickyX: 26,
+  hX: 252,
+  sunX: 342,
+  sunY: 92,
+  lidayX: 379,
+  domainX: 595,
+};
+
+const flightPath = 'M292 55 C354 25 440 18 506 27 C548 33 574 30 602 21';
 let firstNavbarLogoRender = true;
 
 function prefersReducedMotion() {
@@ -41,6 +51,17 @@ function makeId(rawId, suffix) {
   return `${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}-${suffix}`;
 }
 
+function WordmarkClip({ sunRadius = 23 }) {
+  return (
+    <>
+      <text x={layout.pickyX} y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">Picky</text>
+      <text x={layout.hX} y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">H</text>
+      <circle cx={layout.sunX} cy={layout.sunY} r={sunRadius} />
+      <text x={layout.lidayX} y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">liday</text>
+    </>
+  );
+}
+
 export function Logo({ footer = false }) {
   const rawId = useId();
   const [runIntro, setRunIntro] = useState(() => shouldRunIntro(footer));
@@ -64,7 +85,7 @@ export function Logo({ footer = false }) {
   return (
     <button type="button" className={cls} onClick={handleLogoClick} aria-label="PickyHoliday home">
       <span className="brand-logo-stage" aria-hidden="true">
-        <svg className="pickyholiday-logo-svg" viewBox={footer ? '0 0 720 180' : '0 0 820 180'} focusable="false" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
+        <svg className="pickyholiday-logo-svg" viewBox={footer ? '0 0 650 180' : '0 0 700 180'} focusable="false" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
           <defs>
             <path id={flightPathId} d={flightPath} />
             <radialGradient id={goldId} cx="34%" cy="28%" r="74%">
@@ -79,45 +100,42 @@ export function Logo({ footer = false }) {
               <stop offset="58%" stopColor="#fff" stopOpacity="0" />
               <stop offset="100%" stopColor="#fff" stopOpacity="0" />
             </linearGradient>
-            <mask id={flightMaskId} maskUnits="userSpaceOnUse" x="300" y="0" width="430" height="90">
+            <mask id={flightMaskId} maskUnits="userSpaceOnUse" x="280" y="0" width="350" height="90">
               <path className="brand-logo-flight-reveal" d={flightPath} pathLength="240" fill="none" stroke="#fff" strokeWidth="16" strokeLinecap="round" />
             </mask>
             <clipPath id={shimmerClipId}>
-              <text x="26" y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">Picky</text>
-              <text x="290" y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">H</text>
-              <circle cx="386" cy="92" r="31" />
-              <text x="430" y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">liday</text>
+              <WordmarkClip />
             </clipPath>
           </defs>
 
           <g className="brand-logo-wordmark">
-            <text className="brand-logo-picky-text" x="26" y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">Picky</text>
-            <text className="brand-logo-holiday-text" x="290" y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">H</text>
-            <g className="brand-logo-sun" transform="translate(386 92)">
+            <text className="brand-logo-picky-text" x={layout.pickyX} y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">Picky</text>
+            <text className="brand-logo-holiday-text" x={layout.hX} y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">H</text>
+            <g className="brand-logo-sun" transform={`translate(${layout.sunX} ${layout.sunY})`}>
               <g className="brand-logo-sun-rays">
                 {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
-                  <line key={angle} x1="0" y1="-42" x2="0" y2="-58" transform={`rotate(${angle})`} stroke="#ffb400" strokeWidth="6" strokeLinecap="round" />
+                  <line key={angle} x1="0" y1="-30" x2="0" y2="-43" transform={`rotate(${angle})`} stroke="#ffb400" strokeWidth="5" strokeLinecap="round" />
                 ))}
               </g>
-              <circle className="brand-logo-sun-glow" r="31" fill={`url(#${goldId})`} />
-              <circle className="brand-logo-sun-core" r="25" fill={`url(#${goldId})`} />
-              <circle className="brand-logo-sun-sheen" cx="-9" cy="-10" r="10" fill="#fff8ce" opacity="0.56" />
+              <circle className="brand-logo-sun-glow" r="23" fill={`url(#${goldId})`} />
+              <circle className="brand-logo-sun-core" r="18" fill={`url(#${goldId})`} />
+              <circle className="brand-logo-sun-sheen" cx="-6" cy="-7" r="7" fill="#fff8ce" opacity="0.56" />
             </g>
-            <text className="brand-logo-holiday-text" x="430" y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">liday</text>
+            <text className="brand-logo-holiday-text" x={layout.lidayX} y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">liday</text>
           </g>
 
-          {!footer && <text className="brand-logo-domain" x="683" y="113" fontFamily="Inter, Arial, sans-serif" fontSize="34" fontWeight="900" letterSpacing="-1.1">.co.uk</text>}
+          {!footer && <text className="brand-logo-domain" x={layout.domainX} y="113" fontFamily="Inter, Arial, sans-serif" fontSize="34" fontWeight="900" letterSpacing="-1.1">.co.uk</text>}
 
-          <path className="brand-logo-underline" d="M24 145 C98 130 197 139 315 144" pathLength="260" fill="none" />
+          <path className="brand-logo-underline" d="M24 145 C96 131 176 138 256 143" pathLength="260" fill="none" />
           <path className="brand-logo-flight-path" d={flightPath} pathLength="240" fill="none" mask={`url(#${flightMaskId})`} />
 
-          <g className="brand-logo-plane" transform={runIntro && !footer ? undefined : 'translate(694 25) rotate(-14)'}>
+          <g className="brand-logo-plane" transform={runIntro && !footer ? undefined : 'translate(602 21) rotate(-14)'}>
             {runIntro && !footer && (
               <animateMotion dur="2.6s" begin="0.62s" fill="freeze" rotate="auto" calcMode="spline" keyTimes="0;1" keySplines="0.22 1 0.36 1">
                 <mpath href={`#${flightPathId}`} xlinkHref={`#${flightPathId}`} />
               </animateMotion>
             )}
-            <g className="brand-logo-plane-shape" transform="scale(0.88)">
+            <g className="brand-logo-plane-shape" transform="scale(0.82)">
               <path d="M-5 -3 L-22 -30 Q-20 -34 -14 -32 L14 -5 Z" />
               <path d="M-5 3 L-22 30 Q-20 34 -14 32 L14 5 Z" />
               <path d="M-28 -4 L-43 -18 Q-40 -22 -35 -19 L-16 -6 Z" />
