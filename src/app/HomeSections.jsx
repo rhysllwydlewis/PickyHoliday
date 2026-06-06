@@ -21,7 +21,7 @@ export function Hero({ config }) {
         <h1>{titleParts[0] || 'Smart group holidays.'}<br /><span>{titleParts[1] || 'More fun.'}</span> {titleParts.slice(2).join('. ') || 'Less fuss.'}</h1>
         <p>{hero.subtitle || 'Compare inspiration, partner redirects and saved enquiries for mates, families and every kind of group adventure.'}</p>
         <ul className="assurances" aria-label="Planning reassurance" role="list">
-          {(hero.assuranceChips || ['Best group ideas', 'Saved enquiries', 'Advisor review', 'No auto-booking']).map((assurance, index) => {
+          {(hero.assuranceChips || ['Best group ideas', 'Saved enquiries', 'Advisor review', 'Enquiry only']).map((assurance, index) => {
             const Icon = [CircleDollarSign, WalletCards, Clock3, BadgeCheck][index];
             return <li key={assurance}><Icon size={17} aria-hidden="true" /> {assurance}</li>;
           })}
@@ -86,7 +86,7 @@ function guideWidgetFor(title) {
     kicker: 'Guide preview',
     title,
     body: `Open planning help for ${title.toLowerCase()} and use it to choose a safer enquiry-first group holiday next step.`,
-    bullets: ['Preview the topic before searching.', 'Use the search action for matching ideas.', 'No booking is created from this guide widget.'],
+    bullets: ['Preview the topic before searching.', 'Use the search action for matching ideas.', 'Enquiries stay saved until you choose a next step.'],
     search: { intent: 'Holidays' },
     searchActionLabel: 'Search matching trips',
   };

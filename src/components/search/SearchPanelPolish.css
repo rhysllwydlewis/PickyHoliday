@@ -16,3 +16,27 @@
 .composer-search-panel .popular button:hover{background:#eef6ff;color:#075edb;transform:translateY(-1px)}
 @media(max-width:720px){.composer-searchbtn{min-width:0;padding-inline:18px}.searchbtn--loading{min-width:0}.composer-search-panel .popular button{margin:0}}
 @media(prefers-reduced-motion:reduce){.composer-searchbtn,.composer-searchbtn:before,.composer-searchbtn svg:last-child,.composer-search-panel .popular button{transition:none}.composer-searchbtn:hover,.composer-searchbtn:hover svg:last-child,.composer-search-panel .popular button:hover{transform:none}.composer-searchbtn:before{display:none}}
+
+/* Final search panel polish: premium, compact and mobile-safe without adding visual weight. */
+.composer-search-panel{background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,252,255,.96));border-color:rgba(196,219,244,.95);box-shadow:0 18px 42px rgba(15,62,119,.13),0 1px 0 rgba(255,255,255,.95) inset}
+.composer-search-panel .tabs{padding:2px}
+.tabs button,.composer-search-panel .tabs button{outline-offset:2px}
+.composer-search-panel .tabs button:hover{background:#eef6ff;color:#075edb;transform:translateY(-1px)}
+.composer-search-panel .tabs .active{background:#eaf4ff;color:#075edb;box-shadow:inset 0 0 0 1px #d7e8fb,0 6px 14px rgba(7,94,219,.08);transform:none}
+.composer-search-panel .tabs em{background:#fff3bf;color:#705000;border:1px solid #ffe39a}
+.composer-fields{align-items:stretch}
+.compact-field,.composer-fields .destination-field{background:#fff;border-color:#dbe8f7;box-shadow:0 1px 0 rgba(255,255,255,.9) inset;transition:border-color .16s ease,box-shadow .16s ease,background .16s ease}
+.compact-field:hover,.composer-fields .destination-field:hover{border-color:#c5daf2;background:#fbfdff}
+.compact-field:focus-within,.composer-fields .destination-field:focus-within{border-color:#7fb1ee;box-shadow:0 0 0 3px rgba(7,94,219,.12),0 1px 0 rgba(255,255,255,.9) inset}
+.composer-searchbtn{border-radius:14px;box-shadow:0 12px 24px rgba(232,154,0,.24);min-width:132px;padding-inline:22px}
+.composer-searchbtn:focus-visible{outline:3px solid rgba(255,180,0,.32);outline-offset:3px}
+.composer-searchbtn:hover{box-shadow:0 15px 28px rgba(232,154,0,.28)}
+.composer-searchbtn:active{filter:saturate(1);box-shadow:0 9px 18px rgba(232,154,0,.22)}
+.searchbtn--loading{min-width:148px}
+.composer-search-panel .popular{margin-left:2px;color:#6a7f9e}
+.composer-search-panel .popular span{font-weight:900;letter-spacing:.01em}
+.composer-search-panel .popular button{border-color:#dbe8f8;background:#fbfdff;color:#075edb;box-shadow:0 1px 0 rgba(255,255,255,.9) inset}
+.composer-search-panel .popular button:hover{background:#eef6ff;border-color:#cce0f6;color:#034fb9;transform:translateY(-1px)}
+.smart-suggestions{box-shadow:0 18px 38px rgba(8,42,98,.16)}
+@media(max-width:720px){.composer-search-panel{box-shadow:0 14px 30px rgba(15,62,119,.12)}.composer-search-panel .tabs{gap:8px}.composer-searchbtn{min-height:52px;border-radius:13px}.searchbtn--loading{min-width:0}}
+@media(prefers-reduced-motion:reduce){.composer-search-panel .tabs button,.compact-field,.composer-fields .destination-field{transition:none}.composer-search-panel .tabs button:hover{transform:none}}
