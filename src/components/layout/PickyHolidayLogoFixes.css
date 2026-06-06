@@ -1,1 +1,66 @@
-.brand-logo-flight-reveal{stroke-dasharray:240;stroke-dashoffset:0}.brand-logo--intro .brand-logo-flight-reveal{stroke-dashoffset:240;animation:ph-flight-draw 1.72s cubic-bezier(.22,1,.36,1) 1.38s both}.brand-logo--settled .brand-logo-flight-reveal,.brand-logo--footer .brand-logo-flight-reveal{stroke-dashoffset:0}.brand-logo-sun-rays{transform-origin:center}@media(prefers-reduced-motion:reduce){.brand-logo--premium .brand-logo-flight-reveal{stroke-dashoffset:0}}
+/**
+ * Final logo tuning after the first deployed layered-SVG pass.
+ * Keeps the logo compact in the navbar and avoids hidden reserved width now that
+ * the SVG viewBox has been tightened.
+ */
+
+.brand-logo--premium {
+  flex-basis: clamp(232px, 21.5vw, 294px);
+  width: clamp(232px, 21.5vw, 294px);
+  min-width: clamp(232px, 21.5vw, 294px);
+}
+
+.brand-logo--footer.brand-logo--premium {
+  flex-basis: clamp(202px, 18vw, 246px);
+  width: clamp(202px, 18vw, 246px);
+  min-width: clamp(202px, 18vw, 246px);
+}
+
+.brand-logo-flight-reveal {
+  stroke-dasharray: 240;
+  stroke-dashoffset: 0;
+}
+
+.brand-logo--intro .brand-logo-flight-reveal {
+  stroke-dashoffset: 240;
+  animation: ph-flight-draw 1.72s cubic-bezier(0.22, 1, 0.36, 1) 1.38s both;
+}
+
+.brand-logo--settled .brand-logo-flight-reveal,
+.brand-logo--footer .brand-logo-flight-reveal {
+  stroke-dashoffset: 0;
+}
+
+.brand-logo-sun-rays {
+  transform-origin: center;
+}
+
+@media(max-width:959px){
+  .brand-logo--premium {
+    flex-basis: clamp(208px, 31vw, 256px);
+    width: clamp(208px, 31vw, 256px);
+    min-width: clamp(208px, 31vw, 256px);
+  }
+}
+
+@media(max-width:720px){
+  .brand-logo--premium {
+    flex-basis: clamp(188px, 50vw, 226px);
+    width: clamp(188px, 50vw, 226px);
+    min-width: clamp(188px, 50vw, 226px);
+  }
+}
+
+@media(max-width:430px){
+  .brand-logo--premium {
+    flex-basis: clamp(172px, 54vw, 200px);
+    width: clamp(172px, 54vw, 200px);
+    min-width: clamp(172px, 54vw, 200px);
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .brand-logo--premium .brand-logo-flight-reveal {
+    stroke-dashoffset: 0;
+  }
+}
