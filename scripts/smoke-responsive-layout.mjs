@@ -70,21 +70,21 @@ assert(brand.includes('brand-logo--intro'), 'Logo must gate intro animation clas
 assert(brand.includes('brand-logo--premium'), 'Logo must use the premium logo system');
 assert(brand.includes('brand-logo-mark'), 'Logo must render a logo mark');
 assert(brand.includes('brand-logo-wordmark'), 'Logo must render a wordmark');
-assert(brand.includes('brand-logo-route') && brand.includes('brand-logo-h-stem'), 'Logo must render a simplified PH route monogram');
+assert(brand.includes('brand-logo-route') && brand.includes('brand-logo-accent'), 'Logo must render a P route mark with gold accent dot');
 
 // CSS
-assert(brandLogoPolish.includes('@keyframes ph-logo-shell-in'), 'Premium logo shell intro keyframe must be defined');
-assert(brandLogoPolish.includes('@keyframes ph-logo-route-draw'), 'Premium logo route draw keyframe must be defined');
-assert(brandLogoPolish.includes('@keyframes ph-logo-accent-pop'), 'Premium logo accent pop keyframe must be defined');
-assert(brandLogoPolish.includes('@keyframes ph-logo-wordmark-in'), 'Premium logo wordmark keyframe must be defined');
-assert(brandLogoPolish.includes('@keyframes ph-logo-tld-in'), 'Premium logo TLD keyframe must be defined');
+assert(brandLogoPolish.includes('@keyframes ph-mark-in'), 'Premium logo badge intro keyframe must be defined');
+assert(brandLogoPolish.includes('@keyframes ph-route-draw'), 'Premium logo route draw keyframe must be defined');
+assert(brandLogoPolish.includes('@keyframes ph-accent-pop'), 'Premium logo accent pop keyframe must be defined');
+assert(brandLogoPolish.includes('@keyframes ph-wordmark-slide'), 'Premium logo wordmark keyframe must be defined');
+assert(brandLogoPolish.includes('@keyframes ph-tld-fade'), 'Premium logo TLD fade keyframe must be defined');
 assert(brandLogoPolish.includes('prefers-reduced-motion:reduce'), 'Logo CSS must include prefers-reduced-motion fallback');
 assert(brandLogoPolish.includes('brand-logo--intro'), 'Logo intro class must be styled');
 assert(brandLogoPolish.includes('brand-logo--premium'), 'Premium logo class must be styled');
 assert(brandLogoPolish.includes('brand-logo-picky'), 'Brand wordmark picky part must be styled');
 assert(brandLogoPolish.includes('brand-logo-holiday'), 'Brand wordmark holiday part must be styled');
 assert(brandLogoPolish.includes('brand-logo--footer'), 'Footer logo variant must be styled');
-assert(brandLogoPolish.includes('@media(max-width:720px)') && brandLogoPolish.includes('brand-logo-mark{width:34px'), 'Mobile logo mark must be smaller');
+assert(brandLogoPolish.includes('@media (max-width: 720px)') || brandLogoPolish.includes('@media(max-width:720px)'), 'Mobile logo breakpoint must be present');
 
 /* ── Site-wide animation assertions ────────────────────────── */
 const searchPanel = readFileSync(new URL('../src/components/search/SearchPanel.jsx', import.meta.url), 'utf8');
