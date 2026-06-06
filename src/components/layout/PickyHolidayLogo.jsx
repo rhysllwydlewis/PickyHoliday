@@ -82,6 +82,8 @@ export function Logo({ footer = false }) {
     runIntro && !footer ? 'brand-logo--intro' : 'brand-logo--settled',
   ].filter(Boolean).join(' ');
 
+  const staticPlaneTransform = footer ? 'translate(602 21) rotate(-14)' : 'translate(602 21) rotate(-14)';
+
   return (
     <button type="button" className={cls} onClick={handleLogoClick} aria-label="PickyHoliday home">
       <span className="brand-logo-stage" aria-hidden="true">
@@ -129,22 +131,24 @@ export function Logo({ footer = false }) {
           <path className="brand-logo-underline" d="M24 145 C96 131 176 138 256 143" pathLength="260" fill="none" />
           <path className="brand-logo-flight-path" d={flightPath} pathLength="240" fill="none" mask={`url(#${flightMaskId})`} />
 
-          <g className="brand-logo-plane" transform={runIntro && !footer ? undefined : 'translate(602 21) rotate(-14)'}>
+          <g className="brand-logo-plane">
             {runIntro && !footer && (
               <animateMotion dur="2.6s" begin="0.62s" fill="freeze" rotate="auto" calcMode="spline" keyTimes="0;1" keySplines="0.22 1 0.36 1">
                 <mpath href={`#${flightPathId}`} xlinkHref={`#${flightPathId}`} />
               </animateMotion>
             )}
-            <g className="brand-logo-plane-shape" transform="scale(0.82)">
-              <path d="M-5 -3 L-22 -30 Q-20 -34 -14 -32 L14 -5 Z" />
-              <path d="M-5 3 L-22 30 Q-20 34 -14 32 L14 5 Z" />
-              <path d="M-28 -4 L-43 -18 Q-40 -22 -35 -19 L-16 -6 Z" />
-              <path d="M-28 4 L-43 18 Q-40 22 -35 19 L-16 6 Z" />
-              <path d="M-31 -3 L-45 0 L-31 3 Z" />
-              <path className="brand-logo-plane-body" d="M-34 -4 C-22 -8 12 -8 32 -3 Q39 -1 39 0 Q39 1 32 3 C12 8 -22 8 -34 4 Q-40 2 -40 0 Q-40 -2 -34 -4 Z" />
-              <ellipse className="brand-logo-plane-engine" cx="-7" cy="-14" rx="5" ry="3.6" />
-              <ellipse className="brand-logo-plane-engine" cx="-7" cy="14" rx="5" ry="3.6" />
-              <path className="brand-logo-plane-window" d="M24 -2 Q32 -1 35 0 Q32 1 24 2 Z" />
+            <g className="brand-logo-plane-position" transform={runIntro && !footer ? undefined : staticPlaneTransform}>
+              <g className="brand-logo-plane-shape" transform="scale(0.82)">
+                <path d="M-5 -3 L-22 -30 Q-20 -34 -14 -32 L14 -5 Z" />
+                <path d="M-5 3 L-22 30 Q-20 34 -14 32 L14 5 Z" />
+                <path d="M-28 -4 L-43 -18 Q-40 -22 -35 -19 L-16 -6 Z" />
+                <path d="M-28 4 L-43 18 Q-40 22 -35 19 L-16 6 Z" />
+                <path d="M-31 -3 L-45 0 L-31 3 Z" />
+                <path className="brand-logo-plane-body" d="M-34 -4 C-22 -8 12 -8 32 -3 Q39 -1 39 0 Q39 1 32 3 C12 8 -22 8 -34 4 Q-40 2 -40 0 Q-40 -2 -34 -4 Z" />
+                <ellipse className="brand-logo-plane-engine" cx="-7" cy="-14" rx="5" ry="3.6" />
+                <ellipse className="brand-logo-plane-engine" cx="-7" cy="14" rx="5" ry="3.6" />
+                <path className="brand-logo-plane-window" d="M24 -2 Q32 -1 35 0 Q32 1 24 2 Z" />
+              </g>
             </g>
           </g>
 
