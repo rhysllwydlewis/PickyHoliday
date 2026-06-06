@@ -4,6 +4,7 @@ import './PickyHolidayLogo.css';
 import './PickyHolidayLogoFixes.css';
 
 const staticPlaneTransform = 'translate(602 21) rotate(-14)';
+const introSettleDelay = 4200;
 
 const layout = {
   pickyX: 26,
@@ -67,6 +68,12 @@ export function Logo({ footer = false }) {
   useEffect(() => {
     if (prefersReducedMotion()) setRunIntro(false);
   }, []);
+
+  useEffect(() => {
+    if (!runIntro) return undefined;
+    const settleTimer = window.setTimeout(() => setRunIntro(false), introSettleDelay);
+    return () => window.clearTimeout(settleTimer);
+  }, [runIntro]);
 
   const cls = [
     'brand-logo',
