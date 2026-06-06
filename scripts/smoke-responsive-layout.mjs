@@ -170,6 +170,9 @@ assert.equal(storeSearchHandoff({ criteria: { destination: 'Rome' }, response: {
 
 /* ── Search results page v2 assertions ────────────────────── */
 const searchResultCard = readFileSync(new URL('../src/components/search/SearchResultCard.jsx', import.meta.url), 'utf8');
+const searchTripDetailModal = readFileSync(new URL('../src/components/search/SearchTripDetailModal.jsx', import.meta.url), 'utf8');
+const searchTripDetailModalCss = readFileSync(new URL('../src/components/search/SearchTripDetailModal.css', import.meta.url), 'utf8');
+const dialog = readFileSync(new URL('../src/components/ui/Dialog.jsx', import.meta.url), 'utf8');
 
 assert(searchResultsPage.includes('search-results-layout'), 'Search results page should render a dedicated results layout');
 assert(searchResultsPage.includes('search-filters-panel'), 'Search results page should render a desktop filter panel');
@@ -191,13 +194,22 @@ assert(searchResultsPage.includes('aria-busy={isLoading}'), 'Search results list
 assert(searchResultsPage.includes('aria-expanded={mobileFiltersOpen}') && searchResultsPage.includes('aria-controls="mobile-search-filters"'), 'Mobile filter toggle should expose expanded state and controlled region');
 assert(searchResultsPage.includes('requestIdRef'), 'Search results page should guard against stale async responses');
 
-for (const field of ['dealReasonLabel', 'hotelSummary', 'flightSummary', 'boardBasis', 'groupSizeLabel', 'protectionLabel', 'scoreReasons']) {
-  assert(searchResultCard.includes(field), `SearchResultCard should render ${field}`);
+for (const field of ['dealReasonLabel', 'flightSummary', 'boardBasis', 'groupSizeLabel']) {
+  assert(searchResultCard.includes(field), `SearchResultCard should preserve compact summary access to ${field}`);
 }
+for (const richField of ['hotelSummary', 'flightSummary', 'departureAirport', 'arrivalAirport', 'dateLabel', 'nights', 'roomMix', 'boardBasis', 'baggageLabel', 'scoreReasons', 'protectionLabel', 'sourceBreakdown', 'supplierName', 'provider', 'resultType']) {
+  assert(searchTripDetailModal.includes(richField), `SearchTripDetailModal should render rich field ${richField}`);
+}
+assert(!searchResultCard.includes('search-result-summary') && !searchResultCard.includes('search-result-score-reasons') && !searchResultCard.includes('search-result-protection'), 'SearchResultCard should not render long summaries, score reason chips or protection paragraphs');
 assert(searchResultCard.includes('onToggleShortlist') && searchResultCard.includes('isShortlisted'), 'SearchResultCard should preserve shortlist handling');
+assert(searchTripDetailModal.includes('aria-pressed={isSaved}') && searchTripDetailModal.includes('Save enquiry') && searchTripDetailModal.includes('Saved enquiry'), 'Trip detail modal should expose saved enquiry state with aria-pressed');
 assert(searchResultCard.includes('onView(deal)'), 'SearchResultCard should preserve view handling');
-assert(searchResultCard.includes('onQuote?.([deal])'), 'SearchResultCard should preserve quote handling');
-assert(searchResultCard.includes('Check live price') && searchResultCard.includes('View trip') && searchResultCard.includes('Ask for group quote'), 'SearchResultCard should keep enquiry-first CTA language');
+assert(!searchResultCard.includes('onQuote?.([deal])'), 'SearchResultCard should keep quote flow out of compact cards');
+assert(!searchResultsPage.includes('onQuote={onQuote}\n                  />'), 'SearchResultsPage should not pass card-only quote props into compact result cards');
+assert(searchTripDetailModal.includes('content.onQuote?.(deal)'), 'SearchTripDetailModal should preserve quote handling');
+assert(searchResultCard.includes('Check live price') && searchResultCard.includes('View trip'), 'SearchResultCard should keep compact primary CTA language');
+assert(searchTripDetailModal.includes('Check live price') && searchTripDetailModal.includes('Ask for group quote') && searchTripDetailModal.includes('No payment taken') && searchTripDetailModal.includes('Partner terms confirmed on partner site'), 'Trip detail modal should keep safe enquiry-first CTA language');
+assert(searchTripDetailModal.includes('displaySourceLabel') && searchTripDetailModal.includes('Partner accommodation source') && searchTripDetailModal.includes('safeProtectionLabel'), 'Trip detail modal should sanitise provider/source/protection labels before rendering');
 assert(!searchResultCard.includes('1/8'), 'SearchResultCard should not imply a fake gallery image count');
 
 for (const className of ['search-results-layout', 'search-filters-panel', 'search-results-toolbar', 'search-results-applied-filters', 'search-result-list', 'search-result-card', 'search-result-card-media', 'search-result-card-body', 'search-result-card-price', 'search-result-skeleton', 'search-results-load-more']) {
@@ -206,14 +218,17 @@ for (const className of ['search-results-layout', 'search-filters-panel', 'searc
 assert(styles.includes('@keyframes skeleton-shimmer'), 'Search results CSS should include skeleton shimmer styling');
 assert(searchToolbarPolish.includes('.search-results-toolbar') && searchToolbarPolish.includes('min-height:74px'), 'Search toolbar polish CSS should keep the toolbar slim');
 assert(searchToolbarPolish.includes('.search-filters-content') && searchToolbarPolish.includes('.search-results-applied-filters'), 'Search toolbar polish CSS should tidy filters and applied filter chips');
+assert(searchTripDetailModalCss.includes('.trip-detail-hero') && searchTripDetailModalCss.includes('.trip-detail-actions') && searchTripDetailModalCss.includes('@media(max-width:820px)'), 'Trip detail modal CSS should include premium hero, actions and mobile layout rules');
+assert(styles.includes('.modal--trip-detail') && styles.includes('100dvh'), 'Global modal CSS should keep the trip detail view viewport-safe on mobile');
 assert(searchCardPolish.includes('.search-result-summary,.search-result-card--retail .search-result-score-reasons,.search-result-card--retail .search-result-protection{display:none}') || searchCardPolish.includes('search-result-summary'), 'Compact card polish CSS should preserve hidden detail-card content in list cards');
 assert(searchCardPolish.includes('height:282px') && searchCardPolish.includes('@media(max-width:820px)'), 'Compact card polish CSS should preserve compact desktop cards and mobile stacking');
 assert(styles.includes('prefers-reduced-motion:reduce') && styles.includes('search-result-skeleton') && styles.includes('animation:none'), 'Reduced motion should disable search result skeleton animations');
-assert(searchPanelPolish.includes('prefers-reduced-motion:reduce') && searchToolbarPolish.includes('prefers-reduced-motion:reduce') && searchCardPolish.includes('prefers-reduced-motion:reduce'), 'Polish CSS should preserve reduced-motion support');
+assert(searchPanelPolish.includes('prefers-reduced-motion:reduce') && searchToolbarPolish.includes('prefers-reduced-motion:reduce') && searchCardPolish.includes('prefers-reduced-motion:reduce') && searchTripDetailModalCss.includes('prefers-reduced-motion:reduce'), 'Polish CSS should preserve reduced-motion support');
+assert(dialog.includes("event.key === 'Escape'") && dialog.includes('onCloseRef.current?.()') && dialog.includes('aria-labelledby="modal-title"') && dialog.includes('type="button"') && dialog.includes('className="modal-close"'), 'Dialog should keep accessible name, stable Escape close and explicit close button type');
 
 const forbiddenSearchResultPhrases = ['Book now', 'Booking confirmed', 'Checkout', 'Reserve now', 'Pay now', 'Order now'];
 for (const phrase of forbiddenSearchResultPhrases) {
-  assert(!searchResultsPage.includes(phrase) && !searchResultCard.includes(phrase), `Search results must not include forbidden action wording: ${phrase}`);
+  assert(!searchResultsPage.includes(phrase) && !searchResultCard.includes(phrase) && !searchTripDetailModal.includes(phrase) && !dialog.includes(phrase), `Search results must not include forbidden action wording: ${phrase}`);
 }
 
 console.log('Responsive layout smoke assertions passed');

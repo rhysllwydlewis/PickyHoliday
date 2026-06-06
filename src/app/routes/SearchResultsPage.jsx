@@ -571,7 +571,6 @@ export function SearchResultsPage({
                     onView={onOpenDeal}
                     isShortlisted={isShortlisted(deal)}
                     onToggleShortlist={onToggleShortlist}
-                    onQuote={onQuote}
                   />
                 </React.Fragment>
               ))}
