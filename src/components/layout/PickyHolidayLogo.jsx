@@ -3,19 +3,19 @@ import { scrollToId } from '../../app/appConstants.js';
 import './PickyHolidayLogo.css';
 import './PickyHolidayLogoFixes.css';
 
-const staticPlaneTransform = 'translate(602 21) rotate(-14)';
+const staticPlaneTransform = 'translate(574 21) rotate(-14)';
 const introSettleDelay = 4200;
 
 const layout = {
   pickyX: 26,
-  hX: 252,
-  sunX: 342,
+  hX: 214,
+  sunX: 296,
   sunY: 92,
-  lidayX: 379,
-  domainX: 595,
+  lidayX: 328,
+  domainX: 538,
 };
 
-const flightPath = 'M292 55 C354 25 440 18 506 27 C548 33 574 30 602 21';
+const flightPath = 'M262 55 C324 25 408 18 474 27 C516 33 546 30 574 21';
 let firstNavbarLogoRender = true;
 
 function prefersReducedMotion() {
@@ -85,7 +85,7 @@ export function Logo({ footer = false }) {
   return (
     <button type="button" className={cls} onClick={handleLogoClick} aria-label="PickyHoliday home">
       <span className="brand-logo-stage" aria-hidden="true">
-        <svg className="pickyholiday-logo-svg" viewBox={footer ? '0 0 650 180' : '0 0 700 180'} focusable="false" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
+        <svg className="pickyholiday-logo-svg" viewBox={footer ? '0 0 620 180' : '0 0 660 180'} focusable="false" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
           <defs>
             <path id={flightPathId} d={flightPath} />
             <radialGradient id={goldId} cx="34%" cy="28%" r="74%">
@@ -100,7 +100,7 @@ export function Logo({ footer = false }) {
               <stop offset="58%" stopColor="#fff" stopOpacity="0" />
               <stop offset="100%" stopColor="#fff" stopOpacity="0" />
             </linearGradient>
-            <mask id={flightMaskId} maskUnits="userSpaceOnUse" x="280" y="0" width="350" height="90">
+            <mask id={flightMaskId} maskUnits="userSpaceOnUse" x="250" y="0" width="350" height="90">
               <path className="brand-logo-flight-reveal" d={flightPath} pathLength="240" fill="none" stroke="#fff" strokeWidth="16" strokeLinecap="round" />
             </mask>
             <clipPath id={shimmerClipId}>
@@ -126,7 +126,7 @@ export function Logo({ footer = false }) {
 
           {!footer && <text className="brand-logo-domain" x={layout.domainX} y="113" fontFamily="Inter, Arial, sans-serif" fontSize="34" fontWeight="900" letterSpacing="-1.1">.co.uk</text>}
 
-          <path className="brand-logo-underline" d="M24 145 C96 131 176 138 256 143" pathLength="260" fill="none" />
+          <path className="brand-logo-underline" d="M24 145 C96 131 176 138 238 143" pathLength="260" fill="none" />
           <path className="brand-logo-flight-path" d={flightPath} pathLength="240" fill="none" mask={`url(#${flightMaskId})`} />
 
           <g className="brand-logo-plane">
