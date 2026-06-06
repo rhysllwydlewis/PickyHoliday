@@ -8,6 +8,7 @@ const homeSections = readFileSync(new URL('../src/app/HomeSections.jsx', import.
 const footer = readFileSync(new URL('../src/components/layout/Footer.jsx', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../src/app/App.jsx', import.meta.url), 'utf8');
 const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+const brandLogoPolish = readFileSync(new URL('../src/components/layout/BrandLogoPolish.css', import.meta.url), 'utf8');
 const searchPanelPolish = readFileSync(new URL('../src/components/search/SearchPanelPolish.css', import.meta.url), 'utf8');
 const searchToolbarPolish = readFileSync(new URL('../src/components/search/SearchResultsToolbarPolish.css', import.meta.url), 'utf8');
 const searchCardPolish = readFileSync(new URL('../src/components/search/SearchResultCardPolish.css', import.meta.url), 'utf8');
@@ -66,18 +67,24 @@ assert(brand.includes('handleLogoClick'), 'Logo must implement home/scroll-to-to
 assert(brand.includes("window.location.assign('/')"), 'Logo must navigate to / from non-home pages');
 assert(brand.includes('scrollToId'), 'Logo must scroll to top when already on home page');
 assert(brand.includes('brand-logo--intro'), 'Logo must gate intro animation class');
+assert(brand.includes('brand-logo--premium'), 'Logo must use the premium logo system');
 assert(brand.includes('brand-logo-mark'), 'Logo must render a logo mark');
 assert(brand.includes('brand-logo-wordmark'), 'Logo must render a wordmark');
+assert(brand.includes('brand-logo-route') && brand.includes('brand-logo-h-stem'), 'Logo must render a simplified PH route monogram');
 
 // CSS
-assert(styles.includes('@keyframes mark-pop'), 'Logo intro animation keyframes must be defined');
-assert(styles.includes('@keyframes wordmark-slide'), 'Wordmark slide-in keyframe must be defined');
-assert(styles.includes('prefers-reduced-motion'), 'Logo CSS must include prefers-reduced-motion fallback');
-assert(styles.includes('brand-logo--intro'), 'Logo intro class must be styled');
-assert(styles.includes('brand-logo-picky'), 'Brand wordmark picky part must be styled');
-assert(styles.includes('brand-logo-holiday'), 'Brand wordmark holiday part must be styled');
-assert(styles.includes('brand-logo--footer'), 'Footer logo variant must be styled');
-assert(styles.includes('brand-logo-mark{width:30px'), 'Mobile logo mark must be smaller');
+assert(brandLogoPolish.includes('@keyframes ph-logo-shell-in'), 'Premium logo shell intro keyframe must be defined');
+assert(brandLogoPolish.includes('@keyframes ph-logo-route-draw'), 'Premium logo route draw keyframe must be defined');
+assert(brandLogoPolish.includes('@keyframes ph-logo-accent-pop'), 'Premium logo accent pop keyframe must be defined');
+assert(brandLogoPolish.includes('@keyframes ph-logo-wordmark-in'), 'Premium logo wordmark keyframe must be defined');
+assert(brandLogoPolish.includes('@keyframes ph-logo-tld-in'), 'Premium logo TLD keyframe must be defined');
+assert(brandLogoPolish.includes('prefers-reduced-motion:reduce'), 'Logo CSS must include prefers-reduced-motion fallback');
+assert(brandLogoPolish.includes('brand-logo--intro'), 'Logo intro class must be styled');
+assert(brandLogoPolish.includes('brand-logo--premium'), 'Premium logo class must be styled');
+assert(brandLogoPolish.includes('brand-logo-picky'), 'Brand wordmark picky part must be styled');
+assert(brandLogoPolish.includes('brand-logo-holiday'), 'Brand wordmark holiday part must be styled');
+assert(brandLogoPolish.includes('brand-logo--footer'), 'Footer logo variant must be styled');
+assert(brandLogoPolish.includes('@media(max-width:720px)') && brandLogoPolish.includes('brand-logo-mark{width:34px'), 'Mobile logo mark must be smaller');
 
 /* ── Site-wide animation assertions ────────────────────────── */
 const searchPanel = readFileSync(new URL('../src/components/search/SearchPanel.jsx', import.meta.url), 'utf8');
