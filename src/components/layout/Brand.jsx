@@ -59,7 +59,6 @@ export function Logo({ footer = false }) {
     sun: `${uid}-sun`,
     sea: `${uid}-sea`,
     route: `${uid}-route`,
-    word: `${uid}-word`,
   };
 
   return (
@@ -109,10 +108,6 @@ export function Logo({ footer = false }) {
             <linearGradient id={id.route} x1="17" y1="49" x2="43" y2="17">
               <stop offset="0%" stopColor="#FFE07A" />
               <stop offset="100%" stopColor="#FFFFFF" />
-            </linearGradient>
-            <linearGradient id={id.word} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#075EDB" />
-              <stop offset="100%" stopColor="#082A62" />
             </linearGradient>
           </defs>
         </svg>
