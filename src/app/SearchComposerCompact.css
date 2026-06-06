@@ -87,6 +87,47 @@
   white-space: nowrap;
 }
 
+.composer-summary-field {
+  position: relative;
+  min-width: 0;
+  min-height: 72px;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(205, 224, 246, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 7px 18px rgba(15, 62, 119, 0.045);
+}
+
+.composer-summary-field[open] {
+  z-index: 18;
+  border-color: rgba(7, 94, 219, 0.42);
+  box-shadow: 0 0 0 4px rgba(7, 94, 219, 0.08), 0 18px 38px rgba(15, 62, 119, 0.14);
+}
+
+.composer-summary-field summary {
+  min-height: 72px;
+  padding: 13px 16px 12px;
+  cursor: pointer;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.composer-summary-field summary > span:first-child {
+  color: #61749a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .035em;
+}
+
+.composer-summary-field summary small {
+  color: #6b7f9f;
+  font-size: 11px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .composer-date-summary,
 .composer-traveller-summary {
   grid-column: auto;
@@ -118,27 +159,34 @@
   white-space: nowrap;
 }
 
-.composer-summary-meta {
-  display: block;
-  margin-top: 4px;
-  color: #6b7f9f;
-  font-size: 11px;
-  font-weight: 800;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.composer-summary-popover {
+  position: absolute;
+  left: 0;
+  top: 82px;
+  width: 520px;
+  max-width: 88vw;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.98);
+  border: 1px solid rgba(205, 224, 246, 0.96);
+  box-shadow: 0 24px 60px rgba(8, 42, 98, 0.18);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.composer-legacy-controls {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  margin: -1px !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  clip: rect(0 0 0 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
+.composer-traveller-popover {
+  right: 0;
+  left: auto;
+  width: 430px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.composer-summary-popover .field,
+.composer-summary-popover .compact-field {
+  min-height: 64px;
+  border-radius: 14px;
+  background: #f8fbff;
 }
 
 .composer-searchbtn {
@@ -219,6 +267,15 @@
     grid-column: 1 / -1;
   }
 
+  .composer-summary-popover,
+  .composer-traveller-popover {
+    position: static;
+    width: auto;
+    max-width: none;
+    margin: 0 12px 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.96), 0 10px 24px rgba(15, 62, 119, 0.09);
+  }
+
   .composer-searchbtn {
     grid-column: 1 / -1;
     min-height: 62px;
@@ -245,8 +302,17 @@
   .composer-fields .field,
   .composer-fields .destination-field,
   .composer-fields .compact-field,
-  .composer-fields .smart-travel-field {
+  .composer-fields .smart-travel-field,
+  .composer-summary-field,
+  .composer-summary-field summary {
     min-height: 66px;
+  }
+
+  .composer-summary-popover,
+  .composer-traveller-popover {
+    grid-template-columns: 1fr;
+    margin: 0 10px 10px;
+    padding: 10px;
   }
 
   .composer-searchbtn {
