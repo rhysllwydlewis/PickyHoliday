@@ -131,11 +131,61 @@
   box-shadow: 0 18px 38px rgba(8,42,98,.16);
 }
 
-/* Conservative desktop fix: keep the original controls but stop date/nights fields looking like tiny stubs. */
+/* Conservative desktop fix: keep existing controls but give each one a predictable place. */
 .search-panel.composer-search-panel .composer-fields {
   grid-template-columns: minmax(320px, 1.55fr) minmax(260px, 1.25fr) minmax(155px, .72fr) minmax(155px, .72fr) minmax(150px, .68fr);
   gap: 12px;
   align-items: stretch;
+}
+
+.search-panel.composer-search-panel .destination-field {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.search-panel.composer-search-panel .airport-field {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.search-panel.composer-search-panel .depart-field {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.search-panel.composer-search-panel .return-field {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.search-panel.composer-search-panel .search-action-field {
+  grid-column: 5;
+  grid-row: 1;
+}
+
+.search-panel.composer-search-panel .adult-field {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.search-panel.composer-search-panel .children-field {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.search-panel.composer-search-panel .rooms-field {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.search-panel.composer-search-panel .nights-field {
+  grid-column: 4;
+  grid-row: 2;
+}
+
+.search-panel.composer-search-panel .flexibility-field {
+  grid-column: 5;
+  grid-row: 2;
 }
 
 .search-panel.composer-search-panel .composer-fields .field,
@@ -167,6 +217,20 @@
 @media(max-width:1180px) {
   .search-panel.composer-search-panel .composer-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .search-panel.composer-search-panel .destination-field,
+  .search-panel.composer-search-panel .airport-field,
+  .search-panel.composer-search-panel .depart-field,
+  .search-panel.composer-search-panel .return-field,
+  .search-panel.composer-search-panel .adult-field,
+  .search-panel.composer-search-panel .children-field,
+  .search-panel.composer-search-panel .rooms-field,
+  .search-panel.composer-search-panel .nights-field,
+  .search-panel.composer-search-panel .flexibility-field,
+  .search-panel.composer-search-panel .search-action-field {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .search-panel.composer-search-panel .destination-field,
