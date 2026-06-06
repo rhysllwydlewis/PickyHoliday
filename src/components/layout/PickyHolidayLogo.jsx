@@ -3,6 +3,7 @@ import { scrollToId } from '../../app/appConstants.js';
 import './PickyHolidayLogo.css';
 
 const logoIntroStorageKey = 'pickyholiday-layered-logo-intro-v1';
+const flightPath = 'M318 55 C402 22 500 18 566 29 C620 38 655 35 694 25';
 let firstNavbarLogoRender = true;
 
 function prefersReducedMotion() {
@@ -46,6 +47,7 @@ export function Logo({ footer = false }) {
   const shimmerId = makeId(rawId, 'shimmer');
   const shimmerClipId = makeId(rawId, 'clip');
   const flightPathId = makeId(rawId, 'flight');
+  const flightMaskId = makeId(rawId, 'flight-mask');
 
   useEffect(() => {
     if (prefersReducedMotion()) setRunIntro(false);
@@ -61,9 +63,9 @@ export function Logo({ footer = false }) {
   return (
     <button type="button" className={cls} onClick={handleLogoClick} aria-label="PickyHoliday home">
       <span className="brand-logo-stage" aria-hidden="true">
-        <svg className="pickyholiday-logo-svg" viewBox={footer ? '0 0 720 180' : '0 0 820 180'} focusable="false" xmlns="http://www.w3.org/2000/svg">
+        <svg className="pickyholiday-logo-svg" viewBox={footer ? '0 0 720 180' : '0 0 820 180'} focusable="false" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
           <defs>
-            <path id={flightPathId} d="M318 55 C402 22 500 18 566 29 C620 38 655 35 694 25" />
+            <path id={flightPathId} d={flightPath} />
             <radialGradient id={goldId} cx="34%" cy="28%" r="74%">
               <stop offset="0%" stopColor="#fff6bf" />
               <stop offset="46%" stopColor="#ffd451" />
@@ -76,6 +78,9 @@ export function Logo({ footer = false }) {
               <stop offset="58%" stopColor="#fff" stopOpacity="0" />
               <stop offset="100%" stopColor="#fff" stopOpacity="0" />
             </linearGradient>
+            <mask id={flightMaskId} maskUnits="userSpaceOnUse" x="300" y="0" width="430" height="90">
+              <path className="brand-logo-flight-reveal" d={flightPath} pathLength="240" fill="none" stroke="#fff" strokeWidth="16" strokeLinecap="round" />
+            </mask>
             <clipPath id={shimmerClipId}>
               <text x="26" y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">Picky</text>
               <text x="290" y="122" fontFamily="Inter, Arial, sans-serif" fontSize="78" fontWeight="950" letterSpacing="-5.4">H</text>
@@ -103,12 +108,12 @@ export function Logo({ footer = false }) {
           {!footer && <text className="brand-logo-domain" x="683" y="113" fontFamily="Inter, Arial, sans-serif" fontSize="34" fontWeight="900" letterSpacing="-1.1">.co.uk</text>}
 
           <path className="brand-logo-underline" d="M24 145 C98 130 197 139 315 144" pathLength="260" fill="none" />
-          <path className="brand-logo-flight-path" d="M318 55 C402 22 500 18 566 29 C620 38 655 35 694 25" pathLength="240" fill="none" />
+          <path className="brand-logo-flight-path" d={flightPath} pathLength="240" fill="none" mask={`url(#${flightMaskId})`} />
 
           <g className="brand-logo-plane" transform={runIntro && !footer ? undefined : 'translate(694 25) rotate(-14)'}>
             {runIntro && !footer && (
               <animateMotion dur="2.6s" begin="0.62s" fill="freeze" rotate="auto" calcMode="spline" keyTimes="0;1" keySplines="0.22 1 0.36 1">
-                <mpath href={`#${flightPathId}`} />
+                <mpath href={`#${flightPathId}`} xlinkHref={`#${flightPathId}`} />
               </animateMotion>
             )}
             <g className="brand-logo-plane-shape" transform="scale(0.88)">
