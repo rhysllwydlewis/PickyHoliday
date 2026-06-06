@@ -40,7 +40,7 @@ function validateEnquiryForm(form) {
 export function dealModalContent(selected, { onOpenEnquiry, onSubmitted, onShortlist, isShortlisted, onQuote } = {}) {
   return {
     title: selected.hotelName,
-    body: selected.provider === 'partner-redirect' ? `${selected.flightSummary}. ${selected.hotelSummary}. This sends you to the partner to check live price. No payment taken by PickyHoliday.` : `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or continue to a partner where available. No payment taken by PickyHoliday.`,
+    body: selected.provider === 'partner-redirect' ? `${selected.flightSummary}. ${selected.hotelSummary}. This sends you to the partner to check live price. Partner terms are confirmed on partner site. No payment taken by PickyHoliday.` : `${selected.flightSummary}. ${selected.hotelSummary}. You can save an enquiry or check live price with a partner where available. No payment taken by PickyHoliday.`,
     kicker: selected.savingLabel,
     deal: selected,
     onEnquiry: (deal) => {
@@ -113,7 +113,7 @@ function EnquiryForm({ deal, onClose, onSubmitted }) {
       <div className="enquiry-success" role="status">
         <span>Enquiry saved</span>
         <h2 id="modal-title">Thanks, your enquiry has been saved.</h2>
-        <p>This is an enquiry only. No payment taken by PickyHoliday. Partner terms are confirmed on partner site.</p>
+        <p>This is an enquiry only. No booking created. No payment taken by PickyHoliday. Partner terms are confirmed on partner site.</p>
         {success.id && <p className="enquiry-ref">Enquiry ref: {success.id}</p>}
         <div className="modal-actions">
           <button type="button" onClick={onClose}>Close</button>

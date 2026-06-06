@@ -45,7 +45,7 @@ export function AdminEnquiriesPanel({ token }) {
       <AdminPageTitle
         kicker="Saved customer enquiries"
         title="Enquiries"
-        copy="Review quote requests. Status updates are internal only and do not create bookings, payments or supplier reservations."
+        copy="Review quote requests. Status updates are internal only and do not create customer bookings or take payments."
         action={<button onClick={load} disabled={isLoading}>Refresh</button>}
       />
       {error && <div className="error-state">{error}</div>}

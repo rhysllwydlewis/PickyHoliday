@@ -40,12 +40,12 @@ import {
 } from './appConstants.js';
 
 const benefits = [
-  [BriefcaseBusiness, 'Group experts', 'Years of experience in group travel'],
-  [HandCoins, 'Flexible next steps', 'Compare options now and discuss deposits later with an advisor'],
-  [WalletCards, 'Flexible planning', 'Save an enquiry now and discuss deposits later with an advisor'],
-  [ShieldCheck, 'Enquiry first', 'Results and redirects stay enquiry-only until you choose a partner next step'],
-  [Clock3, '24/7 support', 'We’re here whenever you need us'],
-  [LockKeyhole, 'Secure enquiries', 'Your quote request stays with PickyHoliday advisors'],
+  [BriefcaseBusiness, 'Group-friendly ideas', 'Search group-friendly holiday ideas in seconds'],
+  [HandCoins, 'Live-price checks', 'Compare ideas and check live prices with partners'],
+  [WalletCards, 'No payment taken', 'No booking created by PickyHoliday when you search or save'],
+  [ShieldCheck, 'Enquiry first', 'Save favourites and ask for a group quote when plans need checking'],
+  [Clock3, 'Group quote support', 'Ask for rooms, dates or extras to be checked before partner confirmation'],
+  [LockKeyhole, 'Partner confirmation', 'Prices, availability and terms are confirmed by the partner or advisor'],
 ];
 
 export function App() {
@@ -63,7 +63,7 @@ export function App() {
     rooms: 1,
     intent: 'Holidays',
   }));
-  const [searchSummary, setSearchSummary] = useState('Showing popular group holiday ideas. Ask for group quote saves an enquiry for advisor follow-up.');
+  const [searchSummary, setSearchSummary] = useState('Showing popular group-friendly holiday ideas. Save favourites, check live prices with partners or ask for a group quote.');
   const [dealList, setDealList] = useState([]);
   const [spotlightedDeals, setSpotlightedDeals] = useState([]);
   const [isSearching, setIsSearching] = useState(true);
@@ -360,7 +360,7 @@ export function App() {
           <SectionTitle title="Why choose PickyHoliday?" />
           <div className="benefits">
             {benefits.map(([Icon, title, copy]) => (
-              <button className="benefit" key={title} onClick={() => openMessage(title, copy, 'Why choose us')}>
+              <button type="button" className="benefit" key={title} onClick={() => openMessage(title, copy, 'Why choose us')}>
                 <Icon />
                 <div><h3>{title}</h3><p>{copy}</p></div>
               </button>
@@ -371,9 +371,9 @@ export function App() {
           <div>
             <span>BETTER TOGETHER</span>
             <h2>Save more when<br />you go <b>together</b></h2>
-            <p>Big group? Save an enquiry and tell us what you need.<br />No payment taken. Advisor follow-up before anyone commits.</p>
-            <button onClick={() => { setSearch((currentSearch) => ({ ...currentSearch, groupSize: '20+ people, group quote' })); scrollToId('search'); }}>
-              Explore group deals <ChevronRight size={18} />
+            <p>Big group? Save an enquiry and tell us what you need.<br />No payment taken by PickyHoliday. No booking created.</p>
+            <button type="button" onClick={() => { setSearch((currentSearch) => ({ ...currentSearch, groupSize: '20+ people, group quote' })); scrollToId('search'); }}>
+              Ask for group quote <ChevronRight size={18} />
             </button>
           </div>
           <div className="promo-price">Group deals<br />from <strong>£199</strong> pp<Users /></div>
@@ -391,14 +391,14 @@ export function App() {
             <p>{siteConfig.newsletter?.subtitle || 'Be the first to hear about exclusive offers, big savings and new destinations.'}</p>
           </div>
           <label><Mail size={18} /><input value={newsletterEmail} onChange={(event) => setNewsletterEmail(event.target.value)} placeholder="Enter your email address" /></label>
-          <button>Sign me up <ChevronRight size={17} /></button>
+          <button type="submit">Sign me up <ChevronRight size={17} /></button>
         </form>
         <div className="content strip">
-          <button onClick={() => openMessage('Trustpilot rating', 'PickyHoliday is rated 4.7 out of 5 by travellers in this demo experience.', 'Trustpilot')}><Star fill="currentColor" /> Trustpilot</button>
+          <button type="button" onClick={() => openMessage('Trustpilot rating', 'PickyHoliday is rated 4.7 out of 5 by travellers in this demo experience.', 'Trustpilot')}><Star fill="currentColor" /> Trustpilot</button>
           <Stars small />
           <span>Rated 4.7/5</span>
           <span><LockKeyhole size={18} /> Secure enquiries</span>
-          <span>{siteConfig.trust?.protectionCopy || 'Saved enquiries only — advisor follow-up before any next step'}</span>
+          <span>{siteConfig.trust?.protectionCopy || 'No booking created — no payment taken by PickyHoliday'}</span>
         </div>
       </main>
       <Footer onAction={openMessage} onSignIn={openSignIn} siteConfig={siteConfig} />

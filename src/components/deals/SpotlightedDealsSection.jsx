@@ -6,7 +6,7 @@ function SectionTitle({ title, link, onLink }) {
   return (
     <div className="section-title">
       <h2>{title}</h2>
-      {link && <button onClick={onLink}>{link} <ChevronRight size={16} /></button>}
+      {link && <button type="button" onClick={onLink}>{link} <ChevronRight size={16} /></button>}
     </div>
   );
 }
@@ -31,9 +31,9 @@ export function SpotlightedDealsSection({ deals, onViewDeal, isShortlisted, onTo
             <div className="spotlight-meta"><span>{deal.supplierName || deal.provider}</span><span>{deal.dateLabel || `${deal.nights || 7} nights`}</span></div>
             <div className="spotlight-price"><strong>{hasPricedAmount(deal) ? `From ${priceCopy(deal)}` : 'Check live price'}</strong><small>{deal.priceQualifier}</small></div>
             <div className="spotlight-actions">
-              <button onClick={() => onViewDeal(deal)}>{deal.partnerUrl ? 'Check live price' : 'View deal'}</button>
-              <button className="ghost-action" onClick={() => onQuote?.([deal])}>Ask for group quote</button>
-              <button className={`icon-action ${isShortlisted?.(deal) ? 'added' : ''}`} onClick={() => onToggleShortlist?.(deal)} aria-pressed={isShortlisted?.(deal)}><Heart size={15} fill={isShortlisted?.(deal) ? 'currentColor' : 'none'} /></button>
+              <button type="button" onClick={() => onViewDeal(deal)}>{deal.partnerUrl ? 'Check live price' : 'View trip'}</button>
+              <button type="button" className="ghost-action" onClick={() => onQuote?.([deal])}>Ask for group quote</button>
+              <button type="button" className={`icon-action ${isShortlisted?.(deal) ? 'added' : ''}`} onClick={() => onToggleShortlist?.(deal)} aria-label={isShortlisted?.(deal) ? `Remove ${deal.hotelName || 'holiday idea'} from saved enquiries` : `Save ${deal.hotelName || 'holiday idea'} to enquiry shortlist`} aria-pressed={isShortlisted?.(deal)}><Heart size={15} fill={isShortlisted?.(deal) ? 'currentColor' : 'none'} /></button>
             </div>
           </article>
         ))}

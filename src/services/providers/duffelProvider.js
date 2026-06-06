@@ -188,7 +188,7 @@ export function createDuffelProvider(config = {}) {
       savingLabel: 'SEARCH ONLY',
       rating: 'Provider result',
       flightSummary: `${placeCode(outbound?.origin) || resolved.origin} to ${placeCode(outbound?.destination) || resolved.destination}; returns ${placeCode(inbound?.origin) || resolved.destination} to ${placeCode(inbound?.destination) || resolved.origin}`,
-      hotelSummary: 'Flight-only search result. No Duffel order, payment, seat map or ancillary flow has been created.',
+      hotelSummary: 'Flight-only search result. PickyHoliday does not take payment or create supplier actions.',
       nights: resolved.nights || parseNights(criteria.date, providerConfig.defaultNights),
       departureAirport: placeCode(outbound?.origin) || resolved.origin,
       returnAirport: placeCode(inbound?.destination) || resolved.origin,
@@ -196,7 +196,7 @@ export function createDuffelProvider(config = {}) {
       groupSizeLabel: criteria.groupSize || `${resolved.adults || providerConfig.defaultAdults} adults`,
       boardBasis: 'Flight only; economy cabin search scaffold',
       baggageLabel: 'Baggage, fare rules and airline conditions must be confirmed before any booking.',
-      protectionLabel: 'Search result only. No booking, order or payment is created by PickyHoliday.',
+      protectionLabel: 'Search result only. No booking created. No payment taken by PickyHoliday.',
       bookingMode: 'enquiry',
       partnerUrl: '',
       tags: ['Holidays', 'Flights', 'Duffel', 'Search only'],
@@ -231,7 +231,7 @@ export function createDuffelProvider(config = {}) {
         configured: this.configured,
         mode: this.configured ? 'test-or-live-token-present' : 'needs-server-side-token',
         note: this.configured
-          ? 'Duffel flight offer search scaffold is available server-side. This PR creates offer requests only; no orders, payments, seat maps or ancillaries are created.'
+          ? 'Flight offer search is available server-side for enquiry-first checks. No payment taken by PickyHoliday.'
           : 'Set DUFFEL_ACCESS_TOKEN on the server to enable Duffel offer-request search. Use test tokens locally and keep tokens out of browser code.',
       };
     },

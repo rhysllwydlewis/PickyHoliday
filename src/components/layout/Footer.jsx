@@ -65,12 +65,12 @@ export function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
       <div className="footer-promise content">
         <span><BadgeCheck /> Enquiry-first, advisor-led</span>
         <span><Users /> Built for groups, mates and families</span>
-        <button onClick={() => onAction(footerWidgetFor('Footer promise', onSignIn))}>How PickyHoliday works</button>
+        <button type="button" onClick={() => onAction(footerWidgetFor('Footer promise', onSignIn))}>How PickyHoliday works</button>
       </div>
       <div className="foot content">
         <div className="brand">
           <Logo footer />
-          <p>{siteConfig.footer?.shortDescription || 'Group holidays made easy.'}</p>
+          <p>{siteConfig.footer?.shortDescription || 'Enquiry-first group holiday ideas.'}</p>
           <div className="footer-trust-pills" aria-label="PickyHoliday safeguards">
             <span><ShieldCheck /> Enquiry-first</span>
             <span><LockKeyhole /> Secure follow-up</span>
@@ -78,10 +78,10 @@ export function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
           </div>
           <span>Follow us</span>
           <div className="social">
-            <button aria-label="Facebook community" onClick={() => onAction(footerWidgetFor('Facebook', onSignIn))}><i>f</i></button>
-            <button aria-label="Instagram inspiration feed" onClick={() => onAction(footerWidgetFor('Instagram', onSignIn))}><i>◎</i></button>
-            <button aria-label="Travel wheel" onClick={() => onAction(footerWidgetFor('Travel wheel', onSignIn))}><ShipWheel /></button>
-            <button aria-label="Video guides" onClick={() => onAction(footerWidgetFor('Video guides', onSignIn))}><i>▶</i></button>
+            <button type="button" aria-label="Facebook community" onClick={() => onAction(footerWidgetFor('Facebook', onSignIn))}><i>f</i></button>
+            <button type="button" aria-label="Instagram inspiration feed" onClick={() => onAction(footerWidgetFor('Instagram', onSignIn))}><i>◎</i></button>
+            <button type="button" aria-label="Travel wheel" onClick={() => onAction(footerWidgetFor('Travel wheel', onSignIn))}><ShipWheel /></button>
+            <button type="button" aria-label="Video guides" onClick={() => onAction(footerWidgetFor('Video guides', onSignIn))}><i>▶</i></button>
           </div>
         </div>
         {cols.map(([heading, links]) => (
@@ -90,7 +90,7 @@ export function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
             {links.map((link) => {
               const slug = link.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
               const prefix = heading === 'Destinations' ? '/destinations/' : heading === 'Group holidays' ? '/group-holidays/' : heading === 'Guides' ? '/guides/' : '';
-              return prefix ? <a key={link} href={`${prefix}${slug}`}>{link}</a> : <button key={link} onClick={() => onAction(footerWidgetFor(link, onSignIn))}>{link}</button>;
+              return prefix ? <a key={link} href={`${prefix}${slug}`}>{link}</a> : <button type="button" key={link} onClick={() => onAction(footerWidgetFor(link, onSignIn))}>{link}</button>;
             })}
           </div>
         ))}
@@ -99,18 +99,18 @@ export function Footer({ onAction, onSignIn, siteConfig = defaultSiteConfig }) {
           <h3>Keep the whole group in sync</h3>
           <p>Manage saved enquiries, destination shortlists and advisor updates from one place.</p>
           <div className="app-buttons">
-            <button aria-label="App Store placeholder" onClick={() => onAction(footerWidgetFor('App Store', onSignIn))}> App Store</button>
-            <button aria-label="Google Play placeholder" onClick={() => onAction(footerWidgetFor('Google Play', onSignIn))}>▶ Google Play</button>
+            <button type="button" aria-label="App Store placeholder" onClick={() => onAction(footerWidgetFor('App Store', onSignIn))}> App Store</button>
+            <button type="button" aria-label="Google Play placeholder" onClick={() => onAction(footerWidgetFor('Google Play', onSignIn))}>▶ Google Play</button>
           </div>
-          <button className="footer-cta" onClick={() => onAction(footerWidgetFor('Ask for a group quote', onSignIn))}>Ask for a group quote</button>
+          <button type="button" className="footer-cta" onClick={() => onAction(footerWidgetFor('Ask for a group quote', onSignIn))}>Ask for a group quote</button>
         </div>
       </div>
       <div className="copy content">
         <p>© {currentYear} PickyHoliday.co.uk. All rights retained.</p>
         <span><ShieldCheck /> Enquiry-first planning</span>
         <span><ShieldCheck /> Secure enquiries</span>
-        <span><Clock3 /> 24/7 support</span>
-        <button onClick={() => (onSignIn ? onSignIn() : onAction('Sign in', 'Open the sign in widget from the header to access the owner admin dashboard. Customer accounts are not live yet.'))}>Sign in</button>
+        <span><Clock3 /> Group quote support</span>
+        <button type="button" onClick={() => (onSignIn ? onSignIn() : onAction('Sign in', 'Open the sign in widget from the header to access the owner admin dashboard. Customer accounts are not live yet.'))}>Sign in</button>
       </div>
     </footer>
   );

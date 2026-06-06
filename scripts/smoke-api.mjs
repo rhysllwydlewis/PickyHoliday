@@ -206,7 +206,7 @@ const assertPackageResults = (data) => {
     throw new Error('/api/travel/packages returned an unexpected booking mode.');
   }
   if (JSON.stringify(data.results).toLowerCase().includes('booking confirmed')) {
-    throw new Error('/api/travel/packages appeared to claim a live booking confirmation.');
+    throw new Error('/api/travel/packages appeared to claim a completed customer booking.');
   }
 };
 
@@ -250,7 +250,7 @@ const assertEnquiry = (data) => {
   if (!data.enquiry?.id) {
     throw new Error('/api/travel/enquiries did not return an enquiry id.');
   }
-  if (!data.enquiry?.message?.toLowerCase().includes('not a booking confirmation')) {
+  if (!data.enquiry?.message?.toLowerCase().includes('no booking created by pickyholiday')) {
     throw new Error('/api/travel/enquiries did not return the expected mock enquiry-only message.');
   }
   const body = JSON.stringify(data).toLowerCase();

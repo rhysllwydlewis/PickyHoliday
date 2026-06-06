@@ -42,12 +42,12 @@ export function PublicContentPageApp() {
           <span>{page.heroEyebrow || (page.type === 'guide' ? 'Travel guide' : 'Group holiday page')}</span>
           <h1>{page.heroTitle || page.title}</h1>
           <p>{page.heroSubtitle || page.intro}</p>
-          <div className="content-hero-actions"><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}&intent=${encodeURIComponent(page.searchDefaults?.intent || '')}#search`}>Search ideas</a><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}#deals`}>Ask for group quote</a></div>
+          <div className="content-hero-actions"><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}&intent=${encodeURIComponent(page.searchDefaults?.intent || '')}#search`}>Search</a><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || '')}#deals`}>Ask for group quote</a></div>
         </section>
         <section className="content-body"><p className="intro-copy">{page.intro}</p>{(page.sections || []).map((section) => <article key={section.id}><h2>{section.heading}</h2><p>{section.body}</p></article>)}</section>
         {deals.length > 0 && <section className="content-related"><h2>Related holiday ideas</h2><div className="deal-grid compact">{deals.map((deal) => <DealCard key={deal.id || deal.resultId} deal={deal} onView={openRelatedDeal} />)}</div></section>}
         {(page.faqs || []).length > 0 && <section className="content-faq"><h2>FAQs</h2>{page.faqs.map((faq) => <details key={faq.id}><summary>{faq.question}</summary><p>{faq.answer}</p></details>)}</section>}
-        <section className="content-cta"><h2>Ready to plan this group trip?</h2><p>Send an enquiry for advisor follow-up. This is not a booking confirmation and no payment is taken.</p><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || page.title)}&intent=${encodeURIComponent(page.searchDefaults?.intent || 'Holidays')}#deals`}>Ask for group quote</a></section>
+        <section className="content-cta"><h2>Ready to plan this group trip?</h2><p>Send an enquiry for group quote support. No booking created by PickyHoliday and no payment is taken.</p><a href={`/?destination=${encodeURIComponent(page.searchDefaults?.destination || page.title)}&intent=${encodeURIComponent(page.searchDefaults?.intent || 'Holidays')}#deals`}>Ask for group quote</a></section>
         {related.length > 0 && <section className="content-links"><h2>Related links</h2>{related.map((item) => <a key={item} href={contentPathForSlug(item)}>{labelFromSlug(item)}</a>)}</section>}
       </main>
       <Footer onAction={openMessage} onSignIn={openSignIn} />

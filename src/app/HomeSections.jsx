@@ -12,16 +12,16 @@ const footerSearchUrl = ({ intent = 'Holidays', destination = '' } = {}) => `/?$
 
 export function Hero({ config }) {
   const hero = config?.hero || {};
-  const titleParts = (hero.title || 'Smart group holidays. More fun. Less fuss.').split('. ');
+  const titleParts = (hero.title || 'Search group-friendly holiday ideas in seconds.').split('. ');
   return (
     <section className="hero">
       <div className="hero-bg" />
       <div className="hero-content">
         <div className="eyebrow"><Star fill="currentColor" size={15} /> {hero.eyebrow || 'GROUP HOLIDAYS, MADE EASY'}</div>
         <h1>{titleParts[0] || 'Smart group holidays.'}<br /><span>{titleParts[1] || 'More fun.'}</span> {titleParts.slice(2).join('. ') || 'Less fuss.'}</h1>
-        <p>{hero.subtitle || 'Compare inspiration, partner redirects and saved enquiries for mates, families and every kind of group adventure.'}</p>
+        <p>{hero.subtitle || 'Compare ideas, save favourites and check live prices with partners. No payment taken by PickyHoliday.'}</p>
         <ul className="assurances" aria-label="Planning reassurance" role="list">
-          {(hero.assuranceChips || ['Best group ideas', 'Saved enquiries', 'Advisor review', 'Enquiry only']).map((assurance, index) => {
+          {(hero.assuranceChips || ['Enquiry-first holiday ideas', 'Live-price checks with partners', 'No payment taken', 'Partner terms confirmed on partner site']).map((assurance, index) => {
             const Icon = [CircleDollarSign, WalletCards, Clock3, BadgeCheck][index];
             return <li key={assurance}><Icon size={17} aria-hidden="true" /> {assurance}</li>;
           })}
@@ -37,7 +37,7 @@ export function SectionTitle({ title, link, onLink }) {
   return (
     <div className="section-title">
       <h2>{title}</h2>
-      {link && <button onClick={onLink}>{link} <ChevronRight size={16} /></button>}
+      {link && <button type="button" onClick={onLink}>{link} <ChevronRight size={16} /></button>}
     </div>
   );
 }
@@ -46,20 +46,20 @@ export function SectionTitle({ title, link, onLink }) {
 export function DealsSection({ dealsToShow, searchSummary, onReset, onRotateDeals, onViewDeal, isShortlisted, onToggleShortlist, isLoading, error, diagnostics, onRefreshDiagnostics }) {
   return (
     <section className="content block overlap" id="deals">
-      <SectionTitle title="Popular group holiday deals" link="View all deals" onLink={onReset} />
+      <SectionTitle title="Popular group holiday ideas" link="View all deals" onLink={onReset} />
       <p className="results-note">{searchSummary}</p>
       <ProviderDiagnostics diagnostics={diagnostics} onRefresh={onRefreshDiagnostics} />
-      {isLoading && <div className="loading-state">Searching provider adapters safely. Mock fallback stays available if the API is unavailable…</div>}
+      {isLoading && <div className="loading-state">Searching holiday ideas with partners…</div>}
       {error && <div className="error-state">{error}</div>}
-      <button className="arrow left" onClick={() => onRotateDeals('prev')} aria-label="Previous deal"><ChevronLeft /></button>
+      <button type="button" className="arrow left" onClick={() => onRotateDeals('prev')} aria-label="Previous deal"><ChevronLeft /></button>
       <div className="deals grid-six">
         {!isLoading && dealsToShow.length ? (
           dealsToShow.map((deal) => <DealCard key={deal.id} deal={deal} onView={onViewDeal} isShortlisted={isShortlisted?.(deal)} onToggleShortlist={onToggleShortlist} />)
         ) : !isLoading ? (
-          <div className="empty-state">No live partner results found yet. Try another destination or send a group quote enquiry.</div>
+          <div className="empty-state">No ideas match this search yet. Try flexible dates, a different airport or a wider budget.</div>
         ) : null}
       </div>
-      <button className="arrow right" onClick={() => onRotateDeals('next')} aria-label="Next deal"><ChevronRight /></button>
+      <button type="button" className="arrow right" onClick={() => onRotateDeals('next')} aria-label="Next deal"><ChevronRight /></button>
     </section>
   );
 }
@@ -70,13 +70,13 @@ export function GetawaysSection({ items, onSelectGetaway, onRotate }) {
       <SectionTitle title="Find your perfect group getaway" />
       <div className="getaways grid-six">
         {items.map(([title, subtitle, image]) => (
-          <button className="getaway" key={title} onClick={() => onSelectGetaway(title)}>
+          <button type="button" className="getaway" key={title} onClick={() => onSelectGetaway(title)}>
             <img src={img(image)} alt="" />
             <div><h3>{title}</h3><p>{subtitle}</p></div>
           </button>
         ))}
       </div>
-      <button className="arrow right mid" onClick={() => onRotate('next')} aria-label="Next getaway"><ChevronRight /></button>
+      <button type="button" className="arrow right mid" onClick={() => onRotate('next')} aria-label="Next getaway"><ChevronRight /></button>
     </section>
   );
 }
@@ -88,7 +88,7 @@ function guideWidgetFor(title) {
     body: `Open planning help for ${title.toLowerCase()} and use it to choose a safer enquiry-first group holiday next step.`,
     bullets: ['Preview the topic before searching.', 'Use the search action for matching ideas.', 'Enquiries stay saved until you choose a next step.'],
     search: { intent: 'Holidays' },
-    searchActionLabel: 'Search matching trips',
+    searchActionLabel: 'Search',
   };
   const actions = [];
   if (content.guideSlug) {
@@ -119,14 +119,14 @@ export function GuidesSection({ items, onAction, onRotate }) {
       />
       <div className="guides">
         {items.map(([image, title]) => (
-          <button key={title} onClick={() => onAction(guideWidgetFor(title))}>
+          <button type="button" key={title} onClick={() => onAction(guideWidgetFor(title))}>
             <img src={img(image)} alt="" />
             <h3>{title}</h3>
           </button>
         ))}
       </div>
-      <button className="arrow left low" onClick={() => onRotate('prev')} aria-label="Previous guide"><ChevronLeft /></button>
-      <button className="arrow right low" onClick={() => onRotate('next')} aria-label="Next guide"><ChevronRight /></button>
+      <button type="button" className="arrow left low" onClick={() => onRotate('prev')} aria-label="Previous guide"><ChevronLeft /></button>
+      <button type="button" className="arrow right low" onClick={() => onRotate('next')} aria-label="Next guide"><ChevronRight /></button>
     </section>
   );
 }
@@ -144,7 +144,7 @@ export function ReviewsSection({ onAction }) {
       </div>
       <div className="reviews">
         {reviews.map(([name, quote, avatar]) => (
-          <button key={name} onClick={() => onAction(name, quote, 'Traveller story')}>
+          <button type="button" key={name} onClick={() => onAction(name, quote, 'Traveller story')}>
             <Stars small />
             <p>{quote}</p>
             <div><img src={img(avatar)} alt="" /><b>{name}</b></div>

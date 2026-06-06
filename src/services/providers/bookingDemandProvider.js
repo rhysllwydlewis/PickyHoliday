@@ -49,9 +49,9 @@ const mockAccommodation = (criteria, cityId) => [{
   groupSizeLabel: `${criteria.partySize || criteria.adults || 2} people · ${criteria.rooms || 1} room${Number(criteria.rooms || 1) === 1 ? '' : 's'}`,
   rooms: criteria.rooms || 1,
   roomMix: criteria.roomMix || `${criteria.rooms || 1} room${Number(criteria.rooms || 1) === 1 ? '' : 's'}`,
-  boardBasis: 'Board and room terms checked on Booking.com',
+  boardBasis: 'Board and room terms checked on partner site',
   baggageLabel: 'Hotel-only result; baggage depends on any separate flights selected.',
-  protectionLabel: 'Cancellation and terms are checked on Booking.com. No booking is created by PickyHoliday.',
+  protectionLabel: 'Partner terms are checked on the partner site. No booking created by PickyHoliday.',
   bookingMode: 'affiliate',
   partnerId: 'booking',
   partnerUrl: 'https://www.booking.com/',
@@ -80,12 +80,12 @@ export function createBookingDemandProvider(config = {}) {
     return {
       id: `booking-demand-${item.id || item.hotel_id || slug(name)}-${index}`,
       resultType: 'hotel-only', provider: 'booking-demand', supplierName: 'Booking.com', destination: criteria.destination || 'Mapped destination', country: destinationCountry(criteria.destination), hotelName: name,
-      hotelSummary: 'Accommodation source: Booking.com Demand. Live room availability, cancellation and terms are checked on Booking.com before any customer action.',
+      hotelSummary: 'Accommodation source: Booking.com Demand. Live room availability and partner terms are checked on the partner site before any customer action.',
       flightSummary: 'Accommodation-only source. PickyHoliday can combine this with flight ideas for an enquiry.', image: item.main_photo_url || defaultImage(criteria.destination),
-      priceFrom: Number.isFinite(amount) && amount > 0 ? Math.round(amount) : 0, currency: item.price?.currency || config.currency || 'GBP', priceQualifier: amount > 0 ? 'indicative hotel price from Booking.com' : 'Check live price', priceType: amount > 0 ? 'provider indicative accommodation price' : 'partner live price check', pricingConfidence: amount > 0 ? 'provider-response-indicative' : 'check-live-price',
+      priceFrom: Number.isFinite(amount) && amount > 0 ? Math.round(amount) : 0, currency: item.price?.currency || config.currency || 'GBP', priceQualifier: amount > 0 ? 'indicative hotel price from partner' : 'Check live price', priceType: amount > 0 ? 'provider indicative accommodation price' : 'partner live price check', pricingConfidence: amount > 0 ? 'provider-response-indicative' : 'check-live-price',
       sourceBreakdown: { accommodationSource: 'Booking.com Demand', supplier: 'Booking.com', pricingConfidence: amount > 0 ? 'provider-response-indicative' : 'check-live-price', cityId, testMode: false },
       nights: criteria.nights || 7, departureAirport: criteria.originAirport || criteria.origin || 'Choose with advisor', arrivalAirport: criteria.destination || 'To confirm', dateLabel: criteria.departureDate || 'Flexible dates', groupSizeLabel: `${criteria.partySize || criteria.adults || 2} people · ${criteria.rooms || 1} room${Number(criteria.rooms || 1) === 1 ? '' : 's'}`, rooms: criteria.rooms || 1, roomMix: criteria.roomMix || `${criteria.rooms || 1} room${Number(criteria.rooms || 1) === 1 ? '' : 's'}`,
-      boardBasis: 'Board and room terms checked on Booking.com', baggageLabel: 'Hotel-only result; baggage depends on any separate flights selected.', protectionLabel: 'Cancellation and terms are checked on Booking.com. No booking is created by PickyHoliday.', bookingMode: 'affiliate', partnerId: 'booking', partnerUrl: 'https://www.booking.com/', savingLabel: 'Hotel source', rating: Number(item.review_score || item.rating || 0) || 0, tags: ['Accommodation', 'Hotel source', 'Booking.com', amount > 0 ? 'Provider response' : 'Check live price'], isDemo: false,
+      boardBasis: 'Board and room terms checked on partner site', baggageLabel: 'Hotel-only result; baggage depends on any separate flights selected.', protectionLabel: 'Partner terms are checked on the partner site. No booking created by PickyHoliday.', bookingMode: 'affiliate', partnerId: 'booking', partnerUrl: 'https://www.booking.com/', savingLabel: 'Hotel source', rating: Number(item.review_score || item.rating || 0) || 0, tags: ['Accommodation', 'Hotel source', 'Booking.com', amount > 0 ? 'Provider response' : 'Check live price'], isDemo: false,
     };
   };
 
