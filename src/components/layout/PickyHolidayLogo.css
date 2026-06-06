@@ -9,10 +9,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 clamp(244px, 25vw, 340px);
-  width: clamp(244px, 25vw, 340px);
+  flex: 0 1 clamp(172px, 21.5vw, 294px);
+  width: clamp(172px, 21.5vw, 294px);
+  min-width: 0;
+  max-width: 100%;
   height: clamp(50px, 5.2vw, 72px);
-  min-width: clamp(244px, 25vw, 340px);
   gap: 0;
   padding: 0;
   border: 0;
@@ -80,6 +81,11 @@
   opacity: 0.98;
 }
 
+.brand-logo-flight-reveal {
+  stroke-dasharray: 240;
+  stroke-dashoffset: 0;
+}
+
 .brand-logo-sun,
 .brand-logo-sun-rays,
 .brand-logo-sun-core,
@@ -91,7 +97,7 @@
 }
 
 .brand-logo-sun-rays {
-  transform-origin: 386px 92px;
+  transform-origin: center;
 }
 
 .brand-logo-sun-glow {
@@ -135,7 +141,9 @@
 }
 
 .brand-logo--settled .brand-logo-underline,
-.brand-logo--footer .brand-logo-underline {
+.brand-logo--settled .brand-logo-flight-reveal,
+.brand-logo--footer .brand-logo-underline,
+.brand-logo--footer .brand-logo-flight-reveal {
   stroke-dashoffset: 0;
 }
 
@@ -157,9 +165,13 @@
 }
 
 @keyframes ph-flight-draw {
-  0% { stroke-dashoffset: 240; opacity: 0; }
-  12% { opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 1; }
+  0% { stroke-dashoffset: 240; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes ph-flight-opacity {
+  0% { opacity: 0; }
+  12%, 100% { opacity: 1; }
 }
 
 @keyframes ph-plane-visible {
@@ -204,9 +216,12 @@
 }
 
 .brand-logo--intro .brand-logo-flight-path {
-  stroke-dasharray: 1 15;
-  stroke-dashoffset: 240;
   opacity: 0;
+  animation: ph-flight-opacity 1.72s cubic-bezier(0.22, 1, 0.36, 1) 1.38s both;
+}
+
+.brand-logo--intro .brand-logo-flight-reveal {
+  stroke-dashoffset: 240;
   animation: ph-flight-draw 1.72s cubic-bezier(0.22, 1, 0.36, 1) 1.38s both;
 }
 
@@ -235,26 +250,26 @@
 }
 
 .brand-logo--footer.brand-logo--premium {
-  flex-basis: clamp(214px, 20vw, 280px);
-  width: clamp(214px, 20vw, 280px);
-  min-width: clamp(214px, 20vw, 280px);
+  flex-basis: clamp(202px, 18vw, 246px);
+  width: clamp(202px, 18vw, 246px);
+  min-width: 0;
   height: clamp(46px, 4.8vw, 62px);
 }
 
 @media(max-width:959px){
   .brand-logo--premium {
-    flex-basis: clamp(220px, 34vw, 286px);
-    width: clamp(220px, 34vw, 286px);
-    min-width: clamp(220px, 34vw, 286px);
+    flex-basis: clamp(188px, 31vw, 256px);
+    width: clamp(188px, 31vw, 256px);
+    min-width: 0;
     height: clamp(48px, 6.2vw, 64px);
   }
 }
 
 @media(max-width:720px){
   .brand-logo--premium {
-    flex-basis: clamp(198px, 53vw, 252px);
-    width: clamp(198px, 53vw, 252px);
-    min-width: clamp(198px, 53vw, 252px);
+    flex-basis: clamp(172px, 50vw, 226px);
+    width: clamp(172px, 50vw, 226px);
+    min-width: 0;
     height: clamp(43px, 12vw, 56px);
   }
 
@@ -266,16 +281,10 @@
 
 @media(max-width:430px){
   .brand-logo--premium {
-    flex-basis: clamp(184px, 56vw, 214px);
-    width: clamp(184px, 56vw, 214px);
-    min-width: clamp(184px, 56vw, 214px);
+    flex-basis: clamp(160px, 54vw, 200px);
+    width: clamp(160px, 54vw, 200px);
+    min-width: 0;
     height: clamp(40px, 12.2vw, 48px);
-  }
-}
-
-@media(max-width:360px){
-  .brand-logo-domain {
-    display: none;
   }
 }
 
@@ -301,7 +310,7 @@
   }
 
   .brand-logo--premium .brand-logo-underline,
-  .brand-logo--premium .brand-logo-flight-path {
+  .brand-logo--premium .brand-logo-flight-reveal {
     stroke-dashoffset: 0;
   }
 
