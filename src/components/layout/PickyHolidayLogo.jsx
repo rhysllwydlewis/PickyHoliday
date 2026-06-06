@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useState } from 'react';
 import { scrollToId } from '../../app/appConstants.js';
 import './PickyHolidayLogo.css';
+import './PickyHolidayLogoFixes.css';
 
 const logoIntroStorageKey = 'pickyholiday-layered-logo-intro-v1';
 const flightPath = 'M318 55 C402 22 500 18 566 29 C620 38 655 35 694 25';
