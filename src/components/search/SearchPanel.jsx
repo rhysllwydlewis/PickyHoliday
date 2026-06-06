@@ -13,6 +13,7 @@ const searchTabs = [
   ['Stag & Hen', BriefcaseBusiness],
   ['Families', HeartHandshake],
 ];
+
 function renderSelectOption(option) {
   const value = option.value ?? option.label ?? option;
   const label = option.label ?? option;
@@ -38,6 +39,62 @@ function SearchInput({ icon: Icon, label, name, value, onChange, type = 'text', 
       <span>{label}</span>
       <p>{input}{Icon && <Icon size={17} />}</p>
     </label>
+  );
+}
+
+function formatDateLabel(value) {
+  if (!value) return '';
+  try {
+    return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(`${value}T12:00:00`));
+  } catch (error) {
+    return value;
+  }
+}
+
+function DateComposerField({ search, updateSearchField, departureDateMin, returnDateMin }) {
+  const depart = formatDateLabel(search.departureDate);
+  const ret = formatDateLabel(search.returnDate);
+  const main = depart && ret ? `${depart} – ${ret}` : depart ? `${depart} – add return` : 'Add dates';
+  const flexibility = Number(search.dateFlexibilityDays || 0) > 0 ? `±${search.dateFlexibilityDays} days` : 'Exact dates';
+  const nights = Number(search.nights || 0) > 0 ? `${search.nights} nights` : 'Add nights';
+
+  return (
+    <details className="composer-summary-field composer-date-summary">
+      <summary>
+        <span>Dates</span>
+        <span className="composer-summary-main"><CalendarDays size={18} /><b>{main}</b></span>
+        <small>{flexibility} · {nights}</small>
+      </summary>
+      <div className="composer-summary-popover">
+        <SearchInput label="Depart" name="departureDate" type="date" min={departureDateMin} value={search.departureDate} onChange={updateSearchField} className="depart-field" />
+        <SearchInput label="Return" name="returnDate" type="date" min={returnDateMin} value={search.returnDate} onChange={updateSearchField} className="return-field" />
+        <SearchInput icon={Clock3} label="Nights" name="nights" type="number" min="1" max="60" value={search.nights} onChange={updateSearchField} className="nights-field" />
+        <SearchInput icon={CalendarDays} label="Date flexibility" name="dateFlexibilityDays" value={search.dateFlexibilityDays} options={fieldOptions.flexibility} onChange={updateSearchField} className="flexibility-field" />
+      </div>
+    </details>
+  );
+}
+
+function TravellerComposerField({ search, updateSearchField }) {
+  const adults = Number(search.adults || 0);
+  const children = Number(search.children || 0);
+  const rooms = Number(search.rooms || 0);
+  const main = `${adults || 1} adult${adults === 1 ? '' : 's'} · ${children} child${children === 1 ? '' : 'ren'}`;
+  const meta = `${rooms || 1} room${rooms === 1 ? '' : 's'}`;
+
+  return (
+    <details className="composer-summary-field composer-traveller-summary">
+      <summary>
+        <span>Travellers</span>
+        <span className="composer-summary-main"><Users size={18} /><b>{main}</b></span>
+        <small>{meta}</small>
+      </summary>
+      <div className="composer-summary-popover composer-traveller-popover">
+        <SearchInput icon={Users} label="Adults" name="adults" type="number" min="1" max="60" value={search.adults} onChange={updateSearchField} className="adult-field" />
+        <SearchInput icon={Users} label="Children" name="children" type="number" min="0" max="60" value={search.children} onChange={updateSearchField} className="children-field" />
+        <SearchInput icon={Hotel} label="Rooms" name="rooms" type="number" min="1" max="30" value={search.rooms} onChange={updateSearchField} className="rooms-field" />
+      </div>
+    </details>
   );
 }
 
@@ -124,13 +181,8 @@ export function SearchPanel({ activeTab, setActiveTab, search, setSearch, onSear
           className="airport-field compact-field"
           emptyHint="Start typing an airport, city or IATA code"
         />
-        <SearchInput label="Depart" name="departureDate" type="date" min={departureDateMin} value={search.departureDate} onChange={updateSearchField} className="depart-field" />
-        <SearchInput label="Return" name="returnDate" type="date" min={returnDateMin} value={search.returnDate} onChange={updateSearchField} className="return-field" />
-        <SearchInput icon={Users} label="Adults" name="adults" type="number" min="1" max="60" value={search.adults} onChange={updateSearchField} className="adult-field" />
-        <SearchInput icon={Users} label="Children" name="children" type="number" min="0" max="60" value={search.children} onChange={updateSearchField} className="children-field" />
-        <SearchInput icon={Hotel} label="Rooms" name="rooms" type="number" min="1" max="30" value={search.rooms} onChange={updateSearchField} className="rooms-field" />
-        <SearchInput icon={Clock3} label="Nights" name="nights" type="number" min="1" max="60" value={search.nights} onChange={updateSearchField} className="nights-field" />
-        <SearchInput icon={CalendarDays} label="Date flexibility" name="dateFlexibilityDays" value={search.dateFlexibilityDays} options={fieldOptions.flexibility} onChange={updateSearchField} className="flexibility-field" />
+        <DateComposerField search={search} updateSearchField={updateSearchField} departureDateMin={departureDateMin} returnDateMin={returnDateMin} />
+        <TravellerComposerField search={search} updateSearchField={updateSearchField} />
         <button
           className={`searchbtn composer-searchbtn search-action-field${isLoading ? ' searchbtn--loading' : ''}`}
           type="submit"

@@ -1,0 +1,338 @@
+/* PR #62: compact premium travel composer. */
+
+.composer-search-panel {
+  overflow: visible;
+  padding: clamp(16px, 1.25vw, 20px) clamp(20px, 2vw, 30px) clamp(16px, 1.45vw, 22px);
+}
+
+.composer-search-panel .tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 5px;
+  border-radius: 18px;
+  background: rgba(244, 249, 255, 0.82);
+  border: 1px solid rgba(213, 230, 248, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.composer-search-panel .tabs button {
+  min-width: 0;
+  height: 42px;
+  justify-content: center;
+  white-space: nowrap;
+  border-radius: 14px;
+  color: #31466d;
+}
+
+.composer-search-panel .tabs .active {
+  color: #075edb;
+  background: linear-gradient(135deg, #ffffff, #eef7ff);
+  box-shadow: 0 8px 18px rgba(7, 94, 219, 0.09), inset 0 1px 0 rgba(255,255,255,.98);
+}
+
+.composer-fields {
+  display: grid;
+  grid-template-columns: minmax(270px, 2fr) minmax(230px, 1.12fr) minmax(210px, .92fr) minmax(250px, 1.05fr) minmax(150px, .72fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.composer-fields .field,
+.composer-fields .destination-field,
+.composer-fields .compact-field,
+.composer-fields .smart-travel-field {
+  min-width: 0;
+  min-height: 72px;
+  height: auto;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(205, 224, 246, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 7px 18px rgba(15, 62, 119, 0.045);
+}
+
+.composer-fields .field:focus-within,
+.composer-fields .destination-field:focus-within,
+.composer-fields .compact-field:focus-within,
+.composer-fields .smart-travel-field:focus-within {
+  border-color: rgba(7, 94, 219, 0.42);
+  box-shadow: 0 0 0 4px rgba(7, 94, 219, 0.08), inset 0 1px 0 rgba(255,255,255,.95);
+}
+
+.composer-fields .field span,
+.composer-fields .destination-field span,
+.composer-fields .compact-field span,
+.composer-fields .smart-travel-field span,
+.composer-fields label > span {
+  margin-bottom: 8px;
+  color: #61749a;
+  font-size: 11px;
+  letter-spacing: .035em;
+}
+
+.composer-fields .field p,
+.composer-fields .destination-field p,
+.composer-fields .compact-field p {
+  min-height: 26px;
+  color: #122c58;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.composer-fields input,
+.composer-fields select {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-summary-field {
+  position: relative;
+  min-width: 0;
+  min-height: 72px;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(205, 224, 246, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 7px 18px rgba(15, 62, 119, 0.045);
+}
+
+.composer-summary-field[open] {
+  z-index: 18;
+  border-color: rgba(7, 94, 219, 0.42);
+  box-shadow: 0 0 0 4px rgba(7, 94, 219, 0.08), 0 18px 38px rgba(15, 62, 119, 0.14);
+}
+
+.composer-summary-field summary {
+  min-height: 72px;
+  padding: 13px 16px 12px;
+  cursor: pointer;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.composer-summary-field summary > span:first-child {
+  color: #61749a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .035em;
+}
+
+.composer-summary-field summary small {
+  color: #6b7f9f;
+  font-size: 11px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-date-summary,
+.composer-traveller-summary {
+  grid-column: auto;
+}
+
+.composer-date-summary .composer-summary-main,
+.composer-traveller-summary .composer-summary-main {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: #122c58;
+  font-size: 15px;
+  font-weight: 950;
+  line-height: 1.18;
+}
+
+.composer-date-summary .composer-summary-main svg,
+.composer-traveller-summary .composer-summary-main svg {
+  flex: 0 0 auto;
+  color: #075edb;
+}
+
+.composer-date-summary .composer-summary-main b,
+.composer-traveller-summary .composer-summary-main b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-summary-popover {
+  position: absolute;
+  left: 0;
+  top: 82px;
+  width: 520px;
+  max-width: 88vw;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.98);
+  border: 1px solid rgba(205, 224, 246, 0.96);
+  box-shadow: 0 24px 60px rgba(8, 42, 98, 0.18);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.composer-traveller-popover {
+  right: 0;
+  left: auto;
+  width: 430px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.composer-summary-popover .field,
+.composer-summary-popover .compact-field {
+  min-height: 64px;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.composer-searchbtn {
+  min-height: 72px;
+  height: auto;
+  border-radius: 17px;
+  font-size: 16px;
+  letter-spacing: .01em;
+  box-shadow: 0 16px 28px rgba(232, 154, 0, 0.22), inset 0 1px 0 rgba(255,255,255,.45);
+}
+
+.composer-searchbtn svg {
+  transform: translateX(2px);
+}
+
+.composer-search-panel .popular {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0 2px;
+  padding-top: 2px;
+}
+
+.composer-search-panel .popular span {
+  margin-right: 4px;
+  color: #6e7f9b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.composer-search-panel .popular button {
+  min-height: 25px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.7);
+  border: 1px solid rgba(203, 222, 244, 0.9);
+  color: #075edb;
+  box-shadow: none;
+}
+
+@media (max-width: 1180px) {
+  .composer-fields {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .composer-date-summary,
+  .composer-traveller-summary {
+    grid-column: span 1;
+  }
+
+  .composer-searchbtn {
+    grid-column: 3;
+  }
+}
+
+@media (max-width: 940px) {
+  .composer-search-panel .tabs {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .composer-search-panel .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .composer-search-panel .tabs button {
+    flex: 0 0 auto;
+    padding-inline: 15px;
+  }
+
+  .composer-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .composer-fields .destination-field {
+    grid-column: 1 / -1;
+  }
+
+  .composer-summary-popover,
+  .composer-traveller-popover {
+    position: static;
+    width: auto;
+    max-width: none;
+    margin: 0 12px 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.96), 0 10px 24px rgba(15, 62, 119, 0.09);
+  }
+
+  .composer-searchbtn {
+    grid-column: 1 / -1;
+    min-height: 62px;
+  }
+}
+
+@media (max-width: 720px) {
+  .composer-search-panel {
+    padding: 14px;
+  }
+
+  .composer-fields {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .composer-fields .destination-field,
+  .composer-date-summary,
+  .composer-traveller-summary,
+  .composer-searchbtn {
+    grid-column: 1;
+  }
+
+  .composer-fields .field,
+  .composer-fields .destination-field,
+  .composer-fields .compact-field,
+  .composer-fields .smart-travel-field,
+  .composer-summary-field,
+  .composer-summary-field summary {
+    min-height: 66px;
+  }
+
+  .composer-summary-popover,
+  .composer-traveller-popover {
+    grid-template-columns: 1fr;
+    margin: 0 10px 10px;
+    padding: 10px;
+  }
+
+  .composer-searchbtn {
+    width: 100%;
+    min-height: 60px;
+  }
+
+  .composer-search-panel .popular {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .composer-search-panel .popular::-webkit-scrollbar {
+    display: none;
+  }
+
+  .composer-search-panel .popular span,
+  .composer-search-panel .popular button {
+    flex: 0 0 auto;
+  }
+}
