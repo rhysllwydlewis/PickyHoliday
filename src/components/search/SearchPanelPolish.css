@@ -1,65 +1,173 @@
-/* Homepage/search panel polish. */
-.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.composer-search-panel{isolation:isolate;overflow:visible}
-.composer-searchbtn{position:relative;overflow:hidden;min-width:142px;padding-inline:24px;letter-spacing:.01em;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
-.composer-searchbtn:before{content:"";position:absolute;inset:-40% auto auto -50%;width:46%;height:190%;background:linear-gradient(115deg,transparent 10%,rgba(255,255,255,.62) 46%,transparent 76%);transform:translateX(-80%) rotate(11deg);transition:transform .55s ease;pointer-events:none}
-.composer-searchbtn:hover{transform:translateY(-1px);filter:saturate(1.06);box-shadow:0 18px 32px rgba(232,154,0,.34)}
-.composer-searchbtn:hover:before{transform:translateX(320%) rotate(11deg)}
-.composer-searchbtn:active{transform:translateY(0)}
-.composer-searchbtn svg,.composer-searchbtn span:not(.sr-only){position:relative;z-index:1}
-.composer-searchbtn svg:last-child{transition:transform .18s ease}
-.composer-searchbtn:hover svg:last-child{transform:translateX(2px)}
-.searchbtn--loading{gap:9px;min-width:154px;filter:saturate(1.02)}
-.searchbtn--loading:before{display:none}
-.searchbtn--loading span:not(.sr-only){display:inline-flex;align-items:center;line-height:1}
-.composer-search-panel .popular button{border-radius:999px;padding:2px 8px;margin:-2px -8px;transition:background .16s ease,color .16s ease,transform .16s ease}
-.composer-search-panel .popular button:hover{background:#eef6ff;color:#075edb;transform:translateY(-1px)}
-@media(max-width:720px){.composer-searchbtn{min-width:0;padding-inline:18px}.searchbtn--loading{min-width:0}.composer-search-panel .popular button{margin:0}}
-@media(prefers-reduced-motion:reduce){.composer-searchbtn,.composer-searchbtn:before,.composer-searchbtn svg:last-child,.composer-search-panel .popular button{transition:none}.composer-searchbtn:hover,.composer-searchbtn:hover svg:last-child,.composer-search-panel .popular button:hover{transform:none}.composer-searchbtn:before{display:none}}
+/* Search panel polish restored after rolling back the broken compact composer. */
 
-/* Final search panel polish: premium, compact and mobile-safe without adding visual weight. */
-.composer-search-panel{background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,252,255,.96));border-color:rgba(196,219,244,.95);box-shadow:0 18px 42px rgba(15,62,119,.13),0 1px 0 rgba(255,255,255,.95) inset}
-.composer-search-panel .tabs{padding:2px}
-.tabs button,.composer-search-panel .tabs button{outline-offset:2px}
-.composer-search-panel .tabs button:hover{background:#eef6ff;color:#075edb;transform:translateY(-1px)}
-.composer-search-panel .tabs .active{background:#eaf4ff;color:#075edb;box-shadow:inset 0 0 0 1px #d7e8fb,0 6px 14px rgba(7,94,219,.08);transform:none}
-.composer-search-panel .tabs em{background:#fff3bf;color:#705000;border:1px solid #ffe39a}
-.composer-fields{align-items:stretch}
-.compact-field,.composer-fields .destination-field{background:#fff;border-color:#dbe8f7;box-shadow:0 1px 0 rgba(255,255,255,.9) inset;transition:border-color .16s ease,box-shadow .16s ease,background .16s ease}
-.compact-field:hover,.composer-fields .destination-field:hover{border-color:#c5daf2;background:#fbfdff}
-.compact-field:focus-within,.composer-fields .destination-field:focus-within{border-color:#7fb1ee;box-shadow:0 0 0 3px rgba(7,94,219,.12),0 1px 0 rgba(255,255,255,.9) inset}
-.composer-searchbtn{border-radius:14px;box-shadow:0 12px 24px rgba(232,154,0,.24);min-width:132px;padding-inline:22px}
-.composer-searchbtn:focus-visible{outline:3px solid rgba(255,180,0,.32);outline-offset:3px}
-.composer-searchbtn:hover{box-shadow:0 15px 28px rgba(232,154,0,.28)}
-.composer-searchbtn:active{filter:saturate(1);box-shadow:0 9px 18px rgba(232,154,0,.22)}
-.searchbtn--loading{min-width:148px}
-.composer-search-panel .popular{margin-left:2px;color:#6a7f9e}
-.composer-search-panel .popular span{font-weight:900;letter-spacing:.01em}
-.composer-search-panel .popular button{border-color:#dbe8f8;background:#fbfdff;color:#075edb;box-shadow:0 1px 0 rgba(255,255,255,.9) inset}
-.composer-search-panel .popular button:hover{background:#eef6ff;border-color:#cce0f6;color:#034fb9;transform:translateY(-1px)}
-.smart-suggestions{box-shadow:0 18px 38px rgba(8,42,98,.16)}
-@media(max-width:720px){.composer-search-panel{box-shadow:0 14px 30px rgba(15,62,119,.12)}.composer-search-panel .tabs{gap:8px}.composer-searchbtn{min-height:52px;border-radius:13px}.searchbtn--loading{min-width:0}}
-@media(prefers-reduced-motion:reduce){.composer-search-panel .tabs button,.compact-field,.composer-fields .destination-field{transition:none}.composer-search-panel .tabs button:hover{transform:none}}
+.composer-search-panel {
+  isolation: isolate;
+  overflow: visible;
+  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,252,255,.96));
+  border-color: rgba(196,219,244,.95);
+  box-shadow: 0 18px 42px rgba(15,62,119,.13), 0 1px 0 rgba(255,255,255,.95) inset;
+}
 
-/* PR #62 cascade hardening: keep the new compact composer above older homepage polish rules. */
-.search-panel.composer-search-panel .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:16px;padding:5px;border-radius:18px;background:rgba(244,249,255,.82)}
-.search-panel.composer-search-panel .tabs button{height:42px;min-width:0;justify-content:center;white-space:nowrap;border-radius:14px;color:#31466d}
-.search-panel.composer-search-panel .tabs .active{color:#075edb;background:linear-gradient(135deg,#fff,#eef7ff);box-shadow:0 8px 18px rgba(7,94,219,.09),inset 0 1px 0 rgba(255,255,255,.98)}
-.search-panel.composer-search-panel .composer-fields{display:grid;grid-template-columns:minmax(270px,2fr) minmax(230px,1.12fr) minmax(210px,.92fr) minmax(250px,1.05fr) minmax(150px,.72fr);gap:12px;align-items:stretch}
-.search-panel.composer-search-panel .composer-fields .field,.search-panel.composer-search-panel .composer-fields .destination-field,.search-panel.composer-search-panel .composer-fields .compact-field,.search-panel.composer-search-panel .composer-fields .smart-travel-field,.search-panel.composer-search-panel .composer-summary-field{min-width:0;min-height:72px;height:auto;border-radius:17px;background:rgba(255,255,255,.78);border:1px solid rgba(205,224,246,.92);box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 7px 18px rgba(15,62,119,.045)}
-.search-panel.composer-search-panel .composer-summary-field summary{list-style:none;min-height:72px;padding:13px 16px 12px;cursor:pointer;display:grid;align-content:center;gap:4px}
-.search-panel.composer-search-panel .composer-summary-field summary::-webkit-details-marker{display:none}
-.search-panel.composer-search-panel .composer-summary-field summary::marker{content:"";font-size:0}
-.search-panel.composer-search-panel .composer-summary-field summary>span:first-child{color:#61749a;font-size:11px;font-weight:800;letter-spacing:.035em}
-.search-panel.composer-search-panel .composer-summary-field summary small{color:#6b7f9f;font-size:11px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.search-panel.composer-search-panel .composer-summary-main{display:flex;align-items:center;gap:9px;min-width:0;color:#122c58;font-size:15px;font-weight:950;line-height:1.18}
-.search-panel.composer-search-panel .composer-summary-main svg{flex:0 0 auto;color:#075edb}
-.search-panel.composer-search-panel .composer-summary-main b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.search-panel.composer-search-panel .composer-summary-popover{position:absolute;left:0;top:82px;width:520px;max-width:88vw;padding:14px;border-radius:18px;background:rgba(255,255,255,.98);border:1px solid rgba(205,224,246,.96);box-shadow:0 24px 60px rgba(8,42,98,.18);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.search-panel.composer-search-panel .composer-traveller-popover{right:0;left:auto;width:430px;grid-template-columns:repeat(3,minmax(0,1fr))}
-.search-panel.composer-search-panel .composer-searchbtn{min-height:72px;height:auto;border-radius:17px;font-size:16px;letter-spacing:.01em;box-shadow:0 16px 28px rgba(232,154,0,.22),inset 0 1px 0 rgba(255,255,255,.45)}
-.search-panel.composer-search-panel .popular{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 0 2px;padding-top:2px}
-.search-panel.composer-search-panel .popular button{min-height:25px;padding:4px 11px;margin:0;border-radius:999px;background:rgba(255,255,255,.7);border:1px solid rgba(203,222,244,.9);color:#075edb;box-shadow:none}
-@media(max-width:1180px){.search-panel.composer-search-panel .composer-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.search-panel.composer-search-panel .composer-searchbtn{grid-column:1/-1}}
-@media(max-width:940px){.search-panel.composer-search-panel .tabs{display:flex;overflow-x:auto;scrollbar-width:none}.search-panel.composer-search-panel .tabs::-webkit-scrollbar{display:none}.search-panel.composer-search-panel .tabs button{flex:0 0 auto;padding-inline:15px}.search-panel.composer-search-panel .composer-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.search-panel.composer-search-panel .destination-field{grid-column:1/-1}.search-panel.composer-search-panel .composer-summary-popover,.search-panel.composer-search-panel .composer-traveller-popover{position:static;width:auto;max-width:none;margin:0 12px 12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.96),0 10px 24px rgba(15,62,119,.09)}.search-panel.composer-search-panel .composer-searchbtn{grid-column:1/-1;min-height:62px}}
-@media(max-width:720px){.search-panel.composer-search-panel{padding:14px}.search-panel.composer-search-panel .composer-fields{grid-template-columns:1fr;gap:10px}.search-panel.composer-search-panel .destination-field,.search-panel.composer-search-panel .composer-date-summary,.search-panel.composer-search-panel .composer-traveller-summary,.search-panel.composer-search-panel .composer-searchbtn{grid-column:1}.search-panel.composer-search-panel .composer-fields .field,.search-panel.composer-search-panel .composer-fields .destination-field,.search-panel.composer-search-panel .composer-fields .compact-field,.search-panel.composer-search-panel .composer-fields .smart-travel-field,.search-panel.composer-search-panel .composer-summary-field,.search-panel.composer-search-panel .composer-summary-field summary{min-height:66px}.search-panel.composer-search-panel .composer-summary-popover,.search-panel.composer-search-panel .composer-traveller-popover{grid-template-columns:1fr;margin:0 10px 10px;padding:10px}.search-panel.composer-search-panel .composer-searchbtn{width:100%;min-height:60px}.search-panel.composer-search-panel .popular{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}.search-panel.composer-search-panel .popular::-webkit-scrollbar{display:none}.search-panel.composer-search-panel .popular span,.search-panel.composer-search-panel .popular button{flex:0 0 auto}}
+.composer-search-panel .tabs {
+  padding: 2px;
+}
+
+.composer-search-panel .tabs button {
+  outline-offset: 2px;
+}
+
+.composer-search-panel .tabs button:hover {
+  background: #eef6ff;
+  color: #075edb;
+  transform: translateY(-1px);
+}
+
+.composer-search-panel .tabs .active {
+  background: #eaf4ff;
+  color: #075edb;
+  box-shadow: inset 0 0 0 1px #d7e8fb, 0 6px 14px rgba(7,94,219,.08);
+  transform: none;
+}
+
+.composer-search-panel .tabs em {
+  background: #fff3bf;
+  color: #705000;
+  border: 1px solid #ffe39a;
+}
+
+.composer-fields {
+  align-items: stretch;
+}
+
+.compact-field,
+.composer-fields .destination-field {
+  background: #fff;
+  border-color: #dbe8f7;
+  box-shadow: 0 1px 0 rgba(255,255,255,.9) inset;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.compact-field:hover,
+.composer-fields .destination-field:hover {
+  border-color: #c5daf2;
+  background: #fbfdff;
+}
+
+.compact-field:focus-within,
+.composer-fields .destination-field:focus-within {
+  border-color: #7fb1ee;
+  box-shadow: 0 0 0 3px rgba(7,94,219,.12), 0 1px 0 rgba(255,255,255,.9) inset;
+}
+
+.composer-searchbtn {
+  position: relative;
+  overflow: hidden;
+  min-width: 132px;
+  padding-inline: 22px;
+  border-radius: 14px;
+  letter-spacing: .01em;
+  box-shadow: 0 12px 24px rgba(232,154,0,.24);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.composer-searchbtn:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.06);
+  box-shadow: 0 15px 28px rgba(232,154,0,.28);
+}
+
+.composer-searchbtn:active {
+  transform: translateY(0);
+  filter: saturate(1);
+  box-shadow: 0 9px 18px rgba(232,154,0,.22);
+}
+
+.composer-searchbtn:focus-visible {
+  outline: 3px solid rgba(255,180,0,.32);
+  outline-offset: 3px;
+}
+
+.searchbtn--loading {
+  gap: 9px;
+  min-width: 148px;
+  filter: saturate(1.02);
+}
+
+.searchbtn--loading span:not(.sr-only) {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.composer-search-panel .popular {
+  margin-left: 2px;
+  color: #6a7f9e;
+}
+
+.composer-search-panel .popular span {
+  font-weight: 900;
+  letter-spacing: .01em;
+}
+
+.composer-search-panel .popular button {
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin: -2px -8px;
+  border-color: #dbe8f8;
+  background: #fbfdff;
+  color: #075edb;
+  box-shadow: 0 1px 0 rgba(255,255,255,.9) inset;
+  transition: background .16s ease, color .16s ease, transform .16s ease;
+}
+
+.composer-search-panel .popular button:hover {
+  background: #eef6ff;
+  border-color: #cce0f6;
+  color: #034fb9;
+  transform: translateY(-1px);
+}
+
+.smart-suggestions {
+  box-shadow: 0 18px 38px rgba(8,42,98,.16);
+}
+
+@media(max-width:720px) {
+  .composer-search-panel {
+    box-shadow: 0 14px 30px rgba(15,62,119,.12);
+  }
+
+  .composer-search-panel .tabs {
+    gap: 8px;
+  }
+
+  .composer-searchbtn {
+    min-width: 0;
+    min-height: 52px;
+    border-radius: 13px;
+    padding-inline: 18px;
+  }
+
+  .searchbtn--loading {
+    min-width: 0;
+  }
+
+  .composer-search-panel .popular button {
+    margin: 0;
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  .composer-searchbtn,
+  .composer-search-panel .popular button,
+  .composer-search-panel .tabs button,
+  .compact-field,
+  .composer-fields .destination-field {
+    transition: none;
+  }
+
+  .composer-searchbtn:hover,
+  .composer-search-panel .popular button:hover,
+  .composer-search-panel .tabs button:hover {
+    transform: none;
+  }
+}
