@@ -1,4 +1,4 @@
-/* Search panel polish restored after rolling back the broken compact composer. */
+/* Search panel polish after PR63: keep individual controls, improve sizing and spacing safely. */
 
 .composer-search-panel {
   isolation: isolate;
@@ -9,7 +9,7 @@
 }
 
 .composer-search-panel .tabs {
-  padding: 2px;
+  padding: 3px;
 }
 
 .composer-search-panel .tabs button {
@@ -57,6 +57,20 @@
 .composer-fields .destination-field:focus-within {
   border-color: #7fb1ee;
   box-shadow: 0 0 0 3px rgba(7,94,219,.12), 0 1px 0 rgba(255,255,255,.9) inset;
+}
+
+.composer-fields input,
+.composer-fields select {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.composer-fields .field p,
+.composer-fields .destination-field p,
+.composer-fields .compact-field p {
+  min-width: 0;
 }
 
 .composer-searchbtn {
@@ -111,13 +125,14 @@
 
 .composer-search-panel .popular button {
   border-radius: 999px;
-  padding: 2px 8px;
-  margin: -2px -8px;
+  padding: 3px 10px;
+  margin: 0;
+  min-height: 26px;
   border-color: #dbe8f8;
-  background: #fbfdff;
+  background: rgba(251,253,255,.88);
   color: #075edb;
   box-shadow: 0 1px 0 rgba(255,255,255,.9) inset;
-  transition: background .16s ease, color .16s ease, transform .16s ease;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
 }
 
 .composer-search-panel .popular button:hover {
@@ -131,9 +146,9 @@
   box-shadow: 0 18px 38px rgba(8,42,98,.16);
 }
 
-/* Conservative desktop fix: keep existing controls but give each one a predictable place. */
+/* Desktop: stable two-row search grid. Do not reintroduce grouped date/traveller popovers here. */
 .search-panel.composer-search-panel .composer-fields {
-  grid-template-columns: minmax(320px, 1.55fr) minmax(260px, 1.25fr) minmax(155px, .72fr) minmax(155px, .72fr) minmax(150px, .68fr);
+  grid-template-columns: minmax(320px, 1.6fr) minmax(270px, 1.3fr) minmax(160px, .74fr) minmax(160px, .74fr) minmax(150px, .7fr);
   gap: 12px;
   align-items: stretch;
 }
@@ -195,14 +210,6 @@
   min-height: 70px;
 }
 
-.search-panel.composer-search-panel .depart-field input,
-.search-panel.composer-search-panel .return-field input,
-.search-panel.composer-search-panel .nights-field input,
-.search-panel.composer-search-panel .flexibility-field select {
-  width: 100%;
-  min-width: 0;
-}
-
 .search-panel.composer-search-panel .depart-field,
 .search-panel.composer-search-panel .return-field,
 .search-panel.composer-search-panel .nights-field,
@@ -212,6 +219,12 @@
 
 .search-panel.composer-search-panel .composer-searchbtn {
   min-height: 70px;
+}
+
+@media(max-width:1280px) {
+  .search-panel.composer-search-panel .composer-fields {
+    grid-template-columns: minmax(300px, 1.45fr) minmax(240px, 1.15fr) minmax(150px, .72fr) minmax(150px, .72fr) minmax(142px, .68fr);
+  }
 }
 
 @media(max-width:1180px) {
@@ -254,9 +267,15 @@
     gap: 10px;
   }
 
+  .search-panel.composer-search-panel .destination-field,
+  .search-panel.composer-search-panel .airport-field,
+  .search-panel.composer-search-panel .search-action-field {
+    grid-column: auto;
+  }
+
   .composer-searchbtn {
     min-width: 0;
-    min-height: 52px;
+    min-height: 56px;
     border-radius: 13px;
     padding-inline: 18px;
   }
@@ -265,8 +284,20 @@
     min-width: 0;
   }
 
+  .composer-search-panel .popular {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .composer-search-panel .popular::-webkit-scrollbar {
+    display: none;
+  }
+
+  .composer-search-panel .popular span,
   .composer-search-panel .popular button {
-    margin: 0;
+    flex: 0 0 auto;
   }
 }
 
