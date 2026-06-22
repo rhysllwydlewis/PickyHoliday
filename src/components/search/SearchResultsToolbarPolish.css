@@ -47,3 +47,11 @@
 @media(max-width:1100px){.search-results-toolbar-actions{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.search-sort-control,.search-map-button,.search-mobile-filter-button{width:100%}.search-mobile-filters .search-filters-content.is-open{margin-top:0}}
 @media(max-width:720px){.search-results-toolbar{border-radius:18px;padding:12px}.search-results-toolbar-actions{grid-template-columns:1fr}.search-results-count{font-size:21px}.search-filters-content{border-radius:18px;padding:13px}.search-filter-section label{min-height:40px}.search-results-applied-filters{border-radius:15px}.search-result-skeleton{grid-template-columns:1fr;height:auto;min-height:0;border-radius:20px}.search-result-skeleton .search-result-card-media{height:auto;min-height:190px;border-radius:20px 20px 0 0}.search-result-skeleton .search-result-card-price{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.search-filter-section label{transition:none}}
+.search-results-recovery{display:grid;gap:16px;text-align:left;background:linear-gradient(135deg,#fff,#f6fbff);border-style:solid;border-color:#cfe0f4}
+.search-results-recovery-kicker{display:inline-flex;width:max-content;border-radius:999px;background:#eef6ff;color:#075edb;padding:6px 10px;font-size:11px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
+.search-results-recovery p{max-width:720px;margin:8px 0 0;color:#617692;line-height:1.5}
+.search-results-recovery ul{display:grid;gap:8px;margin:0;padding-left:20px;color:#395177;font-size:13px;line-height:1.45}
+.search-results-recovery-actions{display:flex;flex-wrap:wrap;gap:10px}
+.search-results-recovery-actions button{min-height:42px;border-radius:999px;background:#075edb;color:#fff;padding:0 16px;font-weight:1000;box-shadow:0 10px 20px rgba(7,94,219,.14)}
+.search-results-recovery-actions .search-results-secondary-action{background:#eef6ff;color:#075edb;box-shadow:none}
+@media(max-width:720px){.search-results-recovery{gap:14px}.search-results-recovery-actions{display:grid}.search-results-recovery-actions button{width:100%}}

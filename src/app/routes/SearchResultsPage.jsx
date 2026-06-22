@@ -317,6 +317,36 @@ function SearchQuoteStrip({ results, onQuote, variant = '' }) {
   );
 }
 
+
+function SearchResultsRecoveryPanel({ title, message, criteria, activeFilters = [], onClearFilters, onQuote, primaryAction = 'quote' }) {
+  const destination = criteria.destination?.trim() || 'your group';
+  const hasFilters = activeFilters.length > 0;
+  return (
+    <section className="empty-state search-results-empty search-results-recovery" aria-labelledby="search-results-recovery-title">
+      <div>
+        <span className="search-results-recovery-kicker">Still planning?</span>
+        <h2 id="search-results-recovery-title">{title}</h2>
+        <p>{message}</p>
+      </div>
+      <ul aria-label="Ways to improve this search">
+        {hasFilters && <li>Remove one or two filters to widen the matching holiday ideas.</li>}
+        <li>Try flexible dates or nearby airports if {destination} is not fixed.</li>
+        <li>Ask us to check room mixes, child ages and group extras before any partner confirmation.</li>
+      </ul>
+      <div className="search-results-recovery-actions">
+        {hasFilters && (
+          <button type="button" className="search-results-secondary-action" onClick={onClearFilters}>
+            Clear filters
+          </button>
+        )}
+        <button type="button" onClick={() => onQuote([])}>
+          {primaryAction === 'retry' ? 'Ask for manual help' : 'Ask for group quote'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function SearchResultsPage({
   onOpenDeal,
   isShortlisted,
@@ -591,23 +621,34 @@ export function SearchResultsPage({
             </div>
           )}
 
+          {!isLoading && error && (
+            <SearchResultsRecoveryPanel
+              title="We could not load live holiday ideas."
+              message="The live search has not responded, but your trip details can still be sent for advisor follow-up."
+              criteria={criteria}
+              onClearFilters={clearFilters}
+              onQuote={onQuote}
+              primaryAction="retry"
+            />
+          )}
           {!isLoading && !error && results.length > 0 && displayedResults.length === 0 && (
-            <div className="empty-state search-results-empty">
-              <h2>No ideas match these filters yet.</h2>
-              <p>Try flexible dates, a different airport or a wider budget.</p>
-              <button type="button" onClick={clearFilters}>
-                Clear filters
-              </button>
-            </div>
+            <SearchResultsRecoveryPanel
+              title="No ideas match these filters yet."
+              message="Your search has results, but the current filters are too narrow for this group trip."
+              criteria={criteria}
+              activeFilters={activeFilters}
+              onClearFilters={clearFilters}
+              onQuote={onQuote}
+            />
           )}
           {!isLoading && !error && results.length === 0 && (
-            <div className="empty-state search-results-empty">
-              <h2>No ideas match this search yet.</h2>
-              <p>Try flexible dates, a different airport or a wider budget.</p>
-              <button type="button" onClick={() => onQuote([])}>
-                Ask for group quote
-              </button>
-            </div>
+            <SearchResultsRecoveryPanel
+              title="No ideas match this search yet."
+              message="We can still help sense-check the destination, dates and room mix before you commit elsewhere."
+              criteria={criteria}
+              onClearFilters={clearFilters}
+              onQuote={onQuote}
+            />
           )}
 
           <SearchQuoteStrip results={displayedResults} onQuote={onQuote} />
